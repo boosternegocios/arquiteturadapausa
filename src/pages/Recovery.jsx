@@ -1,0 +1,448 @@
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Sidebar } from '../components/Sidebar'
+import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
+import { 
+  ArrowLeft, ArrowRight, Save, LayoutDashboard, Settings, LogOut, CheckCircle, Plus, Trash2, FileText
+} from 'lucide-react'
+
+// Step configs
+const STEPS = [
+  { id: 'satisfaction', number: 1, title: '1 Quão satisfeito você está com seu nível de...', subtitle: 'Usando uma escala de 1 (mais baixo) a 10 (mais alto)' },
+  { id: 'time-relation', number: 2, title: '2 Reflita sobre sua relação com o tempo', subtitle: 'Em uma escala de 1 a 10, quanto você:' },
+  { id: 'internal-speed', number: 3, title: '3 Reflita sobre sua velocidade interna', subtitle: 'Você se considera uma pessoa:' },
+  { id: 'rhythm', number: 4, title: '4 Reflita sobre seu ritmo de vida', subtitle: 'Identifique as áreas que demandam energia e projete ações práticas para restaurar o equilíbrio e a pausa produtiva.' },
+  { id: 'cycle', number: 5, title: '5 Entenda seus Ciclos', subtitle: 'A reflexão sobre os ciclos nos ajuda a quebrar a inércia do desgaste.' },
+  { id: 'time-tips', number: 6, title: '6 Reflita sobre sua relação com o tempo', subtitle: 'Mude a perspectiva sobre como você gasta a sua vida.' },
+  { id: 'pauses', number: 7, title: '7 Estratégias para Pausas Intencionais', subtitle: 'Passos fundamentais para recuperar energia vital.' }
+]
+
+const QUESTIONS = {
+  satisfaction: [
+    { key: 'foco', label: 'Foco' },
+    { key: 'produtividade', label: 'Produtividade' },
+    { key: 'felicidade', label: 'Felicidade' },
+    { key: 'realizacao', label: 'Realização' },
+    { key: 'ritmo', label: 'Seu ritmo de vida' },
+  ],
+  time_relation: [
+    { key: 'equilibrio', label: 'Equilibra o tempo para: trabalho, outros e si mesmo' },
+    { key: 'importancia', label: 'Define bem a importância e a urgência das atividades' },
+    { key: 'mensagens', label: 'Evita enviar msgs fora do horário de trabalho' },
+    { key: 'tempo_livre', label: 'Considera seu tempo livre semanal satisfatório' },
+    { key: 'limite_corpo', label: 'Já desrespeitou o limite do seu corpo por excesso de atividades' },
+    { key: 'stress', label: 'Sente stress crônico nos últimos meses' },
+  ],
+  internal_speed: [
+    { key: 'acelerada_lenta', label: 'Acelerada ou lenta?' },
+    { key: 'focada_relaxada', label: 'Focada ou relaxada?' },
+    { key: 'paciente_impaciente', label: 'Paciente ou impaciente?' },
+    { key: 'ponderada_impulsiva', label: 'Ponderada ou impulsiva?' },
+    { key: 'decisao_rapida_lenta', label: 'Toma decisões rápida ou lentamente?' },
+  ]
+}
+
+export const Recovery = () => {
+  const { step } = useParams()
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [evaluationId, setEvaluationId] = useState(null)
+
+  const currentStepInfo = STEPS.find(s => s.id === step) || STEPS[0]
+  const isLastStep = currentStepInfo.number === STEPS.length
+
+  const [formData, setFormData] = useState({
+    satisfaction: {},
+    time_relation: {},
+    internal_speed: {},
+    rhythm_impacts: [{ id: 1, aspect: '', action: '' }, { id: 2, aspect: '', action: '' }, { id: 3, aspect: '', action: '' }, { id: 4, aspect: '', action: '' }, { id: 5, aspect: '', action: '' }]
+  })
+
+  useEffect(() => {
+    const fetchEvaluation = async () => {
+      if (!user) return
+      setLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('evaluations')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        if (error) throw error
+        
+        if (data && data.length > 0) {
+          setEvaluationId(data[0].id)
+          setFormData(prev => ({
+            ...prev,
+            satisfaction: data[0].solution_satisfaction || {},
+            time_relation: data[0].solution_time_relation || {},
+            internal_speed: data[0].solution_internal_speed || {},
+            rhythm_impacts: (data[0].solution_rhythm_impacts && data[0].solution_rhythm_impacts.length > 0) 
+              ? data[0].solution_rhythm_impacts 
+              : prev.rhythm_impacts
+          }))
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchEvaluation()
+  }, [user])
+
+  const handleSave = async (isFinal = false) => {
+    if (!evaluationId) return
+    setSaving(true)
+    try {
+      const updates = {
+        solution_satisfaction: formData.satisfaction,
+        solution_time_relation: formData.time_relation,
+        solution_internal_speed: formData.internal_speed,
+        solution_rhythm_impacts: formData.rhythm_impacts.filter(r => r.aspect.trim() || r.action.trim()),
+        solution_status: isFinal ? 'completed' : 'draft'
+      }
+
+      const { error } = await supabase
+        .from('evaluations')
+        .update(updates)
+        .eq('id', evaluationId)
+
+      if (error) throw error
+
+      if (isFinal) {
+        navigate('/specific-solution')
+      } else {
+        const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
+        if (nextStepIndex < STEPS.length) {
+          navigate(`/recovery/${STEPS[nextStepIndex].id}`)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao salvar formulário:', error)
+      alert('Erro no banco de dados: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login')
+  }
+
+  const renderScale1to10 = (section, questions) => (
+    <div className="space-y-10">
+      {questions.map((q, index) => (
+        <div key={q.key} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${index * 100}ms` }}>
+          <h3 className="text-xl font-bold text-slate-800 mb-6">{q.label}</h3>
+          <div className="flex justify-between md:justify-start gap-2 md:gap-4 flex-wrap">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => {
+              const isSelected = formData[section][q.key] === val
+              // Decide color based on value
+              let colorClass = 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'
+              if (isSelected) {
+                if (val <= 3) colorClass = 'bg-slate-800 text-white border-slate-800 shadow-md'
+                else if (val <= 6) colorClass = 'bg-[#eb6496] text-white border-[#eb6496] shadow-md'
+                else colorClass = 'bg-[#1ed7a4] text-white border-[#1ed7a4] shadow-md text-slate-800 font-black'
+              }
+
+              return (
+                <button
+                  key={val}
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    [section]: { ...prev[section], [q.key]: val }
+                  }))}
+                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full border-2 flex items-center justify-center font-bold text-lg transition-all duration-200 ${colorClass} ${isSelected ? 'scale-110' : 'hover:scale-105'}`}
+                >
+                  {val}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  const renderBipolarScale = () => (
+    <div className="space-y-12">
+      <p className="text-slate-500 font-medium mb-8">Posicione o controle conforme você mais se identifica.</p>
+      {QUESTIONS.internal_speed.map((q, index) => {
+        const parts = q.label.replace('?', '').split(' ou ')
+        const leftLabel = parts[0]
+        const rightLabel = parts[1] || parts[0]
+        const currentValue = formData.internal_speed[q.key] || 5
+
+        return (
+          <div key={q.key} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${index * 100}ms` }}>
+            <div className="flex justify-between items-center mb-6">
+              <span className={`font-bold text-lg ${currentValue < 5 ? 'text-[#eb6496]' : 'text-slate-400'}`}>{leftLabel}</span>
+              <span className={`font-bold text-lg ${currentValue > 6 ? 'text-[#1ed7a4]' : 'text-slate-400'}`}>{rightLabel}</span>
+            </div>
+            <div className="relative pt-6 pb-2">
+              {/* Fake track */}
+              <div className="absolute top-8 left-0 right-0 h-2 bg-slate-200 rounded-full"></div>
+              {/* Value indicator connecting line if wanted, but simpler to just use input range */}
+              <input 
+                type="range"
+                min="1"
+                max="10"
+                value={currentValue}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  internal_speed: { ...prev.internal_speed, [q.key]: parseInt(e.target.value) }
+                }))}
+                className="w-full relative z-10 accent-[#eb6496] appearance-none bg-transparent h-2 rounded-full outline-none"
+                style={{
+                   // A simple custom style for thumb
+                   WebkitAppearance: 'none'
+                }}
+              />
+              <div className="flex justify-between px-1 mt-4 text-xs font-bold text-slate-300">
+                {[1,2,3,4,5,6,7,8,9,10].map(n => <span key={n}>{n}</span>)}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  const renderRhythmForm = () => (
+    <div className="space-y-12 relative max-w-4xl">
+      {/* Vertical line timeline */}
+      <div className="absolute left-[23px] top-6 bottom-6 w-[2px] bg-slate-200 z-0"></div>
+      
+      {formData.rhythm_impacts.map((item, index) => (
+        <div key={item.id} className="relative z-10 flex gap-6 md:gap-8 group">
+          {/* Timeline Node */}
+          <div className="shrink-0 w-12 h-12 rounded-full bg-[#1ed7a4] text-white flex items-center justify-center font-black text-xl shadow-lg shadow-[#1ed7a4]/30 border-4 border-[#fcfaf5]">
+            {String(index + 1).padStart(2, '0')}
+          </div>
+          
+          {/* Card */}
+          <div className="flex-1 bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 transition-all hover:shadow-md">
+            <div className="mb-6">
+              <label className="block text-xs font-black uppercase text-[#eb6496] tracking-widest mb-3">Fator de Impacto</label>
+              <input 
+                type="text"
+                placeholder="Ex: Excesso de notificações digitais"
+                value={item.aspect}
+                onChange={(e) => {
+                  const newImpacts = [...formData.rhythm_impacts]
+                  newImpacts[index].aspect = e.target.value
+                  setFormData({...formData, rhythm_impacts: newImpacts})
+                }}
+                className="w-full bg-[#f4ece3]/50 p-4 rounded-xl border-none font-medium text-slate-700 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#1ed7a4]/30"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase text-slate-500 tracking-widest mb-3">Ação de Mitigação</label>
+              <textarea 
+                placeholder="Ex: Estabelecer janelas de 'modo foco' entre 9h e 11h"
+                value={item.action}
+                onChange={(e) => {
+                  const newImpacts = [...formData.rhythm_impacts]
+                  newImpacts[index].action = e.target.value
+                  setFormData({...formData, rhythm_impacts: newImpacts})
+                }}
+                rows={2}
+                className="w-full bg-[#f4ece3]/50 p-4 rounded-xl border-none font-medium text-slate-700 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#1ed7a4]/30 resize-none"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+      
+      <button 
+        onClick={() => setFormData(p => ({...p, rhythm_impacts: [...p.rhythm_impacts, { id: Date.now(), aspect: '', action: '' }]}))}
+        className="ml-20 flex items-center gap-2 text-slate-400 font-bold text-sm uppercase tracking-widest hover:text-[#eb6496] transition-colors"
+      >
+        <Plus size={18} /> Adicionar Linha
+      </button>
+    </div>
+  )
+
+  const renderCycleInfo = () => (
+    <div className="flex flex-col md:flex-row gap-12 md:gap-8 justify-center items-center h-full w-full max-w-5xl animate-in fade-in slide-in-from-bottom-4">
+      
+      {/* Ciclo Negativo */}
+      <div className="flex-1 flex flex-col items-center p-8 bg-slate-50/80 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="w-64 h-64 rounded-full border-dashed border-4 border-slate-300 relative flex items-center justify-center mb-8 rotate-12 transition-transform duration-1000 group-hover:rotate-45">
+          <div className="absolute -top-6 bg-slate-800 text-white p-3 rounded-xl shadow-lg border border-slate-700 w-40 text-center text-xs font-bold leading-tight z-10">Procrastinação<br/>Atraso<br/><span className="text-[10px] font-normal opacity-70">Volume</span></div>
+          <div className="absolute -right-12 bg-slate-800 text-white p-3 rounded-xl shadow-lg border border-slate-700 w-40 text-center text-xs font-bold leading-tight z-10">Ansiedade<br/>Frustração<br/><span className="text-[10px] font-normal opacity-70">Prazo inviável</span></div>
+          <div className="absolute -bottom-6 -left-6 bg-slate-800 text-white p-3 rounded-xl shadow-lg border border-slate-700 w-40 text-center text-xs font-bold leading-tight z-10">Fracasso<br/><span className="text-[10px] font-normal opacity-70">Culpa e incapacidade</span></div>
+          
+          <div className="w-32 h-32 rounded-full border-4 border-[#eb6496] border-t-transparent border-l-transparent opacity-30 animate-spin" style={{ animationDuration: '3s' }}></div>
+        </div>
+        <h3 className="text-3xl font-black text-slate-800 mb-2">Ciclo Negativo</h3>
+        <p className="text-sm font-bold uppercase tracking-widest text-slate-500 text-center">Volume de atividades irrealista</p>
+      </div>
+
+      <div className="text-slate-300 shrink-0 hidden md:block">
+        <ArrowRight size={40} strokeWidth={1} />
+      </div>
+
+      {/* Ciclo Realista */}
+      <div className="flex-1 flex flex-col items-center p-8 bg-gradient-to-br from-[#1ed7a4]/10 to-transparent rounded-[3rem] border border-[#1ed7a4]/20 shadow-sm relative overflow-hidden group">
+        <div className="w-64 h-64 rounded-full border-solid border-4 border-[#1ed7a4]/30 relative flex items-center justify-center mb-8 -rotate-12 transition-transform duration-1000 group-hover:rotate-0">
+          <div className="absolute -top-6 -left-6 bg-white text-[#004b4c] p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-40 text-center text-sm font-black leading-tight z-10">Hierarquizar<br/>Atividades</div>
+          <div className="absolute -right-6 top-1/2 -translate-y-1/2 bg-white text-[#004b4c] p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-40 text-center text-sm font-black leading-tight z-10">Melhor feito<br/>que perfeito</div>
+          <div className="absolute -bottom-8 left-8 bg-white text-[#004b4c] p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-44 text-center text-sm font-black leading-tight z-10">Foco individual e<br/>Pacto coletivo</div>
+          
+          <div className="w-32 h-32 rounded-full border-4 border-[#1ed7a4] border-b-transparent border-r-transparent opacity-60 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }}></div>
+        </div>
+        <h3 className="text-3xl font-black text-[#004b4c] mb-2">Ciclo Realista</h3>
+        <p className="text-sm font-bold uppercase tracking-widest text-[#1ed7a4] text-center">Avaliar o possível dentro do tempo</p>
+      </div>
+
+    </div>
+  )
+
+  const renderTimeTips = () => {
+    const list = [
+      { id: '01', title: 'Seu tempo não é só seu', desc: 'Há o horário do trabalho e o tempo de cuidado com os outros, use o resto com sabedoria' },
+      { id: '02', title: 'Nem tudo é urgente', desc: 'Defina uma ordem de importância e a prioridade para realização das coisas' },
+      { id: '03', title: 'Excesso de trabalho não é status', desc: 'Stress contínuo não significa produtividade e pode ser a causa de algum problema grave.' },
+      { id: '04', title: 'Dinheiro não compra saúde', desc: 'Quando desconsideramos constantemente os limites do corpo as consequências chegam' },
+      { id: '05', title: 'Desacelerar não é deixar de fazer', desc: 'Respeite o ritmo do seu corpo e dos outros, incluindo momentos de descanso para aumentar a produtividade' },
+      { id: '06', title: 'Estabeleça limites', desc: 'Produtividade também precisa de tempo livre. Comece com o seu exemplo, evite enviar msgs fora do horário de trabalho.' },
+      { id: '07', title: 'Disciplina é liberdade', desc: 'Pensamos antes de gastar 1h em uma tarefa mas não antes de olhar o celular 1 min. Sera que foi so 1 min?' },
+    ]
+    return (
+      <div className="flex flex-col rounded-3xl overflow-hidden bg-white border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-4">
+        {list.map((item, index) => (
+          <div key={item.id} className={`flex gap-6 p-6 md:p-8 ${index !== list.length - 1 ? 'border-b border-slate-100' : ''} hover:bg-slate-50 transition-colors group`}>
+            <div className="text-3xl md:text-4xl font-black text-[#1ed7a4]/50 group-hover:text-[#1ed7a4] transition-colors shrink-0 pt-1 w-12">{item.id}</div>
+            <div className="flex-1 md:flex md:gap-8 items-start">
+              <h4 className="text-lg md:text-xl font-bold text-slate-800 md:w-1/3 shrink-0 mb-2 md:mb-0 leading-tight">{item.title}</h4>
+              <p className="text-slate-500 font-medium text-sm md:text-base leading-relaxed md:w-2/3">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const renderPauses = () => {
+    const list = [
+      { id: '01', title: 'Permissão para Pausar', desc: 'Lembre a si mesmo que as pausas são necessárias, não opcionais.' },
+      { id: '02', title: 'Comunicações em Lotes', desc: 'Designe horários específicos para e-mails e mensagens para ampliar o foco.' },
+      { id: '03', title: 'Repense a duração das reuniões', desc: 'Opte por reuniões mais curtas para criar oportunidades de micropausa.' },
+      { id: '04', title: 'Imponha Limites', desc: 'Respeite seu tempo terminando as reuniões conforme o programado.' },
+      { id: '05', title: 'Agende e Lembre', desc: 'Planeje as pausas, especialmente quando sua energia cair à tarde.' },
+      { id: '06', title: 'Abrace as Pausas Inesperadas', desc: 'Use qualquer tempo de inatividade para se recarregar.' },
+    ]
+    return (
+      <div className="grid gap-6 md:gap-8 animate-in fade-in slide-in-from-bottom-4">
+        {list.map((item, index) => (
+          <div key={item.id} className="flex gap-6 md:gap-8 items-start group">
+            <div className="text-4xl md:text-5xl font-black text-[#eb6496]/20 group-hover:text-[#eb6496] transition-colors shrink-0 tracking-tighter w-16">{item.id}</div>
+            <div className="bg-white p-6 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm flex-1 transform transition-all group-hover:-translate-y-1 group-hover:shadow-md">
+              <span className="font-bold text-lg md:text-xl text-[#004b4c] block mb-2">{item.title}</span>
+              <span className="text-slate-500 text-sm md:text-base font-medium leading-relaxed">{item.desc}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const renderCurrentStep = () => {
+    if (loading) return <div className="flex-1 flex justify-center items-center"><div className="w-10 h-10 border-4 border-[#1ed7a4]/20 border-t-[#1ed7a4] rounded-full animate-spin"></div></div>
+
+    if (step === 'satisfaction') return renderScale1to10('satisfaction', QUESTIONS.satisfaction)
+    if (step === 'time-relation') return renderScale1to10('time_relation', QUESTIONS.time_relation)
+    if (step === 'internal-speed') return renderBipolarScale()
+    if (step === 'rhythm') return renderRhythmForm()
+    if (step === 'cycle') return renderCycleInfo()
+    if (step === 'time-tips') return renderTimeTips()
+    if (step === 'pauses') return renderPauses()
+    
+    return null
+  }
+
+  return (
+    <div className="bg-[#fcfaf5] text-slate-900 min-h-screen font-display">
+      <div className="flex h-screen overflow-hidden">
+        
+        {/* Sidebar Matches Second Image perfectly (Mentoria e Negócios) */}
+        <Sidebar />
+
+        {/* Main Area */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[1000px] mx-auto w-full p-8 md:p-14 lg:p-20">
+            
+            {/* Header / Progress element matching Image 1 */}
+            <div className="mb-14">
+              <div className="flex items-center gap-3 mb-10">
+                <div className="flex gap-1.5">
+                  {STEPS.map((s, i) => (
+                    <div key={s.id} className={`h-1.5 rounded-full ${i < currentStepInfo.number ? 'bg-[#004b4c] w-8' : 'bg-[#e2dacb] w-6'}`}></div>
+                  ))}
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#004b4c] ml-2">PASSO {currentStepInfo.number} DE {STEPS.length}</span>
+              </div>
+              
+              <h2 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#004b4c] tracking-tighter leading-[1.05] mb-6 font-display" style={{ fontFamily: 'Oswald, "Barlow Condensed", "Arial Narrow", sans-serif', transform: 'scaleY(1.1)', transformOrigin: 'left' }}>
+                {currentStepInfo.title}
+              </h2>
+              <p className="text-xl text-slate-500 font-medium">
+                {currentStepInfo.subtitle}
+              </p>
+            </div>
+
+            {/* Questions Container */}
+            <div className="pb-32">
+              {renderCurrentStep()}
+            </div>
+
+          </div>
+        </main>
+
+        {/* Footer Actions */}
+        <div className="fixed bottom-0 right-0 left-56 md:left-64 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-8 px-10 md:px-20 z-30 pointer-events-none">
+          <div className="max-w-[1000px] mx-auto w-full flex justify-between items-center pointer-events-auto">
+            <button 
+              onClick={() => {
+                const prevStepIndex = STEPS.findIndex(s => s.id === step) - 1
+                if (prevStepIndex >= 0) {
+                  navigate(`/recovery/${STEPS[prevStepIndex].id}`)
+                } else {
+                  navigate(-1)
+                }
+              }}
+              className="flex items-center gap-2 font-bold text-slate-500 uppercase tracking-widest text-sm hover:text-slate-800 transition-colors"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} /> Voltar
+            </button>
+            <div className="flex gap-6 items-center">
+              <button 
+                onClick={() => handleSave(false)} 
+                disabled={saving}
+                className="font-bold text-slate-600 uppercase tracking-widest text-xs hover:text-slate-900 transition-colors"
+              >
+                Salvar Rascunho
+              </button>
+              <button 
+                onClick={() => handleSave(isLastStep)}
+                disabled={saving}
+                className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-8 py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
+              >
+                {isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'} <ArrowRight size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  )
+}

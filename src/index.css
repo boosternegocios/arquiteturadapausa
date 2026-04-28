@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #004b4c;
+  --color-accent: #00d1d2;
+  --color-mint: #39e3bd;
+  --color-beige-bg: #f8f3e9;
+  --color-background-light: #f8f3e9;
+  --color-background-dark: #0f2323;
+  --color-brand-pink: #e96197;
+  --font-display: "Manrope", sans-serif;
+}
+
+
+:root {
+  --primary: #044b4c;
+  --primary-hover: #033a3b;
+  --secondary: #ec5d9e; /* Pink button */
+  --secondary-hover: #db4d8e;
+  
+  --mint: #3deeb3; /* Mint subtitle and floating button */
+  
+  --background: #fdfaf3; /* Beige auth background */
+  --surface: #ffffff;
+  
+  --text-primary: #044b4c; /* Dark teal is the primary text color here */
+  --text-secondary: #8c9ca1; /* Light grayish teal for placeholders/labels */
+  --text-inverse: #ffffff;
+  
+  --error: #e53e3e;
+  --error-bg: #fff5f5;
+  
+  --border: #e8ecef;
+  
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px; /* Pill shapes for inputs */
+  --radius-full: 9999px;
+
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+
+
+body {
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: var(--primary-hover);
+}
+
+/* Utilities */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Form Elements Reset */
+button, input, optgroup, select, textarea {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: 1.15;
+  margin: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}

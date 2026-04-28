@@ -1,0 +1,244 @@
+.auth-layout {
+  min-height: 100vh;
+  display: flex;
+  background-color: var(--background);
+}
+
+/* Left Hero Pane */
+.auth-hero {
+  flex: 1;
+  background: var(--primary);
+  /* Use a gradient to mimic the soft lighting in the dark teal background */
+  background: linear-gradient(180deg, #055556 0%, #033c3d 100%);
+  color: var(--text-inverse);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-hero::before {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  /* Fake some noise/texture or plant shapes if we had real SVGs */
+  background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.auth-hero-branding {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.auth-hero-logo h2 {
+  font-size: 2.25rem;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  margin: 0;
+  font-weight: 800;
+}
+
+.auth-hero-subtitle {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+  display: inline-block;
+  margin-top: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.auth-hero-content {
+  z-index: 10;
+  max-width: 480px;
+}
+
+.auth-hero-content h1 {
+  font-size: 6rem;
+  font-weight: 800;
+  color: var(--mint);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  margin-bottom: 2rem;
+  text-transform: uppercase;
+}
+
+.auth-hero-content p {
+  font-size: 1.125rem;
+  opacity: 0.9;
+  line-height: 1.6;
+  margin-bottom: 4rem;
+}
+
+.auth-hero-indicators {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.indicator {
+  width: 24px;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.indicator.active {
+  background-color: var(--secondary);
+}
+
+/* Right Form Pane */
+.auth-form-pane {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 2rem;
+}
+
+.auth-form-container {
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+}
+
+.auth-header {
+  margin-bottom: 3rem;
+}
+
+.auth-header h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.auth-header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.auth-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.auth-tab {
+  padding: 0.75rem 2rem 0.75rem 0;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.auth-tab:hover {
+  text-decoration: none;
+  color: var(--primary);
+}
+
+.auth-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--secondary);
+}
+
+.auth-content {
+  /* Forms inside */
+}
+
+/* Form overrides specific to this layout */
+.auth-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin: 1.5rem 0;
+  text-transform: uppercase;
+}
+
+.auth-separator::before,
+.auth-separator::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-separator:not(:empty)::before { margin-right: 1rem; }
+.auth-separator:not(:empty)::after { margin-left: 1rem; }
+
+.social-login-grid {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 1rem;
+}
+
+.auth-fab {
+  position: absolute;
+  bottom: -4rem;
+  right: -8rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--mint);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.auth-fab:hover {
+  transform: scale(1.05);
+}
+
+.auth-footer-terms {
+  margin-top: 3rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.auth-footer-terms a {
+  color: var(--primary);
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+@media (max-width: 992px) {
+  .auth-layout {
+    flex-direction: column;
+  }
+  .auth-hero {
+    padding: 3rem 2rem;
+    min-height: 40vh;
+  }
+  .auth-hero-content h1 {
+    font-size: 4rem;
+  }
+  .auth-form-pane {
+    padding: 3rem 1.5rem;
+  }
+  .auth-fab {
+    right: 0;
+    bottom: -2rem;
+  }
+}
