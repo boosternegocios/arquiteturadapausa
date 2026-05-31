@@ -24,7 +24,7 @@ import {
 // Map of categories and max possible values
 const CATEGORY_DATA = {
   fisico: { label: 'Físico', max: 80 },
-  mental: { label: 'Mental', max: 70 },
+  mental: { label: 'Mental', max: 80 },
   sensorial: { label: 'Sensorial', max: 80 },
   criativo: { label: 'Criativo', max: 90 },
   emocional: { label: 'Emocional', max: 80 },
@@ -192,22 +192,23 @@ export const Dashboard = () => {
                     </div>
                     
                     <h3 className="text-3xl lg:text-4xl font-black text-slate-800 mb-6 tracking-tight relative z-10 leading-tight">
-                      Pronto para mapear<br/>a sua rotina?
+                      Pronto para avaliar seus impulsionadores de fadiga?
                     </h3>
                     <p className="text-slate-500 text-lg mb-12 leading-relaxed font-medium relative z-10 px-2 lg:px-8">
-                      Percebemos que suas informações ainda estão em branco. Precisamos de alguns minutinhos seus para montarmos seu radar de vitalidade completo e identificar seu maior desgaste.
+                      O cansaço é multifacetado, então tentar diminuir a fadiga sem identificar a causa dela é como tentar encher um balde furado. Você sabe que tipo de cansaço está sentindo e de que tipo de recuperação precisa?
                     </p>
                     
                     <button 
-                      onClick={() => navigate('/assessment/fisico')} 
+                      onClick={() => navigate('/intro')} 
                       className="bg-[#eb6496] relative z-10 text-white w-full py-5 rounded-2xl font-bold text-sm tracking-[0.15em] uppercase shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3"
+                      style={{ marginBottom: '32px' }}
                     >
-                      INICIAR NOSSO MAPEAMENTO <ArrowRight size={18} strokeWidth={2.5} />
+                      Iniciar a avaliação <ArrowRight size={18} strokeWidth={2.5} />
                     </button>
                     
                     <button 
                       onClick={() => signOut()}
-                      className="mt-6 text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10"
+                      className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10"
                     >
                       Sair por enquanto
                     </button>
@@ -272,7 +273,7 @@ export const Dashboard = () => {
                     <div className="h-full bg-accent rounded-full transition-all duration-1000 ease-out" style={{ width: `${journeyProgress}%` }}></div>
                   </div>
                 </div>
-                <button onClick={() => navigate(assessmentStatus === 'completed' ? '/solution' : `/assessment/${nextCategory}`)} className="relative z-10 w-full bg-white text-primary py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition-colors shadow-sm">
+                <button onClick={() => navigate(assessmentStatus === 'completed' ? '/solution' : '/intro')} className="relative z-10 w-full bg-white text-primary py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition-colors shadow-sm">
                   {assessmentStatus === 'completed' ? 'Continuar para a Solução' : (journeyProgress === 100 || !hasRecord ? 'Iniciar nova avaliação' : 'Continuar de onde parei')}
                 </button>
               </div>

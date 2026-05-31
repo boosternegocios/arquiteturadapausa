@@ -31,7 +31,8 @@ export const AuthProvider = ({ children }) => {
     email, 
     password,
     options: {
-      data: metadata
+      data: metadata,
+      emailRedirectTo: window.location.origin
     }
   })
   const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password })

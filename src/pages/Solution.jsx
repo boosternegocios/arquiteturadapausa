@@ -1,20 +1,60 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import { 
-  LayoutDashboard, 
-  Settings, 
-  LogOut, 
-  FileText,
-  Lightbulb,
-  ArrowLeft,
   ArrowRight
 } from 'lucide-react'
+
+const CATEGORY_DATA = {
+  fisico: { max: 80 },
+  mental: { max: 70 },
+  sensorial: { max: 80 },
+  criativo: { max: 90 },
+  emocional: { max: 80 },
+  social: { max: 80 },
+  espiritual: { max: 50 }
+}
 
 export const Solution = () => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const [topCategoryKey, setTopCategoryKey] = useState('sensorial')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchTopFatigue = async () => {
+      if (!user) return
+      try {
+        const { data, error } = await supabase
+          .from('evaluations')
+          .select('scores')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          
+        if (data && data.length > 0 && data[0].scores) {
+          const rawScores = data[0].scores
+          
+          const normalizedScores = Object.entries(CATEGORY_DATA).map(([key, config]) => {
+            const rawVal = rawScores[key] || 0
+            const normalized = (rawVal / config.max) * 10
+            return { key, score: normalized }
+          })
+          
+          const sorted = [...normalizedScores].sort((a, b) => b.score - a.score)
+          setTopCategoryKey(sorted[0].key)
+        }
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTopFatigue()
+  }, [user])
 
   const handleLogout = async () => {
     try {
@@ -36,23 +76,17 @@ export const Solution = () => {
           
           <div className="max-w-[850px] w-full z-10 flex flex-col items-center justify-center text-center">
             
-            <h1 className="text-[2rem] md:text-[3rem] lg:text-[3.5rem] font-bold text-[#234c4c] uppercase leading-[1.05] tracking-tight md:tracking-tighter" style={{ fontFamily: 'Oswald, "Barlow Condensed", "Arial Narrow", sans-serif', transform: 'scaleY(1.1)' }}>
-              QUANDO SE APERTA O BOTÃO DE PAUSA EM UMA MÁQUINA, ELA <span className="text-[#e2538b]">DESLIGA</span>. QUANDO SE APERTA ESSE BOTÃO EM UM HUMANO, ELE <span className="text-[#234c4c] font-black">LIGA</span> E COMEÇA A REFLETIR, SE RECONECTAR E A REIMAGINAR CAMINHOS.
+            <h1 className="text-[2rem] md:text-[2.5rem] lg:text-[3rem] font-bold text-[#234c4c] leading-[1.2] tracking-tight uppercase">
+              AGORA QUE VOCÊ JÁ SABE QUAIS DIMENSÕES DO CANSAÇO FORAM MAIS RELEVANTES NA SUA AUTOAVALIAÇÃO, VOCÊ PODE REFLETIR SOBRE SEUS HÁBITOS E COMEÇAR A <span className="text-[#e2538b] font-black">ARQUITETAR A SUA PAUSA</span> PARA <span className="text-[#e2538b] font-black">GARANTIR A RECUPERAÇÃO</span> QUE MELHOR SE ADEQUA À SUA NECESSIDADE.
             </h1>
-
-            <div className="flex flex-col items-center mt-12 md:mt-16">
-              <div className="w-12 h-[1px] bg-slate-300 mb-6"></div>
-              <cite className="text-sm md:text-base font-bold text-slate-500 tracking-[0.2em] font-sans not-italic uppercase opacity-90">
-                DOV SEIDMAN
-              </cite>
-            </div>
 
             <div className="mt-16 md:mt-24 flex flex-col items-center w-full">
               <button 
-                onClick={() => navigate('/recovery/satisfaction')} 
+                disabled={loading}
+                onClick={() => navigate(`/specific-solution/${topCategoryKey}`)} 
                 className="bg-[#eb6496] text-white px-10 md:px-14 py-4 md:py-5 rounded-full font-bold text-xs md:text-sm tracking-[0.1em] uppercase hover:bg-[#d84e80] transition-all active:scale-95 shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] flex items-center justify-center gap-3 w-full sm:w-auto"
               >
-                COMEÇAR A REFLETIR <ArrowRight size={16} strokeWidth={2.5} />
+                INICIAR SUA REFLEXÃO <ArrowRight size={16} strokeWidth={2.5} />
               </button>
               
               <div className="mt-10 flex items-center gap-2 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">

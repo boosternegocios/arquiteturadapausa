@@ -13,6 +13,8 @@ import { Solution } from './pages/Solution'
 import { Recovery } from './pages/Recovery'
 import { SpecificSolution } from './pages/SpecificSolution'
 import { ContinueHealing } from './pages/ContinueHealing'
+import { Introduction } from './pages/Introduction'
+import { Contact } from './pages/Contact'
 
 function App() {
   return (
@@ -29,6 +31,15 @@ function App() {
             } 
           />
           
+          <Route 
+            path="/intro" 
+            element={
+              <ProtectedRoute>
+                <Introduction />
+              </ProtectedRoute>
+            } 
+          />
+
           <Route 
             path="/assessment/:category" 
             element={
@@ -87,6 +98,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <ContinueHealing />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/contact" 
+            element={
+              <ProtectedRoute>
+                <Contact />
               </ProtectedRoute>
             } 
           />

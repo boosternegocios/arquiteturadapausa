@@ -37,9 +37,9 @@ export const EmotionalFatigue = ({ data, onChange }) => {
                   let colorClass = 'border-slate-200 text-slate-500 hover:bg-white hover:border-[#eb6496]/50 bg-white shadow-sm'
                   
                   if (isSelected) {
-                    if (val <= 4) colorClass = 'bg-[#004b4c] text-white border-[#004b4c] font-bold shadow-md'
-                    else if (val <= 7) colorClass = 'bg-[#1ed7a4] text-slate-900 border-[#1ed7a4] font-black shadow-md'
-                    else colorClass = 'bg-[#eb6496] text-white border-[#eb6496] font-black shadow-md'
+                    if (val < 5) colorClass = 'bg-[#eb6496] text-white border-[#eb6496] font-bold shadow-md'
+                    else if (val === 5) colorClass = 'bg-slate-900 text-white border-slate-900 font-bold shadow-md'
+                    else colorClass = 'bg-[#1ed7a4] text-slate-900 border-[#1ed7a4] font-black shadow-md'
                   }
 
                   return (
@@ -74,21 +74,51 @@ export const EmotionalFatigue = ({ data, onChange }) => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-[80px] pointer-events-none"></div>
         <div className="relative z-10">
           <h3 className="text-2xl font-black text-white mb-2 font-display">02. Quando você usa máscaras?</h3>
-          <p className="text-white/80 font-medium mb-8">Reflita e descreva como você se comporta e por que se esconde (ou muda sua personalidade) nas seguintes situações:</p>
+          <p className="text-white/80 font-medium mb-8">Reflita por que essas situações o fazem sentir a necessidade de fingir ser alguém que você não é? Dê uma nota de 1 a 10 para seu nível de atenção em cada um deles, considerando 1 (mais baixo) a 10 (mais alto).</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {situations.map((sit, index) => (
-              <div key={sit.key} className="bg-white/10 backdrop-blur-sm p-6 rounded-3xl border border-white/20 flex flex-col">
-                <span className="text-xs font-black uppercase tracking-widest text-[#1ed7a4] mb-3">Reflexão {index+1}</span>
-                <h4 className="font-bold text-white text-base md:text-lg mb-4 leading-tight">{sit.label}</h4>
-                <textarea 
-                  placeholder="Seus pensamentos sobre esta máscara..."
-                  value={data?.act02?.[sit.key] || ''}
-                  onChange={(e) => updateData('act02', sit.key, e.target.value)}
-                  className="w-full flex-1 min-h-[100px] bg-black/10 p-4 rounded-xl border border-white/10 outline-none focus:bg-white/20 focus:border-white/40 transition-colors text-sm text-white placeholder:text-white/40 resize-none font-medium mt-auto" 
-                />
+          <div className="grid grid-cols-1 gap-6">
+            {situations.map((sit, index) => {
+              const noteKey = `${sit.key}_nota`;
+              return (
+              <div key={sit.key} className="bg-white/10 backdrop-blur-sm p-6 rounded-3xl border border-white/20 flex flex-col md:flex-row gap-6">
+                <div className="flex-1 flex flex-col">
+                  <span className="text-xs font-black uppercase tracking-widest text-[#1ed7a4] mb-3">Reflexão {index+1}</span>
+                  <h4 className="font-bold text-white text-base md:text-lg mb-4 leading-tight">{sit.label}</h4>
+                  <textarea 
+                    placeholder="Seus pensamentos sobre esta máscara..."
+                    value={data?.act02?.[sit.key] || ''}
+                    onChange={(e) => updateData('act02', sit.key, e.target.value)}
+                    className="w-full flex-1 min-h-[100px] bg-black/10 p-4 rounded-xl border border-white/10 outline-none focus:bg-white/20 focus:border-white/40 transition-colors text-sm text-white placeholder:text-white/40 resize-none font-medium mt-auto" 
+                  />
+                </div>
+                
+                <div className="w-full md:w-auto flex flex-col justify-end">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-2">Sua nota de atenção:</span>
+                  <div className="flex flex-wrap gap-2 md:gap-1 lg:gap-2">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => {
+                      const isSelected = data?.act02?.[noteKey] === val;
+                      let colorClass = 'border-white/20 text-white/60 hover:bg-white/10 bg-transparent';
+                      
+                      if (isSelected) {
+                        if (val < 5) colorClass = 'bg-white text-[#eb6496] border-white font-black shadow-md';
+                        else if (val === 5) colorClass = 'bg-slate-900 text-white border-slate-900 font-bold shadow-md';
+                        else colorClass = 'bg-[#1ed7a4] text-slate-900 border-[#1ed7a4] font-black shadow-md';
+                      }
+
+                      return (
+                        <button
+                          key={val}
+                          onClick={() => updateData('act02', noteKey, val)}
+                          className={`w-8 h-8 md:w-10 md:h-10 rounded-lg border flex items-center justify-center text-xs md:text-sm transition-all ${colorClass} ${isSelected ? 'scale-110' : ''}`}
+                        >
+                          {val}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </div>
@@ -98,8 +128,17 @@ export const EmotionalFatigue = ({ data, onChange }) => {
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
-        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Solução de Cansaço Emocional</h2>
-        <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de tensão Emocional. Esta seção te ajudará a eliminar o peso da performatividade excessiva.</p>
+        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO EMOCIONAL</h2>
+        <p className="text-lg text-slate-500 font-medium mb-8">Você obteve um alto índice de tensão Emocional. Esta seção te ajudará a eliminar o peso da performatividade excessiva.</p>
+
+        <div className="mb-10 bg-[#fcfaf5] border border-[#e2dacb] rounded-3xl p-8 md:p-10 text-slate-600 relative overflow-hidden shadow-sm">
+          <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#eb6496]"></div>
+          <p className="font-medium text-lg leading-relaxed relative z-10">
+            Você sabia que todos nós podemos ter momentos de <span className="font-black text-[#eb6496]">falta de autenticidade</span>. 
+            Uma pessoa pode ser inautêntica tanto <span className="font-black text-[#eb6496]">consigo mesma quanto com os outros</span>. 
+            Essas duas formas de inautenticidade estão frequentemente interligadas: a inautenticidade consigo mesmo geralmente leva à inautenticidade nas relações interpessoais.
+          </p>
+        </div>
       </div>
 
       {renderAct01()}

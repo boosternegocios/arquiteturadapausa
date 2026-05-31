@@ -1,8 +1,9 @@
 import React from 'react'
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import './AuthLayout.css'
 
 export const AuthLayout = () => {
+  const location = useLocation();
   return (
     <div className="auth-layout">
       {/* Left Pane: Branding / Hero */}
@@ -16,9 +17,17 @@ export const AuthLayout = () => {
         <div className="auth-hero-content">
           <h1>ARQUITETURA<br/>DA PAUSA</h1>
           <p>
-            Um espaço desenhado para o seu silêncio.<br/>
-            Reconecte-se com o essencial através da<br/>
-            pausa consciente.
+            {location.pathname === '/register' ? (
+              <>
+                Um método que conecta consciência e prática.<br/>
+                Um passo a passo que pode mudar sua relação com o tempo, foco e energia.
+              </>
+            ) : (
+              <>
+                Reconecte-se com o essencial através da<br/>
+                pausa consciente.
+              </>
+            )}
           </p>
           
           <div className="auth-hero-indicators">
@@ -33,7 +42,7 @@ export const AuthLayout = () => {
       <div className="auth-form-pane">
         <div className="auth-form-container animate-fade-in">
           <div className="auth-header">
-            <h2>BEM-VINDO DE VOLTA</h2>
+            <h2>Bem Vindo</h2>
             <p>Escolha como deseja acessar sua jornada.</p>
           </div>
           

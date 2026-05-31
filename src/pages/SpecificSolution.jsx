@@ -97,9 +97,8 @@ export const SpecificSolution = () => {
         if (!data.act02?.records) return false;
         const records = Object.values(data.act02.records);
         if (records.length !== 7 || !records.every(r => r.state && r.why?.trim())) return false;
-        if (!allFilled(data.act03?.tiresome) || !allFilled(data.act03?.resting)) return false;
-        if (!data.act04 || ['temp','dark','cafeina','silencio','sons','aromas','cama'].some(k => !data.act04[k]?.trim())) return false;
-        if (!data.act05?.days || !data.act05.days.every(d => d.hours?.trim() && d.events?.trim() && d.dreams?.trim())) return false;
+        // act03 and act05 ocultados temporariamente
+        if (!data.act04 || ['temp','dark','cafeina','silencio','sons','aromas','cama'].some(k => typeof data.act04[k] !== 'number')) return false;
         return true;
 
       case 'criativo':
@@ -108,23 +107,20 @@ export const SpecificSolution = () => {
         return true;
 
       case 'mental':
-        if (!data.act01 || ['seg','ter','qua','qui','sex','sab','dom'].some(k => !data.act01[k]?.trim())) return false;
-        if (!data.act02?.paz?.trim()) return false;
+        // act01 e act02 ocultados temporariamente, não exigir preenchimento
         if (!data.act03 || ['imagens','frases','pessoas','lugares','eventos','emocoes','medos','duvidas'].some(k => !data.act03[k]?.trim())) return false;
         if (!data.act04?.list || !data.act04.list.every(i => i.negative?.trim() && i.positive?.trim())) return false;
         return true;
 
       case 'sensorial':
-        if (!data.act01?.records) return false;
-        const sensRecords = Object.values(data.act01.records);
-        if (sensRecords.length !== 5 || !sensRecords.every(r => r.estimulo?.trim() && r.melhorar?.trim())) return false;
+        // act01 ocultado temporariamente
         const act02Keys = ['desconectar','brilho','silenciar','silencio','frutas','olhos','tampaos'];
         if (!data.act02 || act02Keys.some(k => typeof data.act02[k] !== 'number')) return false;
         return true;
 
       case 'emocional':
         if (!data.act01 || ['outros','consigo'].some(k => typeof data.act01[k] !== 'number')) return false;
-        if (!data.act02 || ['social','educacional','interessantes','infeliz'].some(k => !data.act02[k]?.trim())) return false;
+        if (!data.act02 || ['social','educacional','interessantes','infeliz'].some(k => !data.act02[k]?.trim() || typeof data.act02[`${k}_nota`] !== 'number')) return false;
         return true;
 
       case 'social':
@@ -134,7 +130,7 @@ export const SpecificSolution = () => {
 
       case 'espiritual':
         if (!data.act01?.text?.trim() || !data.act02?.text?.trim() || !data.act03?.text?.trim()) return false;
-        if (!data.act04?.days || !data.act04.days.every(d => d.note?.trim())) return false;
+        // act04 oculto temporariamente
         return true;
 
       default:
@@ -194,7 +190,7 @@ export const SpecificSolution = () => {
       }
 
       if (isFinal) {
-        navigate('/continue-healing')
+        navigate('/intro')
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)
@@ -253,7 +249,7 @@ export const SpecificSolution = () => {
         </main>
 
         {/* Footer Actions */}
-        <div className="fixed bottom-0 right-0 left-56 md:left-64 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-8 px-10 md:px-20 z-30 pointer-events-none">
+        <div className="fixed bottom-0 right-0 left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-8 px-10 md:px-20 z-30 pointer-events-none">
           <div className="max-w-5xl mx-auto w-full flex justify-between items-center pointer-events-auto">
             <button 
               onClick={() => navigate('/recovery/pauses')}

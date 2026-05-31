@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&family=Manrope:wght@400..800&family=Sora:wght@100..800&display=swap');
 
 @import "tailwindcss";
 
@@ -10,7 +10,9 @@
   --color-background-light: #f8f3e9;
   --color-background-dark: #0f2323;
   --color-brand-pink: #e96197;
-  --font-display: "Manrope", sans-serif;
+  --font-display: "Sora", sans-serif;
+  --font-antonio: "Antonio", sans-serif;
+  --font-sora: "Sora", sans-serif;
 }
 
 
@@ -49,11 +51,15 @@
 
 
 body {
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--background);
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Antonio', sans-serif;
 }
 
 a {

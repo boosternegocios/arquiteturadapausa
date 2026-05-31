@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
@@ -7,15 +7,14 @@ import {
   ArrowLeft, ArrowRight, Save, LayoutDashboard, Settings, LogOut, CheckCircle, Plus, Trash2, FileText
 } from 'lucide-react'
 
-// Step configs
 const STEPS = [
   { id: 'satisfaction', number: 1, title: '1 Quão satisfeito você está com seu nível de...', subtitle: 'Usando uma escala de 1 (mais baixo) a 10 (mais alto)' },
-  { id: 'time-relation', number: 2, title: '2 Reflita sobre sua relação com o tempo', subtitle: 'Em uma escala de 1 a 10, quanto você:' },
+  { id: 'time-relation', number: 2, title: '2 Analise sua relação com o tempo', subtitle: 'Em uma escala de 1 a 10, quanto você:' },
   { id: 'internal-speed', number: 3, title: '3 Reflita sobre sua velocidade interna', subtitle: 'Você se considera uma pessoa:' },
-  { id: 'rhythm', number: 4, title: '4 Reflita sobre seu ritmo de vida', subtitle: 'Identifique as áreas que demandam energia e projete ações práticas para restaurar o equilíbrio e a pausa produtiva.' },
-  { id: 'cycle', number: 5, title: '5 Entenda seus Ciclos', subtitle: 'A reflexão sobre os ciclos nos ajuda a quebrar a inércia do desgaste.' },
-  { id: 'time-tips', number: 6, title: '6 Reflita sobre sua relação com o tempo', subtitle: 'Mude a perspectiva sobre como você gasta a sua vida.' },
-  { id: 'pauses', number: 7, title: '7 Estratégias para Pausas Intencionais', subtitle: 'Passos fundamentais para recuperar energia vital.' }
+  { id: 'beliefs', number: 4, title: '1 Você possui alguma dessas crenças?', subtitle: 'Em uma escala de 1 a 10, quanto você concorda com as afirmações, considerando 1 (mais baixo) a 10 (mais alto)' },
+  { id: 'cycle', number: 5, title: '2 Entenda seus Ciclos', subtitle: 'A reflexão sobre os ciclos nos ajuda a quebrar a inércia do desgaste.' },
+  { id: 'time-tips', number: 6, title: '3 Reflita sobre sua relação com o tempo', subtitle: 'Mude a perspectiva sobre como você gasta a sua vida.' },
+  { id: 'pauses', number: 7, title: '7 Estratégias para pausas intencionais', subtitle: 'Passos fundamentais para recuperar energia vital.' }
 ]
 
 const QUESTIONS = {
@@ -33,13 +32,28 @@ const QUESTIONS = {
     { key: 'tempo_livre', label: 'Considera seu tempo livre semanal satisfatório' },
     { key: 'limite_corpo', label: 'Já desrespeitou o limite do seu corpo por excesso de atividades' },
     { key: 'stress', label: 'Sente stress crônico nos últimos meses' },
+    { key: 'frustracao_agenda', label: 'Vive em um estado de frustração crônica com a sua agenda?' },
+    { key: 'delega_centraliza', label: 'Delega com satisfação ou centraliza por insegurança?' },
   ],
   internal_speed: [
     { key: 'acelerada_lenta', label: 'Acelerada ou lenta?' },
     { key: 'focada_relaxada', label: 'Focada ou relaxada?' },
     { key: 'paciente_impaciente', label: 'Paciente ou impaciente?' },
     { key: 'ponderada_impulsiva', label: 'Ponderada ou impulsiva?' },
-    { key: 'decisao_rapida_lenta', label: 'Toma decisões rápida ou lentamente?' },
+    { key: 'decisao_rapida_lenta', label: 'Toma decisões rapidamente' },
+  ],
+  beliefs: [
+    { key: 'sacrificio', label: 'Preciso me sacrificar para atingir meus objetivos' },
+    { key: 'utilidade', label: 'Minha utilidade define meu valor' },
+    { key: 'sozinho', label: 'Dou conta do meu trabalho sozinho (a)' },
+    { key: 'meta_x', label: 'Vou ser feliz quando atingir a Meta X' },
+    { key: 'pressao', label: 'Eu funciono melhor sob pressão' },
+    { key: 'desorganizado', label: 'Sou desorganizado por natureza' },
+    { key: 'bem_feito', label: 'Se eu não fizer, não sairá bem feito' },
+    { key: 'liberdade', label: 'Planejar meu tempo me deixa sem liberdade' },
+    { key: 'improdutivo', label: 'Descansar é improdutivo' },
+    { key: 'tempo_insuficiente', label: 'Não tenho tempo suficiente' },
+    { key: 'dar_conta', label: 'Tenho que dar conta de tudo' },
   ]
 }
 
@@ -50,14 +64,35 @@ export const Recovery = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [evaluationId, setEvaluationId] = useState(null)
+  const mainRef = useRef(null)
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo(0, 0)
+    }
+  }, [step])
 
   const currentStepInfo = STEPS.find(s => s.id === step) || STEPS[0]
   const isLastStep = currentStepInfo.number === STEPS.length
+  
+  const PHASE_1_STEPS = ['satisfaction', 'time-relation', 'internal-speed']
+  const PHASE_2_STEPS = ['beliefs', 'cycle', 'time-tips']
+
+  let visualSteps = STEPS
+  if (PHASE_1_STEPS.includes(step)) {
+    visualSteps = STEPS.filter(s => PHASE_1_STEPS.includes(s.id))
+  } else if (PHASE_2_STEPS.includes(step)) {
+    visualSteps = STEPS.filter(s => PHASE_2_STEPS.includes(s.id))
+  }
+
+  const visualStepNumber = visualSteps.findIndex(s => s.id === step) + 1
 
   const [formData, setFormData] = useState({
     satisfaction: {},
     time_relation: {},
     internal_speed: {},
+    beliefs: {},
+    cycle_relation: 5,
     rhythm_impacts: [{ id: 1, aspect: '', action: '' }, { id: 2, aspect: '', action: '' }, { id: 3, aspect: '', action: '' }, { id: 4, aspect: '', action: '' }, { id: 5, aspect: '', action: '' }]
   })
 
@@ -82,10 +117,22 @@ export const Recovery = () => {
             satisfaction: data[0].solution_satisfaction || {},
             time_relation: data[0].solution_time_relation || {},
             internal_speed: data[0].solution_internal_speed || {},
+            beliefs: data[0].solution_beliefs || {},
             rhythm_impacts: (data[0].solution_rhythm_impacts && data[0].solution_rhythm_impacts.length > 0) 
               ? data[0].solution_rhythm_impacts 
               : prev.rhythm_impacts
           }))
+        } else {
+          // Create new evaluation if none exists
+          const { data: newEval, error: insertError } = await supabase
+            .from('evaluations')
+            .insert([{ user_id: user.id, status: 'draft' }])
+            .select()
+          
+          if (insertError) throw insertError
+          if (newEval && newEval.length > 0) {
+            setEvaluationId(newEval[0].id)
+          }
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
@@ -96,14 +143,39 @@ export const Recovery = () => {
     fetchEvaluation()
   }, [user])
 
-  const handleSave = async (isFinal = false) => {
+  const handleSave = async (isFinal = false, isAdvancing = false) => {
     if (!evaluationId) return
+
+    if (isAdvancing) {
+      if (step === 'satisfaction' && Object.keys(formData.satisfaction).length < QUESTIONS.satisfaction.length) {
+        alert('Por favor, responda todas as perguntas desta etapa antes de avançar.')
+        return
+      }
+      if (step === 'time-relation' && Object.keys(formData.time_relation).length < QUESTIONS.time_relation.length) {
+        alert('Por favor, responda todas as perguntas desta etapa antes de avançar.')
+        return
+      }
+      if (step === 'beliefs') {
+        const answersCount = Object.keys(formData.beliefs).filter(k => k !== '_card2_completed').length
+        if (answersCount < QUESTIONS.beliefs.length) {
+          alert('Por favor, responda todas as perguntas desta etapa antes de avançar.')
+          return
+        }
+      }
+    }
+
     setSaving(true)
     try {
+      let beliefsToSave = formData.beliefs
+      if (isAdvancing && step === 'time-tips') {
+        beliefsToSave = { ...beliefsToSave, _card2_completed: true }
+      }
+
       const updates = {
         solution_satisfaction: formData.satisfaction,
         solution_time_relation: formData.time_relation,
         solution_internal_speed: formData.internal_speed,
+        solution_beliefs: beliefsToSave,
         solution_rhythm_impacts: formData.rhythm_impacts.filter(r => r.aspect.trim() || r.action.trim()),
         solution_status: isFinal ? 'completed' : 'draft'
       }
@@ -115,13 +187,20 @@ export const Recovery = () => {
 
       if (error) throw error
 
-      if (isFinal) {
-        navigate('/specific-solution')
-      } else {
-        const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
-        if (nextStepIndex < STEPS.length) {
-          navigate(`/recovery/${STEPS[nextStepIndex].id}`)
+      if (isAdvancing) {
+        if (isFinal) {
+          navigate('/contact')
+        } else if (step === 'internal-speed' || step === 'time-tips') {
+          navigate('/intro')
+        } else {
+          const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
+          if (nextStepIndex < STEPS.length) {
+            navigate(`/recovery/${STEPS[nextStepIndex].id}`)
+          }
         }
+      } else {
+        // Provide simple visual feedback or just stay on page
+        alert('Rascunho salvo com sucesso!')
       }
     } catch (error) {
       console.error('Erro ao salvar formulário:', error)
@@ -147,9 +226,9 @@ export const Recovery = () => {
               // Decide color based on value
               let colorClass = 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'
               if (isSelected) {
-                if (val <= 3) colorClass = 'bg-slate-800 text-white border-slate-800 shadow-md'
-                else if (val <= 6) colorClass = 'bg-[#eb6496] text-white border-[#eb6496] shadow-md'
-                else colorClass = 'bg-[#1ed7a4] text-white border-[#1ed7a4] shadow-md text-slate-800 font-black'
+                if (val < 5) colorClass = 'bg-[#eb6496] text-white border-[#eb6496] shadow-md font-bold'
+                else if (val === 5) colorClass = 'bg-slate-900 text-white border-slate-900 shadow-md font-bold'
+                else colorClass = 'bg-[#1ed7a4] text-slate-900 border-[#1ed7a4] shadow-md font-black'
               }
 
               return (
@@ -271,7 +350,32 @@ export const Recovery = () => {
   )
 
   const renderCycleInfo = () => (
-    <div className="flex flex-col md:flex-row gap-12 md:gap-8 justify-center items-center h-full w-full max-w-5xl animate-in fade-in slide-in-from-bottom-4">
+    <div className="flex flex-col gap-12 items-center h-full w-full max-w-5xl animate-in fade-in slide-in-from-bottom-4">
+      
+      <div className="w-full max-w-3xl mb-4">
+        <h3 className="text-xl font-bold text-slate-800 mb-6">Pensando na sua agenda semanal, você tem um ciclo negativo ou realista de relação com o tempo?</h3>
+        <div className="flex justify-between items-center mb-6">
+          <span className={`font-bold text-lg ${formData.cycle_relation < 5 ? 'text-[#eb6496]' : 'text-slate-400'}`}>Negativo</span>
+          <span className={`font-bold text-lg ${formData.cycle_relation > 6 ? 'text-[#1ed7a4]' : 'text-slate-400'}`}>Realista</span>
+        </div>
+        <div className="relative pt-6 pb-2">
+          <div className="absolute top-8 left-0 right-0 h-2 bg-slate-200 rounded-full"></div>
+          <input 
+            type="range"
+            min="1"
+            max="10"
+            value={formData.cycle_relation}
+            onChange={(e) => setFormData(prev => ({ ...prev, cycle_relation: parseInt(e.target.value) }))}
+            className="w-full relative z-10 accent-[#eb6496] appearance-none bg-transparent h-2 rounded-full outline-none"
+            style={{ WebkitAppearance: 'none' }}
+          />
+          <div className="flex justify-between px-1 mt-4 text-xs font-bold text-slate-300">
+            {[1,2,3,4,5,6,7,8,9,10].map(n => <span key={n}>{n}</span>)}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-12 md:gap-8 justify-center w-full">
       
       {/* Ciclo Negativo */}
       <div className="flex-1 flex flex-col items-center p-8 bg-slate-50/80 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden group">
@@ -283,7 +387,7 @@ export const Recovery = () => {
           <div className="w-32 h-32 rounded-full border-4 border-[#eb6496] border-t-transparent border-l-transparent opacity-30 animate-spin" style={{ animationDuration: '3s' }}></div>
         </div>
         <h3 className="text-3xl font-black text-slate-800 mb-2">Ciclo Negativo</h3>
-        <p className="text-sm font-bold uppercase tracking-widest text-slate-500 text-center">Volume de atividades irrealista</p>
+        <p className="text-sm font-bold uppercase tracking-widest text-slate-500 text-center leading-relaxed">Gera sentimentos negativos e esgotamento. É alimentado por um volume de atividades irrealista, pela cobrança por produtividade e pela sensação de que "nunca há tempo suficiente".</p>
       </div>
 
       <div className="text-slate-300 shrink-0 hidden md:block">
@@ -300,9 +404,10 @@ export const Recovery = () => {
           <div className="w-32 h-32 rounded-full border-4 border-[#1ed7a4] border-b-transparent border-r-transparent opacity-60 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }}></div>
         </div>
         <h3 className="text-3xl font-black text-[#004b4c] mb-2">Ciclo Realista</h3>
-        <p className="text-sm font-bold uppercase tracking-widest text-[#1ed7a4] text-center">Avaliar o possível dentro do tempo</p>
+        <p className="text-sm font-bold uppercase tracking-widest text-[#1ed7a4] text-center leading-relaxed">Exige abandonar a ilusão do controle e aceitar que o tempo é um recurso fixo, dinâmico e limitado. Em vez de tentar "gerenciar" as horas o foco passa a ser em gerenciar a própria energia e o que é possível dentro do tempo</p>
       </div>
 
+      </div>
     </div>
   )
 
@@ -341,8 +446,21 @@ export const Recovery = () => {
       { id: '06', title: 'Abrace as Pausas Inesperadas', desc: 'Use qualquer tempo de inatividade para se recarregar.' },
     ]
     return (
-      <div className="grid gap-6 md:gap-8 animate-in fade-in slide-in-from-bottom-4">
-        {list.map((item, index) => (
+      <div className="animate-in fade-in slide-in-from-bottom-4">
+        <div className="mb-10 bg-[#fcfaf5] border border-[#e2dacb] rounded-3xl p-8 md:p-10 text-slate-600 relative overflow-hidden shadow-sm text-left max-w-full">
+          <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#eb6496]"></div>
+          <div className="font-medium text-base md:text-lg leading-relaxed relative z-10 space-y-5">
+            <p>Arquitete sua pausa de uma maneira que a recuperação de cada uma das suas 7 energias possam ser acompanhadas com a mesma seriedade que um <span className="font-black text-[#eb6496]">indicador-chave de desempenho de negócios.</span></p>
+            <p>Adote o princípio do <span className="font-black text-[#eb6496]">“não estratégico”</span>, priorizando o que realmente importa, que é o projeto que realiza, a família e a própria saúde.</p>
+            <p>Incorpore <span className="font-black text-[#eb6496]">micropausas diárias</span> a sua rotina, seja em cinco minutos de silêncio, seja um tempo ao ar livre ou melhorando a sua higiene do sono.</p>
+            <p>Crie <span className="font-black text-[#eb6496]">“lotes de comunicação”</span> para responder a e-mails em horários fixos, em vez de ser interrompido a cada notificação, e repense a duração das suas reuniões.</p>
+            <p>Planeje <span className="font-black text-[#eb6496]">pausas cíclicas (semanais)</span> e <span className="font-black text-[#eb6496]">macropausas (semestrais/anuais)</span>, incluindo o descanso e as férias na sua agenda, assim como faria com uma reunião.</p>
+            <p>Seja um <span className="font-black text-[#eb6496]">exemplo de desconexão</span>, protegendo noites e fins de semana para que o seu time se sinta seguro para fazer o mesmo.</p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:gap-8">
+          {list.map((item, index) => (
           <div key={item.id} className="flex gap-6 md:gap-8 items-start group">
             <div className="text-4xl md:text-5xl font-black text-[#eb6496]/20 group-hover:text-[#eb6496] transition-colors shrink-0 tracking-tighter w-16">{item.id}</div>
             <div className="bg-white p-6 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm flex-1 transform transition-all group-hover:-translate-y-1 group-hover:shadow-md">
@@ -351,6 +469,7 @@ export const Recovery = () => {
             </div>
           </div>
         ))}
+        </div>
       </div>
     )
   }
@@ -361,6 +480,7 @@ export const Recovery = () => {
     if (step === 'satisfaction') return renderScale1to10('satisfaction', QUESTIONS.satisfaction)
     if (step === 'time-relation') return renderScale1to10('time_relation', QUESTIONS.time_relation)
     if (step === 'internal-speed') return renderBipolarScale()
+    if (step === 'beliefs') return renderScale1to10('beliefs', QUESTIONS.beliefs)
     if (step === 'rhythm') return renderRhythmForm()
     if (step === 'cycle') return renderCycleInfo()
     if (step === 'time-tips') return renderTimeTips()
@@ -377,21 +497,41 @@ export const Recovery = () => {
         <Sidebar />
 
         {/* Main Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main ref={mainRef} className="flex-1 overflow-y-auto">
           <div className="max-w-[1000px] mx-auto w-full p-8 md:p-14 lg:p-20">
             
             {/* Header / Progress element matching Image 1 */}
             <div className="mb-14">
               <div className="flex items-center gap-3 mb-10">
                 <div className="flex gap-1.5">
-                  {STEPS.map((s, i) => (
-                    <div key={s.id} className={`h-1.5 rounded-full ${i < currentStepInfo.number ? 'bg-[#004b4c] w-8' : 'bg-[#e2dacb] w-6'}`}></div>
+                  {visualSteps.map((s, i) => (
+                    <div key={s.id} className={`h-1.5 rounded-full ${i < visualStepNumber ? 'bg-[#004b4c] w-8' : 'bg-[#e2dacb] w-6'}`}></div>
                   ))}
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#004b4c] ml-2">PASSO {currentStepInfo.number} DE {STEPS.length}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#004b4c] ml-2">PASSO {visualStepNumber} DE {visualSteps.length}</span>
               </div>
               
-              <h2 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#004b4c] tracking-tighter leading-[1.05] mb-6 font-display" style={{ fontFamily: 'Oswald, "Barlow Condensed", "Arial Narrow", sans-serif', transform: 'scaleY(1.1)', transformOrigin: 'left' }}>
+              {step === 'satisfaction' && (
+                <div className="mb-10 bg-[#f4ece3]/60 border border-[#e2dacb]/40 rounded-3xl p-8 md:p-10 text-slate-700 space-y-5 font-medium text-lg md:text-xl leading-relaxed font-sora shadow-sm animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-2 h-full bg-[#eb6496]/80"></div>
+                  <p>Na modernidade, substituímos o ritmo da natureza pela <strong className="text-[#eb6496] font-bold">velocidade das máquinas</strong> e transformamos o tempo em uma <strong className="text-[#eb6496] font-bold">moeda de troca</strong>. Se tempo é dinheiro, quanto mais rápido, melhor.</p>
+                  <p>A vida se tornou tão acelerada que não conseguimos dar um passo para fora da <strong className="text-[#eb6496] font-bold">pressa</strong>. Ela está dentro e fora de nós. Mas, afinal, <strong className="text-[#eb6496] font-bold">para que corremos tanto?</strong></p>
+                  <p>Considerando sua relação com o tempo, pense nos aspectos que afetam o ritmo da vida que você almeja. Seu modo de viver e trabalhar estão compatíveis com sua <strong className="text-[#eb6496] font-bold">velocidade interna?</strong></p>
+                </div>
+              )}
+
+              {step === 'beliefs' && (
+                <div className="mb-10 bg-[#f4ece3]/60 border border-[#e2dacb]/40 rounded-3xl p-8 md:p-10 text-slate-700 space-y-5 font-medium text-lg md:text-xl leading-relaxed font-sora shadow-sm animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-2 h-full bg-[#eb6496]/80"></div>
+                  <p>Internalizamos a ideia de que <strong className="text-[#eb6496] font-bold">valemos pelo que produzimos</strong> e passamos a viver uma <strong className="text-[#eb6496] font-bold">corrida contra o relógio</strong> onde até o “tempo livre” passou a ser cronometrado.</p>
+                  <p>Pensamos em como trabalhar melhor, mas não <strong className="text-[#eb6496] font-bold">como descansar melhor</strong>, porém essas duas esferas da vida se complementam.</p>
+                  <p>Diante de tanta correria, saber pausar se tornou um <strong className="text-[#eb6496] font-bold">“superpoder”</strong>, uma habilidade EXTRAordinária que pode ser treinada para que a mente funcione melhor.</p>
+                  <p>Se pausar é tão essencial, <strong className="text-[#eb6496] font-bold">por que não conseguimos?</strong></p>
+                  <p>O tempo é uma das poucas coisas que não podemos controlar, então a mente humana tenta simplificar o entendimento dessa realidade complexa através de <strong className="text-[#eb6496] font-bold">crenças limitantes</strong> para reagir a pressões sociais, à ansiedade e à sobrecarga. Pensamentos como 'não tenho tempo para nada' agem como <strong className="text-[#eb6496] font-bold">mecanismos de defesa</strong> ou desculpas automáticas para evitar mudanças e justificar a permanência em uma <strong className="text-[#eb6496] font-bold">'zona de conforto'</strong>.</p>
+                </div>
+              )}
+              
+              <h2 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#004b4c] tracking-tighter leading-[1.05] mb-6 font-display" style={{ transform: 'scaleY(1.1)', transformOrigin: 'left' }}>
                 {currentStepInfo.title}
               </h2>
               <p className="text-xl text-slate-500 font-medium">
@@ -408,7 +548,7 @@ export const Recovery = () => {
         </main>
 
         {/* Footer Actions */}
-        <div className="fixed bottom-0 right-0 left-56 md:left-64 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-8 px-10 md:px-20 z-30 pointer-events-none">
+        <div className="fixed bottom-0 right-0 left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-8 px-10 md:px-20 z-30 pointer-events-none">
           <div className="max-w-[1000px] mx-auto w-full flex justify-between items-center pointer-events-auto">
             <button 
               onClick={() => {
@@ -432,11 +572,11 @@ export const Recovery = () => {
                 Salvar Rascunho
               </button>
               <button 
-                onClick={() => handleSave(isLastStep)}
+                onClick={() => handleSave(isLastStep, true)}
                 disabled={saving}
                 className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-8 py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
               >
-                {isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'} <ArrowRight size={18} strokeWidth={2.5} />
+                {['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'} <ArrowRight size={18} strokeWidth={2.5} />
               </button>
             </div>
           </div>

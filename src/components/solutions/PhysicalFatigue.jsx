@@ -19,10 +19,13 @@ export const PhysicalFatigue = ({ data, onChange }) => {
     
     return (
       <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in">
-        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. Atividades Diárias Mais Cansativas</h3>
-        <p className="text-slate-500 font-medium mb-8">Liste as 3 atividades que mais cansam o corpo e como restaurá-lo após cada uma.</p>
+        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. Atividades diárias mais cansativas</h3>
+        <p className="text-slate-500 font-medium mb-8">
+          Ficar muitas horas sentado ou de pé, carregar peso ou repetir movimentos muitas vezes ao dia pode estar sobrecarregando o seu corpo. Você já parou para pensar em compensações para essa sobrecarga?<br />
+          Liste as 3 atividades que mais cansam seu corpo e como restaurá-lo após cada uma.
+        </p>
         
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           {list.map((item, index) => (
             <div key={index} className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
               <div className="w-full md:w-48 shrink-0">
@@ -65,7 +68,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
 
     return (
       <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '100ms'}}>
-        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">02. Mapa de Tensão Muscular</h3>
+        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">02. Mapa de tensão muscular</h3>
         <p className="text-slate-500 font-medium mb-8">Onde o estresse é acumulado no seu corpo devido ao esforço físico diário?</p>
 
         <div className="overflow-x-auto pb-4">
@@ -135,7 +138,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
             <h4 className="text-sm font-black uppercase text-[#eb6496] tracking-widest mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#eb6496]"></span> Atividades que cansam
             </h4>
-            <div className="space-y-3">
+            <div className="flex flex-col gap-5">
               {[0,1,2,3,4].map(i => (
                 <input 
                   key={`tire-${i}`}
@@ -162,7 +165,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
             <h4 className="text-sm font-black uppercase text-[#1ed7a4] tracking-widest mb-4 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#1ed7a4]"></span> Atividades de descanso
             </h4>
-            <div className="space-y-3">
+            <div className="flex flex-col gap-5">
               {[0,1,2,3,4].map(i => (
                 <input 
                   key={`rest-${i}`}
@@ -187,33 +190,49 @@ export const PhysicalFatigue = ({ data, onChange }) => {
   const renderAct04 = () => {
     const list = [
       { key: 'temp', label: 'Temperatura do quarto' },
-      { key: 'dark', label: 'Nível de escuridão necessário' },
-      { key: 'cafeina', label: 'Efeito da Cafeína' },
-      { key: 'silencio', label: 'Nível de Silêncio necessário' },
-      { key: 'sons', label: 'Uso de Sons relaxantes' },
-      { key: 'aromas', label: 'Uso de aromas ou tecidos' },
-      { key: 'cama', label: 'Colchão e Travesseiro estão bons?' },
+      { key: 'dark', label: 'Nível de escuridão' },
+      { key: 'cafeina', label: 'Gestão da Cafeína' },
+      { key: 'silencio', label: 'Nível de silêncio' },
+      { key: 'sons', label: 'Uso de sons relaxantes' },
+      { key: 'aromas', label: 'Uso de aromas ou tecidos confortáveis' },
+      { key: 'cama', label: 'Qualidade do colchão e travesseiro' },
     ]
     const envData = data?.act04 || {}
 
     return (
       <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '300ms'}}>
-        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">04. Higiene do Sono - Otimização</h3>
-        <p className="text-slate-500 font-medium mb-8">Como otimizar o ambiente para um sono mais reparador na sua realidade?</p>
+        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">03. Higiene do sono - Otimização</h3>
+        <p className="text-slate-500 font-medium mb-10">Avalie de 1 a 10 como está a otimização do seu ambiente de sono em cada um destes aspectos:</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-x-12 md:gap-y-6">
-          {list.map(item => (
-            <div key={item.key} className="flex flex-col">
-              <label className="text-xs font-black uppercase text-slate-400 tracking-wider mb-2 pl-2 border-l-2 border-[#1ed7a4]">
+        <div className="space-y-6">
+          {list.map((item, index) => (
+            <div key={item.key} className="bg-slate-50/50 border border-slate-100 p-6 rounded-2xl">
+              <h4 className="text-sm font-bold text-slate-700 mb-5 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-[#1ed7a4]/20 text-[#004b4c] flex items-center justify-center shrink-0">{index+1}</span>
                 {item.label}
-              </label>
-              <input 
-                type="text" 
-                value={envData[item.key] || ''}
-                placeholder="Sua avaliação/ação..."
-                onChange={(e) => updateData('act04', item.key, e.target.value)}
-                className="w-full bg-[#fcfaf5] p-4 rounded-xl border border-slate-100 outline-none focus:border-[#1ed7a4] focus:bg-white transition-colors text-sm font-medium text-slate-700" 
-              />
+              </h4>
+              <div className="flex justify-between md:justify-start gap-2 md:gap-3 flex-wrap pl-0 md:pl-11">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => {
+                  const isSelected = envData[item.key] === val
+                  let colorClass = 'border-slate-200 text-slate-400 hover:bg-slate-100 bg-white'
+                  
+                  if (isSelected) {
+                    if (val < 5) colorClass = 'bg-[#eb6496] text-white border-[#eb6496] font-bold shadow-[0_0_15px_rgba(235,100,150,0.4)]'
+                    else if (val === 5) colorClass = 'bg-slate-900 text-white border-slate-900 font-bold shadow-[0_0_15px_rgba(15,23,42,0.4)]'
+                    else colorClass = 'bg-[#1ed7a4] text-slate-900 border-[#1ed7a4] font-black shadow-[0_0_15px_rgba(30,215,164,0.4)]'
+                  }
+
+                  return (
+                    <button
+                      key={val}
+                      onClick={() => updateData('act04', item.key, val)}
+                      className={`w-10 h-10 md:w-12 md:h-12 rounded-xl border flex items-center justify-center text-sm md:text-base transition-all ${colorClass} ${isSelected ? 'scale-110' : ''}`}
+                    >
+                      {val}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           ))}
         </div>
@@ -284,15 +303,14 @@ export const PhysicalFatigue = ({ data, onChange }) => {
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
-        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Solução de Cansaço Físico</h2>
+        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Recuperação Física</h2>
         <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de cansaço no pilar Físico. Aqui estão as ferramentas para sua recuperação sistêmica.</p>
       </div>
 
       {renderAct01()}
       {renderAct02()}
-      {renderAct03()}
+      {/* Ocultado temporariamente a pedido: renderAct03() */}
       {renderAct04()}
-      {renderAct05()}
     </div>
   )
 }

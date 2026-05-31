@@ -67,7 +67,7 @@ export const SpiritualFatigue = ({ data, onChange }) => {
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
-        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Solução de Cansaço Espiritual</h2>
+        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO ESPIRITUAL</h2>
         <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de cansaço Espiritual. Reconecte-se com seu propósito, sua cura interior e com os pequenos milagres ao seu redor.</p>
       </div>
 
@@ -77,7 +77,7 @@ export const SpiritualFatigue = ({ data, onChange }) => {
       
       {renderTextBox('act03', '03. Pequenos Milagres', 'Pense na primeira vez que você viveu algo inexplicável. Um pequeno ou grande milagre que te livrou de algum problema ou má experiência? Por que você acredita que estava aberto ao espiritual naquele momento?', 'Recorde-se dos livramentos e escreva sobre seu estado de espírito na época...')}
 
-      {renderAct04()}
+      {/* Ocultado temporariamente a pedido: renderAct04() */}
     </div>
   )
 }

@@ -17,7 +17,9 @@ export default {
             "brand-pink": "#e96197",
         },
         fontFamily: {
-            "display": ["Manrope"]
+            "display": ["Manrope"],
+            "antonio": ["Antonio", "sans-serif"],
+            "sora": ["Sora", "sans-serif"]
         },
         borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
     },

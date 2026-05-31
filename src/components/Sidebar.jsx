@@ -30,7 +30,7 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="w-80 bg-mint dark:bg-mint flex flex-col shadow-xl z-20 shrink-0 h-screen overflow-y-auto">
+    <aside className="w-80 bg-mint dark:bg-mint flex flex-col z-20 shrink-0 h-screen overflow-y-auto border-r border-primary/10">
       <div className="p-10 pb-6 items-center flex justify-center gap-3">
         <img 
           src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png" 

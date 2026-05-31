@@ -30,9 +30,14 @@ export const Register = () => {
     setIsLoading(true)
 
     try {
-      const { error } = await signUp(email, password, { full_name: name, phone: phone })
+      const { data, error } = await signUp(email, password, { full_name: name, phone: phone })
       if (error) throw error
-      setIsSuccess(true)
+      
+      // If there is no session, it means email confirmation is required
+      if (!data?.session) {
+        setIsSuccess(true)
+      }
+      // If session exists, email confirmation is off, and AuthRoute will redirect automatically
     } catch (err) {
       console.error(err)
       setError(err?.message || 'Erro desconhecido ao criar conta.')

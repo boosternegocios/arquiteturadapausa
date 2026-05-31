@@ -81,7 +81,7 @@ export const MentalFatigue = ({ data, onChange }) => {
 
     return (
       <div className="mb-16 bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '200ms'}}>
-        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">03. O que realmente está na sua mente?</h3>
+        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. O que realmente está na sua mente?</h3>
         <p className="text-slate-500 font-medium mb-8">Faça um despejo mental categorizando o barulho interno nos quadrantes abaixo:</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -110,7 +110,7 @@ export const MentalFatigue = ({ data, onChange }) => {
 
     return (
       <div className="mb-16 bg-[#fcfaf5] border-2 border-dashed border-[#1ed7a4]/30 p-8 md:p-10 rounded-[3rem] shadow-sm animate-in fade-in" style={{animationDelay: '300ms'}}>
-        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">04. Inventário e Reframing</h3>
+        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">02. Inventário e Ressignificação</h3>
         <p className="text-slate-500 font-medium mb-8">Para cada pensamento negativo (do despejo acima), reformule-o em um pensamento afirmativo positivo utilizando suas referências éticas, crenças ou citações.</p>
         
         <div className="space-y-6">
@@ -156,12 +156,15 @@ export const MentalFatigue = ({ data, onChange }) => {
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
-        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Solução de Cansaço Mental</h2>
-        <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de cansaço no pilar Mental. Esta é sua área de reconfiguração de software interno.</p>
+        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO MENTAL</h2>
+        <p className="text-lg text-slate-500 font-medium">
+          Que imagens, frases, pessoas, lugares, eventos, emoções, medos e dúvidas estão flutuando no seu espaço mental?<br />
+          Escreva abaixo tudo o que você encontrar ocupando seus pensamentos. Resista à vontade de analisar ou julgar cada pensamento, apenas reconheça sua presença.
+        </p>
       </div>
 
-      {renderAct01()}
-      {renderAct02()}
+      {/* Ocultado temporariamente a pedido: renderAct01() */}
+      {/* Ocultado temporariamente a pedido: renderAct02() */}
       {renderAct03()}
       {renderAct04()}
     </div>

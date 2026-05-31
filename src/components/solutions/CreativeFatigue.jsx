@@ -43,20 +43,21 @@ export const CreativeFatigue = ({ data, onChange }) => {
   // 02: Estilo de vida Sabático
   const renderAct02 = () => {
     const periods = [
-      { key: 'weekly', label: 'Restauração Semanal', desc: 'Sua rotina sagrada de uma ou mais horas na semana' },
-      { key: 'monthly', label: 'Restauração Mensal', desc: 'Um dia ou final de semana focado no reabastecimento' },
-      { key: 'yearly', label: 'Momento Sabático Anual', desc: 'Dias ou semanas intencionais de descanso profundo' }
+      { key: 'daily', label: 'Restauração Diária', desc: 'Pequenos momentos diários de inspiração e recarga', header: 'MICROPAUSAS' },
+      { key: 'weekly', label: 'Restauração Semanal', desc: 'Sua rotina sagrada de uma ou mais horas na semana', header: 'PAUSAS' },
+      { key: 'monthly', label: 'Restauração Mensal', desc: 'Um dia ou final de semana focado no reabastecimento', header: 'PAUSAS CÍCLICAS' },
+      { key: 'yearly', label: 'Momento Sabático Anual', desc: 'Dias ou semanas intencionais de descanso profundo', header: 'MACROPAUSAS' }
     ]
 
     return (
       <div className="mb-16 bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '100ms'}}>
-        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">02. Estilo de Vida Sabático</h3>
+        <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">02. O que você ama fazer?</h3>
         <p className="text-slate-500 font-medium mb-8">Olhe para seu calendário e programe períodos de reabastecimento para os quais você nunca tem tempo.</p>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {periods.map((p, index) => (
             <div key={p.key} className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col group hover:bg-[#1ed7a4]/5 transition-colors">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#1ed7a4] mb-2 border-b-2 border-[#1ed7a4] inline-block pb-1 w-max">Frequência</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#1ed7a4] mb-2 border-b-2 border-[#1ed7a4] inline-block pb-1 w-max">{p.header}</span>
               <h4 className="font-bold text-slate-800 text-lg mb-1">{p.label}</h4>
               <p className="text-slate-500 text-xs font-medium mb-4">{p.desc}</p>
               <textarea 
@@ -75,7 +76,7 @@ export const CreativeFatigue = ({ data, onChange }) => {
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
-        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Solução de Cansaço Criativo</h2>
+        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO CRIATIVA</h2>
         <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de cansaço no pilar Criativo. Estas ferramentas vão restaurar seu fascínio e energia.</p>
       </div>
 

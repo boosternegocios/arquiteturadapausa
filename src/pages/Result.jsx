@@ -19,7 +19,18 @@ const CATEGORY_DATA = {
   criativo: { label: 'Criativo', max: 90, icon: Lightbulb },
   emocional: { label: 'Emocional', max: 80, icon: Heart },
   social: { label: 'Social', max: 80, icon: Users },
+  social: { label: 'Social', max: 80, icon: Users },
   espiritual: { label: 'Espiritual', max: 50, icon: Sun }
+}
+
+const RESULT_TEXTS = {
+  fisico: "Sua avaliação indica que a dimensão física é mais sobrecarregada. Seu corpo e mente estão demandando sono reparador e fluidez corporal.",
+  mental: "Sua avaliação indica que a dimensão mental é mais sobrecarregada. Seu corpo e mente estão demandando meditação e organização de tarefas e pensamentos.",
+  social: "Sua avaliação indica que a dimensão social é mais sobrecarregada. Seu corpo e mente estão pedindo que você equilibre o tempo e a qualidade da interação social olhando sua agenda de maneira estratégica priorizando momentos de auto reconexão.",
+  emocional: "Sua avaliação indica que a dimensão emocional é mais sobrecarregada. Seu corpo e mente estão pedindo que você busque autoconsciência, autenticidade e autocuidado e priorize relações de qualidade para que “máscaras” sociais possam ser tiradas.",
+  sensorial: "Sua avaliação indica que a dimensão sensorial está mais sobrecarregada. Seu corpo e mente pedem que você reduza a exposição à telas, ruídos e alimentos ultraprocessados.",
+  criativo: "Sua avaliação indica que a dimensão criativa está mais sobrecarregada. Seu corpo e mente pedem que você busque inspiração em contato com a arte, a música, o lúdico ou a natureza.",
+  espiritual: "Sua avaliação indica que a dimensão espiritual está mais sobrecarregada. Seu corpo e mente pedem que você busque reconexão com seu propósito e valores essenciais."
 }
 
 export const Result = () => {
@@ -102,10 +113,10 @@ export const Result = () => {
         <div className="w-full max-w-[1100px] flex flex-col h-full gap-8">
           
           {/* Header */}
-          <header className="flex justify-between items-start">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-2">Resultado do Diagnóstico</p>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-baseline gap-3">
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-baseline gap-3 flex-wrap">
                 Seu nível de cansaço maior é 
                 {loading ? (
                    <span className="bg-slate-200 animate-pulse h-10 w-48 rounded inline-block"></span>
@@ -116,6 +127,16 @@ export const Result = () => {
                 )}
               </h1>
             </div>
+            
+            {/* CTA Button moved to Header for Above the Fold visibility */}
+            {!loading && scores.length > 0 && (
+              <button 
+                onClick={() => navigate('/solution')} 
+                className="bg-[#1f1a1a] hover:bg-black text-white font-bold py-4 px-8 rounded-xl flex items-center justify-center gap-3 transition-transform active:scale-95 whitespace-nowrap shadow-xl w-full md:w-auto"
+              >
+                Iniciar sua reflexão <ArrowRight size={20} />
+              </button>
+            )}
           </header>
 
           {/* Results Area */}
@@ -154,8 +175,8 @@ export const Result = () => {
                 </div>
                 
                 {/* Insight Text block */}
-                <div className="mt-8 bg-[#e8fbf6] text-[#1b4332] p-6 rounded-2xl border border-emerald-100/50 italic text-[15px] font-medium max-w-[85%] mx-auto text-center leading-relaxed">
-                  "Seu diagnóstico sugere que você está negligenciando períodos de repouso passivo. A dimensão {topCategory.label.toLowerCase()} está enviando sinais claros de exaustão, demandando intervenção imediata."
+                <div className="mt-8 bg-[#e8fbf6] text-[#1b4332] p-6 rounded-2xl border border-emerald-100/50 text-[15px] font-medium max-w-[90%] mx-auto text-center leading-relaxed">
+                  "{RESULT_TEXTS[topCategory.key]}"
                 </div>
               </div>
 
@@ -211,19 +232,7 @@ export const Result = () => {
              </div>
           )}
 
-          {/* Bottom Action Footer */}
-          {!loading && scores.length > 0 && (
-            <div className="mt-4 bg-[#1f1a1a] rounded-[2rem] p-8 px-10 flex flex-col sm:flex-row items-center justify-between shadow-2xl relative overflow-hidden text-white">
-              <div className="mb-6 sm:mb-0">
-                <h3 className="text-2xl font-bold mb-1">Pronto para começar sua recuperação?</h3>
-                <p className="text-slate-400 text-sm">Criamos um plano personalizado baseado no seu cansaço {topCategory?.label.toLowerCase()}.</p>
-              </div>
-              
-              <button onClick={() => navigate('/')} className="bg-brand-pink hover:bg-brand-pink/90 text-white font-bold py-4 px-8 rounded-xl flex items-center gap-3 transition-transform active:scale-95 whitespace-nowrap">
-                Continuar para a Solução <ArrowRight size={20} />
-              </button>
-            </div>
-          )}
+          {/* Removed Bottom Action Footer since CTA is now at the top */}
 
         </div>
       </main>

@@ -85,7 +85,7 @@ export const Login = () => {
         </div>
 
         <Button type="submit" variant="secondary" fullWidth disabled={isLoading} style={{ marginTop: '0.5rem', padding: '1rem', fontWeight: 800 }}>
-          {isLoading ? 'ENTRANDO...' : 'ENTRAR NA PAUSA'}
+          {isLoading ? 'ENTRANDO...' : 'Arquitete sua pausa'}
         </Button>
       </form>
       

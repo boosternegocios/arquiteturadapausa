@@ -28,7 +28,7 @@ export const SocialFatigue = ({ data, onChange }) => {
               <span className="w-10 h-10 rounded-full bg-[#eb6496]/20 text-[#eb6496] flex items-center justify-center">↓</span>
               Pessoas que Drenam Energia
             </h4>
-            <div className="space-y-4">
+            <div className="flex flex-col gap-5">
               {listLen.map(i => (
                 <input 
                   key={`drain-${i}`}
@@ -49,7 +49,7 @@ export const SocialFatigue = ({ data, onChange }) => {
               <span className="w-10 h-10 rounded-full bg-[#1ed7a4]/20 text-[#1ed7a4] flex items-center justify-center">↑</span>
               Pessoas que Abastecem Energia
             </h4>
-            <div className="space-y-4">
+            <div className="flex flex-col gap-5">
               {listLen.map(i => (
                 <input 
                   key={`boost-${i}`}
@@ -87,7 +87,7 @@ export const SocialFatigue = ({ data, onChange }) => {
               <h4 className="text-sm font-black text-white mb-6 uppercase tracking-widest pl-4 border-l-4 border-amber-400">
                 Eventos ou interações presenciais que fizeram a diferença
               </h4>
-              <div className="space-y-4 pl-4 border-l border-white/10">
+              <div className="flex flex-col gap-5 pl-4 border-l border-white/10">
                 {listLen.map(i => (
                   <input 
                     key={`presencial-${i}`}
@@ -107,7 +107,7 @@ export const SocialFatigue = ({ data, onChange }) => {
               <h4 className="text-sm font-black text-white mb-6 uppercase tracking-widest pl-4 border-l-4 border-[#eb6496]">
                 Reuniões virtuais que teriam sido melhores presenciais
               </h4>
-              <div className="space-y-4 pl-4 border-l border-white/10">
+              <div className="flex flex-col gap-5 pl-4 border-l border-white/10">
                 {listLen.map(i => (
                   <input 
                     key={`online-${i}`}
@@ -141,7 +141,7 @@ export const SocialFatigue = ({ data, onChange }) => {
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
-        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Solução de Cansaço Social</h2>
+        <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO SOCIAL</h2>
         <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de tensão Social. Mapeie suas relações para proteger sua energia vital.</p>
       </div>
 

@@ -97,8 +97,8 @@ export const SensorialFatigue = ({ data, onChange }) => {
                   let colorClass = 'border-white/20 text-white/60 hover:bg-white/10 bg-transparent'
                   
                   if (isSelected) {
-                    if (val <= 3) colorClass = 'bg-[#eb6496] text-white border-[#eb6496] font-bold shadow-[0_0_15px_rgba(235,100,150,0.5)]'
-                    else if (val <= 7) colorClass = 'bg-amber-400 text-slate-900 border-amber-400 font-bold shadow-[0_0_15px_rgba(251,191,36,0.5)]'
+                    if (val < 5) colorClass = 'bg-[#eb6496] text-white border-[#eb6496] font-bold shadow-[0_0_15px_rgba(235,100,150,0.5)]'
+                    else if (val === 5) colorClass = 'bg-slate-900 text-white border-slate-900 font-bold shadow-[0_0_15px_rgba(15,23,42,0.5)]'
                     else colorClass = 'bg-[#1ed7a4] text-slate-900 border-[#1ed7a4] font-black shadow-[0_0_15px_rgba(30,215,164,0.5)]'
                   }
 
@@ -127,7 +127,7 @@ export const SensorialFatigue = ({ data, onChange }) => {
         <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de cansaço no pilar Sensorial. Identifique seus ofensores e proteja seu corpo de hiperestímulos.</p>
       </div>
 
-      {renderAct01()}
+      {/* Ocultado temporariamente a pedido: renderAct01() */}
       {renderAct02()}
     </div>
   )
