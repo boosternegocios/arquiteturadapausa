@@ -24,7 +24,7 @@ export const Introduction = () => {
       try {
         const { data, error } = await supabase
           .from('evaluations')
-          .select('solution_internal_speed, solution_beliefs, solution_status')
+          .select('solution_internal_speed, solution_beliefs, solution_status, top_fatigue_solution')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -36,7 +36,16 @@ export const Introduction = () => {
           if (data[0].solution_beliefs && data[0].solution_beliefs._card2_completed === true) {
             setStep2Done(true)
           }
-          if (data[0].solution_status === 'completed' || data[0].solution_status === 'completed_deep') {
+          
+          // Check if all 7 specific solutions are completed
+          let completedCount = 0;
+          if (data[0].top_fatigue_solution) {
+            completedCount = Object.keys(data[0].top_fatigue_solution).filter(
+              key => data[0].top_fatigue_solution[key]?.isCompleted === true
+            ).length;
+          }
+          
+          if (completedCount === 7) {
             setStep3Done(true)
           }
         }
@@ -137,7 +146,7 @@ export const Introduction = () => {
 
               {/* Item 3 */}
               <div 
-                onClick={() => { if (step2Done && !step3Done) navigate('/assessment/fisico') }}
+                onClick={() => { if (step2Done && !step3Done) navigate('/continue-healing') }}
                 className={`p-8 md:pr-12 md:pt-12 border-b md:border-b-0 md:border-r border-white/20 transition-colors duration-300 relative group
                   ${step3Done 
                     ? 'opacity-50 grayscale cursor-default hover:bg-white/5'
@@ -154,7 +163,7 @@ export const Introduction = () => {
                   <span className={`text-6xl font-black font-antonio ${step2Done ? 'text-primary/20' : 'text-white/10'}`}>03</span>
                 </div>
                 <h3 className={`text-xl font-black uppercase mb-3 font-antonio ${step2Done ? 'text-primary' : 'text-white'}`}>
-                  DIAGNÓSTICO DOS 7 TIPOS DE DESCANSO
+                  DIAGNÓSTICO DOS 7 TIPOS DE CANSAÇO
                 </h3>
                 <p className={`text-base leading-relaxed font-sora ${step2Done ? 'text-primary/90' : 'text-white/80'}`}>
                   Identifique os seus cansaços, qual tipo de descanso você precisa?

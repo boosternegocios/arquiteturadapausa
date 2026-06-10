@@ -190,7 +190,7 @@ export const SpecificSolution = () => {
       }
 
       if (isFinal) {
-        navigate('/intro')
+        navigate('/continue-healing')
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)

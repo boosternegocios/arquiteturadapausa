@@ -9,19 +9,18 @@ import {
 
 const STEPS = [
   { id: 'satisfaction', number: 1, title: '1 Quão satisfeito você está com seu nível de...', subtitle: 'Usando uma escala de 1 (mais baixo) a 10 (mais alto)' },
-  { id: 'time-relation', number: 2, title: '2 Analise sua relação com o tempo', subtitle: 'Em uma escala de 1 a 10, quanto você:' },
-  { id: 'internal-speed', number: 3, title: '3 Reflita sobre sua velocidade interna', subtitle: 'Você se considera uma pessoa:' },
+  { id: 'time-relation', number: 2, title: '2 Analise sua relação com o tempo', subtitle: 'Em uma escala de 1 a 10, onde 1 (discorda totalmente) a 10 (concorda totalmente), quanto você:' },
+  { id: 'internal-speed', number: 3, title: '3 Reflita sobre sua velocidade interna', subtitle: 'Em uma escala de 1 a 10, onde 1 indica um ritmo interno mais lento e 10 indica um ritmo interno mais acelerado, como você se considera? Posicione o controle conforme você se identifica' },
   { id: 'beliefs', number: 4, title: '1 Você possui alguma dessas crenças?', subtitle: 'Em uma escala de 1 a 10, quanto você concorda com as afirmações, considerando 1 (mais baixo) a 10 (mais alto)' },
   { id: 'cycle', number: 5, title: '2 Entenda seus Ciclos', subtitle: 'A reflexão sobre os ciclos nos ajuda a quebrar a inércia do desgaste.' },
   { id: 'time-tips', number: 6, title: '3 Reflita sobre sua relação com o tempo', subtitle: 'Mude a perspectiva sobre como você gasta a sua vida.' },
-  { id: 'pauses', number: 7, title: '7 Estratégias para pausas intencionais', subtitle: 'Passos fundamentais para recuperar energia vital.' }
+  { id: 'pauses', number: 7, title: 'Estratégias para pausas intencionais', subtitle: 'Passos fundamentais para recuperar energia vital.' }
 ]
 
 const QUESTIONS = {
   satisfaction: [
     { key: 'foco', label: 'Foco' },
     { key: 'produtividade', label: 'Produtividade' },
-    { key: 'felicidade', label: 'Felicidade' },
     { key: 'realizacao', label: 'Realização' },
     { key: 'ritmo', label: 'Seu ritmo de vida' },
   ],
@@ -33,14 +32,14 @@ const QUESTIONS = {
     { key: 'limite_corpo', label: 'Já desrespeitou o limite do seu corpo por excesso de atividades' },
     { key: 'stress', label: 'Sente stress crônico nos últimos meses' },
     { key: 'frustracao_agenda', label: 'Vive em um estado de frustração crônica com a sua agenda?' },
-    { key: 'delega_centraliza', label: 'Delega com satisfação ou centraliza por insegurança?' },
+    { key: 'delega_centraliza', label: 'Centraliza por insegurança?' },
   ],
   internal_speed: [
-    { key: 'acelerada_lenta', label: 'Acelerada ou lenta?' },
-    { key: 'focada_relaxada', label: 'Focada ou relaxada?' },
-    { key: 'paciente_impaciente', label: 'Paciente ou impaciente?' },
-    { key: 'ponderada_impulsiva', label: 'Ponderada ou impulsiva?' },
-    { key: 'decisao_rapida_lenta', label: 'Toma decisões rapidamente' },
+    { key: 'acelerada_lenta', label: 'Lenta ou Acelerada?' },
+    { key: 'focada_relaxada', label: 'Focada ou Dispersa?' },
+    { key: 'paciente_impaciente', label: 'Paciente ou Impaciente?' },
+    { key: 'ponderada_impulsiva', label: 'Ponderada ou Impulsiva?' },
+    { key: 'decisao_rapida_lenta', label: 'Toma decisões lentamente ou Toma decisões rapidamente?' },
   ],
   beliefs: [
     { key: 'sacrificio', label: 'Preciso me sacrificar para atingir meus objetivos' },
@@ -252,7 +251,6 @@ export const Recovery = () => {
 
   const renderBipolarScale = () => (
     <div className="space-y-12">
-      <p className="text-slate-500 font-medium mb-8">Posicione o controle conforme você mais se identifica.</p>
       {QUESTIONS.internal_speed.map((q, index) => {
         const parts = q.label.replace('?', '').split(' ou ')
         const leftLabel = parts[0]
@@ -477,9 +475,67 @@ export const Recovery = () => {
   const renderCurrentStep = () => {
     if (loading) return <div className="flex-1 flex justify-center items-center"><div className="w-10 h-10 border-4 border-[#1ed7a4]/20 border-t-[#1ed7a4] rounded-full animate-spin"></div></div>
 
-    if (step === 'satisfaction') return renderScale1to10('satisfaction', QUESTIONS.satisfaction)
-    if (step === 'time-relation') return renderScale1to10('time_relation', QUESTIONS.time_relation)
-    if (step === 'internal-speed') return renderBipolarScale()
+    if (step === 'satisfaction') {
+      const isComplete = Object.keys(formData.satisfaction).length === QUESTIONS.satisfaction.length;
+      const badRatings = Object.values(formData.satisfaction).filter(v => v < 5).length;
+      return (
+        <div className="space-y-12">
+          {renderScale1to10('satisfaction', QUESTIONS.satisfaction)}
+          {isComplete && badRatings > 0 && (
+            <div className="bg-[#eb6496]/10 border border-[#eb6496]/20 p-8 rounded-3xl animate-in fade-in slide-in-from-bottom-4 shadow-sm mt-12">
+              <p className="text-slate-800 font-bold text-lg leading-relaxed mb-4">
+                De acordo com sua autorreflexão, <span className="text-[#eb6496]">{badRatings} entre 4 atributos</span> que refletem cognição, desenvolvimento pessoal e qualidade de vida foram mal avaliados por você.
+              </p>
+              <p className="text-slate-600 font-medium leading-relaxed">
+                Reflita sobre a qualidade do seu pensamento e seu bem-estar. Considerando os pontos de atenção desse exercício, há algum micro-hábito que você possa adotar a partir de hoje para melhorar sua rotina?
+              </p>
+            </div>
+          )}
+        </div>
+      )
+    }
+    if (step === 'time-relation') {
+      const answers = Object.values(formData.time_relation);
+      const isComplete = answers.length === QUESTIONS.time_relation.length;
+      const average = answers.length > 0 ? answers.reduce((a, b) => a + b, 0) / answers.length : 0;
+      const badRatings = answers.filter(v => v < 5).length;
+      return (
+        <div className="space-y-12">
+          {renderScale1to10('time_relation', QUESTIONS.time_relation)}
+          {isComplete && average < 5 && (
+            <div className="bg-[#eb6496]/10 border border-[#eb6496]/20 p-8 rounded-3xl animate-in fade-in slide-in-from-bottom-4 shadow-sm mt-12">
+              <p className="text-slate-800 font-bold text-lg leading-relaxed mb-4">
+                De acordo com sua autorreflexão, <span className="text-[#eb6496]">{badRatings} de 8 atributos</span> que refletem sua relação com o tempo tiveram uma auto avaliação ruim.
+              </p>
+              <p className="text-slate-600 font-medium leading-relaxed">
+                Reflita sobre sua agenda: ela possui um volume de atividades gerenciável ou minimamente realista? Considerando os pontos de atenção desse exercício, há algum micro-hábito que você possa adotar a partir de hoje para melhorar sua rotina?
+              </p>
+            </div>
+          )}
+        </div>
+      )
+    }
+    if (step === 'internal-speed') {
+      const answers = Object.values(formData.internal_speed);
+      const isComplete = answers.length === QUESTIONS.internal_speed.length;
+      const average = answers.length > 0 ? answers.reduce((a, b) => a + b, 0) / answers.length : 0;
+      const acceleratedCount = answers.filter(v => v > 5).length;
+      return (
+        <div className="space-y-12">
+          {renderBipolarScale()}
+          {isComplete && average > 5 && (
+            <div className="bg-[#eb6496]/10 border border-[#eb6496]/20 p-8 rounded-3xl animate-in fade-in slide-in-from-bottom-4 shadow-sm mt-12">
+              <p className="text-slate-800 font-bold text-lg leading-relaxed mb-4">
+                De acordo com sua autorreflexão, <span className="text-[#eb6496]">{acceleratedCount} de 5 atributos</span> que refletem sua velocidade interna indicam um ritmo acelerado.
+              </p>
+              <p className="text-slate-600 font-medium leading-relaxed">
+                Reflita sobre sua capacidade de focar, sua impaciência e pressa. Considerando os pontos de atenção desse exercício, há algum micro-hábito que você possa adotar a partir de hoje para melhorar sua rotina?
+              </p>
+            </div>
+          )}
+        </div>
+      )
+    }
     if (step === 'beliefs') return renderScale1to10('beliefs', QUESTIONS.beliefs)
     if (step === 'rhythm') return renderRhythmForm()
     if (step === 'cycle') return renderCycleInfo()
@@ -502,14 +558,16 @@ export const Recovery = () => {
             
             {/* Header / Progress element matching Image 1 */}
             <div className="mb-14">
-              <div className="flex items-center gap-3 mb-10">
-                <div className="flex gap-1.5">
-                  {visualSteps.map((s, i) => (
-                    <div key={s.id} className={`h-1.5 rounded-full ${i < visualStepNumber ? 'bg-[#004b4c] w-8' : 'bg-[#e2dacb] w-6'}`}></div>
-                  ))}
+              {step !== 'pauses' && (
+                <div className="flex items-center gap-3 mb-10">
+                  <div className="flex gap-1.5">
+                    {visualSteps.map((s, i) => (
+                      <div key={s.id} className={`h-1.5 rounded-full ${i < visualStepNumber ? 'bg-[#004b4c] w-8' : 'bg-[#e2dacb] w-6'}`}></div>
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#004b4c] ml-2">PASSO {visualStepNumber} DE {visualSteps.length}</span>
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#004b4c] ml-2">PASSO {visualStepNumber} DE {visualSteps.length}</span>
-              </div>
+              )}
               
               {step === 'satisfaction' && (
                 <div className="mb-10 bg-[#f4ece3]/60 border border-[#e2dacb]/40 rounded-3xl p-8 md:p-10 text-slate-700 space-y-5 font-medium text-lg md:text-xl leading-relaxed font-sora shadow-sm animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden">
@@ -531,7 +589,7 @@ export const Recovery = () => {
                 </div>
               )}
               
-              <h2 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#004b4c] tracking-tighter leading-[1.05] mb-6 font-display" style={{ transform: 'scaleY(1.1)', transformOrigin: 'left' }}>
+              <h2 className="text-3xl md:text-4xl lg:text-[2.5rem] xl:text-[2.75rem] font-bold text-[#004b4c] tracking-tighter leading-[1.05] mb-6 font-display" style={{ transform: 'scaleY(1.1)', transformOrigin: 'left' }}>
                 {currentStepInfo.title}
               </h2>
               <p className="text-xl text-slate-500 font-medium">
@@ -576,7 +634,7 @@ export const Recovery = () => {
                 disabled={saving}
                 className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-8 py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
               >
-                {['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'} <ArrowRight size={18} strokeWidth={2.5} />
+                {['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : (step === 'pauses' ? 'Solicitar plano personalizado' : (isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'))} <ArrowRight size={18} strokeWidth={2.5} />
               </button>
             </div>
           </div>

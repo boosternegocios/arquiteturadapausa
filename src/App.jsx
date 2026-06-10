@@ -15,6 +15,9 @@ import { SpecificSolution } from './pages/SpecificSolution'
 import { ContinueHealing } from './pages/ContinueHealing'
 import { Introduction } from './pages/Introduction'
 import { Contact } from './pages/Contact'
+import { VitalityRadar } from './pages/VitalityRadar'
+import { Profile } from './pages/Profile'
+import { AdminDashboard } from './pages/AdminDashboard'
 
 function App() {
   return (
@@ -36,6 +39,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Introduction />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } 
           />
@@ -107,6 +119,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <Contact />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/vitality" 
+            element={
+              <ProtectedRoute>
+                <VitalityRadar />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
               </ProtectedRoute>
             } 
           />

@@ -19,6 +19,19 @@ export const Register = () => {
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
+  const formatPhone = (value) => {
+    if (!value) return '';
+    const p = value.replace(/\D/g, '');
+    if (p.length <= 2) return `(${p}`;
+    if (p.length <= 6) return `(${p.slice(0,2)}) ${p.slice(2)}`;
+    if (p.length <= 10) return `(${p.slice(0,2)}) ${p.slice(2,6)}-${p.slice(6)}`;
+    return `(${p.slice(0,2)}) ${p.slice(2,7)}-${p.slice(7,11)}`;
+  };
+
+  const handlePhoneChange = (e) => {
+    setPhone(formatPhone(e.target.value));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -93,7 +106,7 @@ export const Register = () => {
           type="tel" 
           placeholder="(11) 99999-9999" 
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={handlePhoneChange}
           required
         />
         

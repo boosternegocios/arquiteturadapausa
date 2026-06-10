@@ -20,47 +20,33 @@ import {
   Radar as RechartsRadar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip 
 } from 'recharts'
 
-// Map of satisfaction categories
-const SATISFACTION_DATA = {
-  foco: { label: 'Foco', shortLabel: 'Foco', colorClass: 'bg-amber-400' },
-  produtividade: { label: 'Produtividade', shortLabel: 'Produtividade', colorClass: 'bg-emerald-400' },
-  realizacao: { label: 'Realização', shortLabel: 'Realização', colorClass: 'bg-purple-400' }
+// Map of categories and max possible values
+const CATEGORY_DATA = {
+  fisico: { label: 'Físico', max: 80 },
+  mental: { label: 'Mental', max: 80 },
+  sensorial: { label: 'Sensorial', max: 80 },
+  criativo: { label: 'Criativo', max: 90 },
+  emocional: { label: 'Emocional', max: 80 },
+  social: { label: 'Social', max: 80 },
+  espiritual: { label: 'Espiritual', max: 50 }
 }
 
-// Map of time relation categories
-const TIME_RELATION_DATA = {
-  equilibrio: { label: 'Equilibra as esferas da vida', shortLabel: 'Equilíbrio', colorClass: 'bg-amber-400' },
-  importancia: { label: 'Prioriza atividades', shortLabel: 'Prioridade', colorClass: 'bg-emerald-400' },
-  mensagens: { label: 'Protege o tempo pessoal', shortLabel: 'Limites', colorClass: 'bg-blue-400' },
-  tempo_livre: { label: 'Satisfeito com Tempo Livre', shortLabel: 'Tempo Livre', colorClass: 'bg-purple-400' },
-  delega_centraliza: { label: 'Centraliza por insegurança', shortLabel: 'Centralização', colorClass: 'bg-pink-400' },
-  limite_corpo: { label: 'Ja desrespeitou seu corpo', shortLabel: 'Excesso', colorClass: 'bg-red-400' },
-  stress: { label: 'Sente stress crônico', shortLabel: 'Stress', colorClass: 'bg-orange-400' },
-  frustracao_agenda: { label: 'É frustrado com a sua agenda', shortLabel: 'Frustração', colorClass: 'bg-yellow-400' }
-}
-
-export const Dashboard = () => {
+export const VitalityRadar = () => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
-  const [radarScores, setRadarScores] = useState({
-    equilibrio: 0,
-    importancia: 0,
-    mensagens: 0,
-    tempo_livre: 0,
-    delega_centraliza: 0,
-    limite_corpo: 0,
-    stress: 0,
-    frustracao_agenda: 0
-  })
-  const [satisfactionScores, setSatisfactionScores] = useState({
-    foco: 0,
-    produtividade: 0,
-    realizacao: 0
+  const [scores, setScores] = useState({
+    fisico: 0,
+    mental: 0,
+    sensorial: 0,
+    criativo: 0,
+    emocional: 0,
+    social: 0,
+    espiritual: 0
   })
   const [hasRecord, setHasRecord] = useState(false)
   const [loading, setLoading] = useState(true)
   const [journeyProgress, setJourneyProgress] = useState(0)
-  const [nextCategory, setNextCategory] = useState('equilibrio')
+  const [nextCategory, setNextCategory] = useState('fisico')
   const [assessmentStatus, setAssessmentStatus] = useState(null)
   const [topFatigue, setTopFatigue] = useState(null)
 
@@ -72,84 +58,58 @@ export const Dashboard = () => {
         setLoading(true)
         const { data, error } = await supabase
           .from('evaluations')
-          .select('solution_time_relation, solution_satisfaction, solution_internal_speed, scores, top_fatigue_solution, status')
+          .select('scores, status')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
         
         if (error) throw error
         
-        if (data && data.length > 0) {
-          const evalData = data[0]
-          const fetchedTimeRel = evalData.solution_time_relation || {}
-          const fetchedSat = evalData.solution_satisfaction || {}
-          const status = evalData.status
+        if (data && data.length > 0 && data[0].scores && Object.keys(data[0].scores).length > 0) {
+          const fetchedScores = data[0].scores
+          const status = data[0].status
           
-          let progress = 0
-          if (Object.keys(fetchedSat).length > 0) progress += 10
-          if (Object.keys(fetchedTimeRel).length > 0) progress += 10
-          if (Object.keys(evalData.solution_internal_speed || {}).length > 0) progress += 10
-          
-          const scores = evalData.scores || {}
-          const answeredScores = Object.values(scores).filter(v => v !== undefined && v !== null).length
-          progress += Math.round((answeredScores / 7) * 49)
-          
-          const plans = evalData.top_fatigue_solution || {}
-          const hasActionPlan = Object.values(plans).some(p => p.isCompleted)
-          if (hasActionPlan) progress += 21
-          
-          setJourneyProgress(Math.min(100, progress))
-          
-          // Only hide the popup if they have actually answered velocity radar
-          if (Object.keys(fetchedTimeRel).length > 0 || Object.keys(fetchedSat).length > 0) {
-            setHasRecord(true)
-            setAssessmentStatus(status)
+          setHasRecord(true)
+          setAssessmentStatus(status)
 
-            // Radar scores
-            const normRadar = {}
-            Object.keys(TIME_RELATION_DATA).forEach(key => {
-              const rawVal = fetchedTimeRel[key] || 0
-              normRadar[key] = Math.min(100, rawVal * 10)
-            })
-            setRadarScores(normRadar)
+          const normalized = {}
+          let highestScore = -1
+          let highestCat = null
 
-            // Satisfaction scores for Index
-            const normSat = {}
-            let highestScore = -1
-            let highestCat = null
+          Object.keys(CATEGORY_DATA).forEach(key => {
+            const rawVal = fetchedScores[key] || 0
+            const maxVal = CATEGORY_DATA[key].max
+            const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
+            normalized[key] = perc
 
-            Object.keys(SATISFACTION_DATA).forEach(key => {
-              const rawVal = fetchedSat[key] || 0
-              const perc = Math.min(100, rawVal * 10)
-              normSat[key] = perc
-
-              if (perc > highestScore) {
-                highestScore = perc
-                highestCat = { key, label: SATISFACTION_DATA[key].label, percentage: perc }
-              }
-            })
-            setSatisfactionScores(normSat)
-            setTopFatigue(highestCat)
-            
-            // Progress based on SATISFACTION
-            const validCategories = Object.keys(SATISFACTION_DATA)
-            const answeredCount = validCategories.filter(cat => fetchedSat[cat] !== undefined && fetchedSat[cat] !== null).length
-            
-            if (status === 'draft') {
-              const nextCat = validCategories.find(cat => fetchedSat[cat] === undefined || fetchedSat[cat] === null)
-              setNextCategory(nextCat || 'foco')
-            } else {
-              setNextCategory('foco')
+            // Find top fatigue category accurately
+            if (perc > highestScore) {
+              highestScore = perc
+              highestCat = { key, label: CATEGORY_DATA[key].label, percentage: perc }
             }
+          })
+
+          setScores(normalized)
+          setTopFatigue(highestCat)
+          
+          // Calcular o progresso e determinar próxima categoria com a ordem original do app
+          const validCategories = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
+          const answeredCount = validCategories.filter(cat => fetchedScores[cat] !== undefined && fetchedScores[cat] !== null).length
+          setJourneyProgress(Math.round((answeredCount / 7) * 100))
+          
+          if (status === 'draft') {
+            const nextCat = validCategories.find(cat => fetchedScores[cat] === undefined || fetchedScores[cat] === null)
+            setNextCategory(nextCat || 'fisico')
           } else {
-            // User has a record but hasn't started Velocity Radar
-            setHasRecord(false) 
+            setNextCategory('fisico') // Se já concluiu, ao clicar vai reiniciar do zero
           }
         } else {
           setHasRecord(false)
+          setJourneyProgress(0)
+          setNextCategory('fisico')
         }
       } catch (err) {
-        console.error('Erro ao buscar dados:', err)
+        console.error('Erro ao buscar avaliações:', err)
       } finally {
         setLoading(false)
       }
@@ -157,16 +117,6 @@ export const Dashboard = () => {
 
     fetchEvaluations()
   }, [user])
-
-  // Get Route for button
-  const getRoute = () => {
-    if (journeyProgress > 0) {
-      if (journeyProgress < 30) return '/recovery/satisfaction' // just starting velocity
-      if (journeyProgress < 79) return '/intro' // 7 fatigues
-      return '/continue-healing'
-    }
-    return '/intro'
-  }
 
   const handleLogout = async () => {
     try {
@@ -176,16 +126,19 @@ export const Dashboard = () => {
     }
   }
 
-  const fatigueLevels = Object.keys(SATISFACTION_DATA).map(key => ({
-    label: SATISFACTION_DATA[key].label,
-    key,
-    value: satisfactionScores[key],
-    colorClass: SATISFACTION_DATA[key].colorClass
-  }))
+  const fatigueLevels = [
+    { label: 'Físico', key: 'fisico', value: scores.fisico, colorClass: 'bg-amber-400' },
+    { label: 'Mental', key: 'mental', value: scores.mental, colorClass: 'bg-red-400' },
+    { label: 'Sensorial', key: 'sensorial', value: scores.sensorial, colorClass: 'bg-amber-500' },
+    { label: 'Criativo', key: 'criativo', value: scores.criativo, colorClass: 'bg-emerald-400' },
+    { label: 'Emocional', key: 'emocional', value: scores.emocional, colorClass: 'bg-orange-400' },
+    { label: 'Social', key: 'social', value: scores.social, colorClass: 'bg-emerald-500' },
+    { label: 'Espiritual', key: 'espiritual', value: scores.espiritual, colorClass: 'bg-mint' },
+  ]
 
-  const radarData = Object.keys(TIME_RELATION_DATA).map(key => ({
-    radarLabel: TIME_RELATION_DATA[key].label,
-    score: hasRecord ? radarScores[key] : 0, 
+  const radarData = Object.keys(CATEGORY_DATA).map(key => ({
+    radarLabel: CATEGORY_DATA[key].label.toUpperCase(),
+    score: hasRecord ? scores[key] : 0, 
     fullMark: 100
   }))
 
@@ -202,8 +155,8 @@ export const Dashboard = () => {
             {/* Header */}
             <header className="flex justify-between items-center mb-12">
               <div>
-                <h2 className="text-4xl font-black text-slate-800 tracking-tight">Radar de Velocidade</h2>
-                <p className="text-slate-500 font-medium mt-2 text-lg">Bom dia, {user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Alex')}!</p>
+                <h2 className="text-4xl font-black text-slate-800 tracking-tight">Radar de Vitalidade</h2>
+                <p className="text-slate-500 font-medium mt-2 text-lg">Bom dia, {user?.email ? user.email.split('@')[0] : 'Alex'}!</p>
               </div>
               <div className="flex items-center gap-4">
               </div>
@@ -216,19 +169,12 @@ export const Dashboard = () => {
                 {/* Dashed outline subtle element to signify emptiness */}
                 <div className="flex flex-col items-center opacity-30 pointer-events-none">
                   <LayoutDashboard size={64} className="text-slate-400 mb-4" />
-                  <p className="font-bold text-slate-400 uppercase tracking-widest">Ainda sem registros</p>
+                  <p className="font-bold text-slate-400 uppercase tracking-widest">Painel Desocupado</p>
                 </div>
 
                 {/* Popup Blur Overlay that Auto-Opens */}
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-[3rem] p-10 md:p-16 max-w-[600px] w-full flex flex-col items-center text-center shadow-2xl scale-100 relative overflow-hidden">
-                    
-                    <button 
-                      onClick={() => navigate('/intro')}
-                      className="absolute top-6 right-6 w-10 h-10 bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors z-20"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
                     
                     {/* Pink decorative blob */}
                     <div className="absolute -top-20 -right-20 w-64 h-64 bg-brand-pink/10 rounded-full blur-[60px] pointer-events-none"></div>
@@ -246,18 +192,18 @@ export const Dashboard = () => {
                     </p>
                     
                     <button 
-                      onClick={() => navigate(getRoute())} 
+                      onClick={() => navigate('/continue-healing')} 
                       className="bg-[#eb6496] relative z-10 text-white w-full py-5 rounded-2xl font-bold text-sm tracking-[0.15em] uppercase shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3"
                       style={{ marginBottom: '32px' }}
                     >
-                      {journeyProgress > 0 ? 'Continuar Avaliação' : 'Iniciar a avaliação'} <ArrowRight size={18} strokeWidth={2.5} />
+                      Iniciar a avaliação <ArrowRight size={18} strokeWidth={2.5} />
                     </button>
                     
                     <button 
-                      onClick={() => navigate('/intro')}
+                      onClick={() => signOut()}
                       className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10"
                     >
-                      Voltar para o Início
+                      Sair por enquanto
                     </button>
                   </div>
                 </div>
@@ -273,7 +219,7 @@ export const Dashboard = () => {
               <div className="bg-white rounded-[2rem] p-8 shadow-sm">
                 <div className="flex justify-between items-center mb-8">
                   <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
-                    <RechartsRadar size={24} className="text-accent" /> Radar de Velocidade
+                    <RechartsRadar size={24} className="text-accent" /> Radar de Vitalidade
                   </h3>
                 </div>
                 
@@ -286,7 +232,7 @@ export const Dashboard = () => {
                         tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }} 
                       />
                       <RechartsRadar 
-                        name="Velocidade" 
+                        name="Fadiga" 
                         dataKey="score" 
                         stroke="#00d1d2" 
                         strokeWidth={4} 
@@ -304,12 +250,27 @@ export const Dashboard = () => {
                 </div>
               </div>
               
-
+              {/* Progresso da Jornada Card */}
+              <div className="bg-primary relative overflow-hidden text-white rounded-[2rem] p-10 shadow-lg shadow-primary/20 flex flex-col justify-between shrink-0">
+                <div className="relative z-10 mb-8">
+                  <h3 className="text-2xl font-bold mb-6">Progresso da Jornada</h3>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-5xl font-bold text-accent">{journeyProgress}%</span>
+                    <span className="text-lg text-white/50 font-medium">da trilha atual</span>
+                  </div>
+                  <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden mt-4">
+                    <div className="h-full bg-accent rounded-full transition-all duration-1000 ease-out" style={{ width: `${journeyProgress}%` }}></div>
+                  </div>
+                </div>
+                <button onClick={() => navigate(assessmentStatus === 'completed' ? '/solution' : '/intro')} className="relative z-10 w-full bg-white text-primary py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition-colors shadow-sm">
+                  {assessmentStatus === 'completed' ? 'Continuar para a Solução' : (journeyProgress === 100 || !hasRecord ? 'Iniciar nova avaliação' : 'Continuar de onde parei')}
+                </button>
+              </div>
               
             </div>
             
             {/* Right Column: Fatigue List */}
-            <div className="col-span-12 lg:col-span-5 flex flex-col gap-8">
+            <div className="col-span-12 lg:col-span-5 flex flex-col gap-8 h-[calc(100vh-180px)]">
               
               {hasRecord && topFatigue && (
                 <div className="bg-gradient-to-br from-brand-pink to-[#d84e80] text-white rounded-[2rem] p-8 relative overflow-hidden shadow-xl shadow-brand-pink/20 shrink-0">
@@ -326,19 +287,19 @@ export const Dashboard = () => {
                   
                   <div className="relative z-10">
                     <p className="text-white/80 text-[11px] font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
-                       <span className="w-2 h-2 bg-white rounded-full animate-pulse shadow-sm"></span> SUA PRINCIPAL TENDÊNCIA
+                       <span className="w-2 h-2 bg-white rounded-full animate-pulse shadow-sm"></span> SEU PRINCIPAL DESGASTE
                     </p>
-                    <h3 className="text-3xl font-black mb-1 uppercase tracking-tight border-b border-white/20 pb-4">{topFatigue.label}</h3>
+                    <h3 className="text-3xl font-black mb-1 uppercase tracking-tight border-b border-white/20 pb-4">Cansaço {topFatigue.label}</h3>
                   </div>
                 </div>
               )}
 
-              <div className="bg-white rounded-[2rem] p-8 shadow-sm flex-1 flex flex-col">
+              <div className="bg-white rounded-[2rem] p-8 shadow-sm flex-1 flex flex-col overflow-hidden">
                 <h3 className="text-xl font-bold mb-8 flex items-center gap-2 text-slate-800 shrink-0">
-                  <BarChart2 size={24} className="text-primary" /> Índice de Satisfação
+                  <BarChart2 size={24} className="text-primary" /> Índice das 7 Dimensões
                 </h3>
                 
-                <div className="flex-1 flex flex-col justify-between space-y-4">
+                <div className="space-y-7 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                   {loading ? (
                     <div className="flex justify-center items-center h-full">
                       <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -362,7 +323,7 @@ export const Dashboard = () => {
                   <div className="mt-6 shrink-0">
                     <div className="p-5 bg-slate-50 rounded-xl border border-slate-100 text-slate-500 text-center">
                       <p className="text-sm font-bold uppercase tracking-wider mb-1">Processo não iniciado</p>
-                      <p className="text-xs">Faça sua primeira avaliação para visualizar suas médias de velocidade.</p>
+                      <p className="text-xs">Faça sua primeira avaliação para visualizar seus níveis de fadiga.</p>
                     </div>
                   </div>
                 )}
