@@ -34,8 +34,17 @@ export const Assessment = () => {
   const categoryTitle = category ? `CANSAÇO ${categoryNames[category.toLowerCase()] || category.toUpperCase()}` : 'AVALIAÇÃO'
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchQuestionsAndDraft = async () => {
       if (!category || !user) return
+      
+      const timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn("Assessment fetchQuestions timeout!");
+          setLoading(false);
+        }
+      }, 5000);
       
       try {
         setLoading(true)
@@ -56,6 +65,9 @@ export const Assessment = () => {
             text: 'Com frequência tenho dificuldade de me concentrar'
           })
         }
+        
+        clearTimeout(timeoutId);
+        if (!isMounted) return;
         
         setQuestions(fetchedQData)
         
@@ -236,19 +248,19 @@ export const Assessment = () => {
   const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0
 
   return (
-    <div className="bg-[#f8f3e9] h-screen text-slate-900 font-display flex overflow-hidden">
+    <div className="bg-[#f8f3e9] h-[100dvh] text-slate-900 font-display flex flex-col lg:flex-row overflow-hidden">
       
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Content */}
-      <main ref={mainRef} className="flex-1 h-screen overflow-y-auto px-8 py-12 md:px-16 lg:px-24">
+      <main ref={mainRef} className="flex-1 h-[100dvh] overflow-y-auto px-4 py-6 md:px-8 lg:px-16 xl:px-24 w-full relative">
         <div className="max-w-4xl mx-auto flex flex-col min-h-full">
           
           {/* Header */}
-          <div className="flex items-end justify-between mb-10 gap-8 flex-wrap">
-            <div className="flex-1 min-w-[300px]">
-              <h1 className="text-4xl md:text-5xl font-black text-[#1a202c] uppercase tracking-tight mb-3">
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-8 gap-6 flex-wrap">
+            <div className="flex-1 min-w-[280px]">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#1a202c] uppercase tracking-tight mb-3">
                 {categoryTitle}
               </h1>
               <p className="text-[#4a5568] text-base md:text-lg leading-relaxed max-w-2xl">

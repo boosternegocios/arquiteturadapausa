@@ -229,14 +229,14 @@ export const SpecificSolution = () => {
   }
 
   return (
-    <div className="bg-[#fcfaf5] text-slate-900 min-h-screen font-display">
-      <div className="flex h-screen overflow-hidden">
+    <div className="bg-[#f8f3e9] min-h-screen text-slate-900 font-display">
+      <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
         
-        {/* Sidebar Matches Second Image perfectly (Mentoria e Negócios) */}
+        {/* Sidebar */}
         <Sidebar />
-
-        {/* Main Area */}
-        <main className="flex-1 overflow-y-auto relative" onBlur={() => handleSave(false, true)}>
+        
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 w-full relative" onBlur={() => handleSave(false, true)}>
           <div className="p-8 md:p-14 lg:p-20 pb-40">
             {loading ? (
               <div className="h-full w-full flex items-center justify-center">

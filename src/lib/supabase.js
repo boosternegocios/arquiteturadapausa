@@ -7,4 +7,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase credentials in .env.local")
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storageKey: 'arqpausa-auth-v2',
+    persistSession: true
+  }
+})

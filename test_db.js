@@ -8,7 +8,6 @@ async function checkDatabase() {
   console.log("Verificando conexão com o Supabase...");
 
   try {
-    // Verifica perguntas
     const { data: questions, error: questionsError } = await supabase
       .from('questions')
       .select('category');
@@ -17,16 +16,12 @@ async function checkDatabase() {
       console.error("Erro ao acessar a tabela 'questions':", questionsError.message);
     } else {
       console.log(`Sucesso! Encontradas ${questions.length} perguntas cadastradas.`);
-      
-      // Conta as perguntas por categoria para ficar mais bonito
       const countByCategory = questions.reduce((acc, q) => {
         acc[q.category] = (acc[q.category] || 0) + 1;
         return acc;
       }, {});
-      
       console.log("Perguntas por categoria:", countByCategory);
     }
-
   } catch (err) {
     console.error("Erro inesperado:", err);
   }

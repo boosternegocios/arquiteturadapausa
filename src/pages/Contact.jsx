@@ -28,9 +28,9 @@ export const Contact = () => {
   }
 
   return (
-    <div className="bg-[#fcfaf5] text-slate-900 min-h-screen font-display flex overflow-hidden">
+    <div className="bg-[#fcfaf5] text-slate-900 h-[100dvh] font-display flex flex-col lg:flex-row overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-20 relative">
+      <main className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-20 relative w-full">
         <div className="max-w-2xl mx-auto w-full relative z-10 animate-in fade-in slide-in-from-bottom-10">
           
           <div className="mb-12">

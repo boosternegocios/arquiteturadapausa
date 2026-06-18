@@ -228,14 +228,30 @@
     flex-direction: column;
   }
   .auth-hero {
-    padding: 3rem 2rem;
-    min-height: 40vh;
+    padding: 2rem 1.5rem;
+    min-height: auto;
+  }
+  .auth-hero-logo img {
+    max-width: 100px !important;
   }
   .auth-hero-content h1 {
-    font-size: 4rem;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+  }
+  .auth-hero-content p {
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
   }
   .auth-form-pane {
-    padding: 3rem 1.5rem;
+    padding: 2rem 1.5rem;
+  }
+  .auth-header h2 {
+    font-size: 1.75rem;
+  }
+  .auth-header p {
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
   }
   .auth-fab {
     right: 0;

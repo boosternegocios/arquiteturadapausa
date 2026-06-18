@@ -44,6 +44,7 @@ export const VitalityRadar = () => {
     espiritual: 0
   })
   const [hasRecord, setHasRecord] = useState(false)
+  const [vitalityScore, setVitalityScore] = useState(0)
   const [loading, setLoading] = useState(true)
   const [journeyProgress, setJourneyProgress] = useState(0)
   const [nextCategory, setNextCategory] = useState('fisico')
@@ -75,22 +76,31 @@ export const VitalityRadar = () => {
           const normalized = {}
           let highestScore = -1
           let highestCat = null
+          let vitSum = 0;
+          let vitCount = 0;
 
           Object.keys(CATEGORY_DATA).forEach(key => {
-            const rawVal = fetchedScores[key] || 0
-            const maxVal = CATEGORY_DATA[key].max
-            const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
-            normalized[key] = perc
+            const rawVal = fetchedScores[key]
+            if (rawVal !== undefined && rawVal !== null) {
+              const maxVal = CATEGORY_DATA[key].max
+              const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
+              normalized[key] = perc
+              vitSum += perc;
+              vitCount++;
 
-            // Find top fatigue category accurately
-            if (perc > highestScore) {
-              highestScore = perc
-              highestCat = { key, label: CATEGORY_DATA[key].label, percentage: perc }
+              // Find top fatigue category accurately
+              if (perc > highestScore) {
+                highestScore = perc
+                highestCat = { key, label: CATEGORY_DATA[key].label, percentage: perc }
+              }
+            } else {
+              normalized[key] = 0;
             }
           })
 
           setScores(normalized)
           setTopFatigue(highestCat)
+          if (vitCount > 0) setVitalityScore(Math.round(vitSum / vitCount))
           
           // Calcular o progresso e determinar próxima categoria com a ordem original do app
           const validCategories = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
@@ -107,6 +117,7 @@ export const VitalityRadar = () => {
           setHasRecord(false)
           setJourneyProgress(0)
           setNextCategory('fisico')
+          setVitalityScore(0)
         }
       } catch (err) {
         console.error('Erro ao buscar avaliações:', err)
@@ -143,22 +154,28 @@ export const VitalityRadar = () => {
   }))
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display">
-      <div className="flex h-screen overflow-hidden">
-        
+    <div className="bg-background-light dark:bg-background-dark text-slate-900 min-h-screen font-display">
+      <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
         {/* Sidebar */}
         <Sidebar />
-        
+
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-12 bg-background-light">
-          <div className="max-w-[1400px] mx-auto w-full h-full flex flex-col">
-            {/* Header */}
-            <header className="flex justify-between items-center mb-12">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 lg:p-12 bg-background-light relative w-full">
+          {/* Header */}
+          <div className="max-w-7xl mx-auto space-y-6 lg:space-y-10">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 pb-6 lg:pb-8">
               <div>
-                <h2 className="text-4xl font-black text-slate-800 tracking-tight">Radar de Vitalidade</h2>
-                <p className="text-slate-500 font-medium mt-2 text-lg">Bom dia, {user?.email ? user.email.split('@')[0] : 'Alex'}!</p>
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-800 tracking-tight">Radar de Vitalidade</h2>
+                <p className="text-slate-500 font-medium mt-2 text-sm md:text-base lg:text-lg">Bom dia, {user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Alex')}!</p>
               </div>
               <div className="flex items-center gap-4">
+                {hasRecord && (
+                  <div className="bg-brand-pink/20 text-brand-pink px-3 py-2 md:px-4 rounded-xl flex items-center gap-2 border border-brand-pink/30">
+                    <span className="text-[10px] hidden md:inline font-bold uppercase tracking-widest">Sua Energia:</span>
+                    <span className="text-[10px] md:hidden font-bold uppercase tracking-widest">Energia:</span>
+                    <span className="text-base md:text-lg font-black">{vitalityScore}%</span>
+                  </div>
+                )}
               </div>
             </header>
             
@@ -173,63 +190,91 @@ export const VitalityRadar = () => {
                 </div>
 
                 {/* Popup Blur Overlay that Auto-Opens */}
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-[3rem] p-10 md:p-16 max-w-[600px] w-full flex flex-col items-center text-center shadow-2xl scale-100 relative overflow-hidden">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto">
+                  <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 max-w-[600px] w-full flex flex-col items-center text-center shadow-2xl relative overflow-y-auto max-h-[90vh] my-auto">
                     
                     {/* Pink decorative blob */}
                     <div className="absolute -top-20 -right-20 w-64 h-64 bg-brand-pink/10 rounded-full blur-[60px] pointer-events-none"></div>
                     <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-[60px] pointer-events-none"></div>
                     
-                    <div className="w-24 h-24 bg-brand-pink/10 rounded-full flex items-center justify-center mb-10 text-brand-pink border border-brand-pink/20 relative z-10">
-                      <FileText size={40} strokeWidth={2.5} />
+                    <div className="w-20 h-20 md:w-24 md:h-24 bg-brand-pink/10 rounded-full flex items-center justify-center mb-6 md:mb-10 text-brand-pink border border-brand-pink/20 relative z-10 shrink-0">
+                      <FileText size={32} strokeWidth={2.5} className="md:w-10 md:h-10" />
                     </div>
                     
-                    <h3 className="text-3xl lg:text-4xl font-black text-slate-800 mb-6 tracking-tight relative z-10 leading-tight">
+                    <h3 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-800 mb-4 md:mb-6 tracking-tight relative z-10 leading-tight">
                       Pronto para avaliar seus impulsionadores de fadiga?
                     </h3>
-                    <p className="text-slate-500 text-lg mb-12 leading-relaxed font-medium relative z-10 px-2 lg:px-8">
+                    <p className="text-slate-500 text-base md:text-lg mb-8 md:mb-12 leading-relaxed font-medium relative z-10 px-0 md:px-8">
                       O cansaço é multifacetado, então tentar diminuir a fadiga sem identificar sua causa é como tentar encher um balde furado. Você sabe que tipo de cansaço está sentindo e de que tipo de recuperação precisa?
                     </p>
                     
                     <button 
                       onClick={() => navigate('/continue-healing')} 
-                      className="bg-[#eb6496] relative z-10 text-white w-full py-5 rounded-2xl font-bold text-sm tracking-[0.15em] uppercase shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3"
-                      style={{ marginBottom: '32px' }}
+                      className="bg-[#eb6496] relative z-10 text-white w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm tracking-[0.15em] uppercase shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 shrink-0 mb-6"
                     >
                       Iniciar a avaliação <ArrowRight size={18} strokeWidth={2.5} />
                     </button>
                     
                     <button 
-                      onClick={() => signOut()}
-                      className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10"
+                      onClick={() => navigate(`/assessment/${nextCategory}`)}
+                      className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10 shrink-0 mb-2"
+                      style={{ marginTop: '24px' }}
                     >
-                      Sair por enquanto
+                      Voltar de onde parei
                     </button>
                   </div>
                 </div>
                 
               </div>
             ) : (
-              <div className="grid grid-cols-12 gap-10 flex-1 relative z-10">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 flex-1 relative z-10">
             
             {/* Left Column */}
-            <div className="col-span-12 lg:col-span-7 flex flex-col gap-8">
+            <div className="col-span-1 lg:col-span-7 flex flex-col gap-8 min-w-0 w-full max-w-full">
               
               {/* Radar Chart Card */}
-              <div className="bg-white rounded-[2rem] p-8 shadow-sm">
-                <div className="flex justify-between items-center mb-8">
+              <div className="bg-white rounded-[2rem] p-4 md:p-8 shadow-sm overflow-hidden w-full max-w-full box-border">
+                <div className="flex justify-between items-center mb-4 md:mb-8">
                   <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
                     <RechartsRadar size={24} className="text-accent" /> Radar de Vitalidade
                   </h3>
+                  {hasRecord && (
+                    <div className="bg-brand-pink/10 text-brand-pink px-4 py-2 rounded-xl flex items-center gap-2 border border-brand-pink/20">
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Sua Energia:</span>
+                      <span className="text-lg font-black">{vitalityScore}% <span className="text-sm font-bold opacity-80 hidden md:inline">Vitalidade</span></span>
+                    </div>
+                  )}
                 </div>
                 
-                <div className="relative aspect-square max-h-[400px] mx-auto flex items-center justify-center w-full -mt-4">
+                <div className="relative aspect-square max-h-[300px] md:max-h-[400px] mx-auto flex items-center justify-center w-full -mt-2 md:-mt-4 overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="82%" data={radarData}>
+                    <RadarChart cx="50%" cy="50%" outerRadius={window.innerWidth < 768 ? "45%" : "65%"} data={radarData}>
                       <PolarGrid stroke="#f1f5f9" strokeWidth={2} />
                       <PolarAngleAxis 
                         dataKey="radarLabel" 
-                        tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }} 
+                        tick={(props) => {
+                          const { payload, x, y, textAnchor } = props;
+                          const words = payload.value.split(' ');
+                          const lines = [];
+                          let currentLine = '';
+                          words.forEach(word => {
+                            if ((currentLine + word).length > 12) {
+                              if (currentLine) lines.push(currentLine.trim());
+                              currentLine = word + ' ';
+                            } else {
+                              currentLine += word + ' ';
+                            }
+                          });
+                          if (currentLine) lines.push(currentLine.trim());
+
+                          return (
+                            <text x={x} y={y} textAnchor={textAnchor} fill="#94a3b8" fontSize={window.innerWidth < 768 ? 9 : 10} fontWeight={700}>
+                              {lines.map((line, index) => (
+                                <tspan x={x} dy={index === 0 ? 0 : 12} key={index}>{line}</tspan>
+                              ))}
+                            </text>
+                          );
+                        }} 
                       />
                       <RechartsRadar 
                         name="Fadiga" 
@@ -270,7 +315,7 @@ export const VitalityRadar = () => {
             </div>
             
             {/* Right Column: Fatigue List */}
-            <div className="col-span-12 lg:col-span-5 flex flex-col gap-8 h-[calc(100vh-180px)]">
+            <div className="col-span-1 lg:col-span-5 flex flex-col gap-8 h-[calc(100vh-180px)]">
               
               {hasRecord && topFatigue && (
                 <div className="bg-gradient-to-br from-brand-pink to-[#d84e80] text-white rounded-[2rem] p-8 relative overflow-hidden shadow-xl shadow-brand-pink/20 shrink-0">

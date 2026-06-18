@@ -103,13 +103,13 @@ export const Result = () => {
   const otherCategories = [...scores].sort((a, b) => b.score - a.score).slice(1)
 
   return (
-    <div className="bg-[#f8f3e9] flex h-screen overflow-hidden font-display text-slate-800">
+    <div className="bg-[#f8f3e9] flex flex-col lg:flex-row h-[100dvh] overflow-hidden font-display text-slate-800">
       
       {/* Sidebar - Similar to Dashboard */}
       <Sidebar />
 
       {/* Main Content View */}
-      <main className="flex-1 h-screen overflow-y-auto px-10 py-12 lg:px-16 flex flex-col items-center">
+      <main className="flex-1 h-[100dvh] w-full overflow-y-auto px-6 py-8 md:px-10 md:py-12 lg:px-16 flex flex-col items-center">
         <div className="w-full max-w-[1100px] flex flex-col h-full gap-8">
           
           {/* Header */}

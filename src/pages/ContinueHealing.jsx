@@ -60,7 +60,7 @@ export const ContinueHealing = () => {
     }
   
     return (
-      <div className="bg-[#fcfaf5] text-slate-900 h-screen font-display flex overflow-hidden">
+      <div className="bg-[#fcfaf5] text-slate-900 h-[100dvh] font-display flex flex-col lg:flex-row overflow-hidden">
         
         {/* Sidebar - Copiado perfeitamente de SpecificSolution */}
         <Sidebar />
@@ -78,7 +78,7 @@ export const ContinueHealing = () => {
               </div>
               
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tighter mb-4 font-display leading-tight" style={{ transform: 'scaleY(1.05)' }}>
-                Reflexão concluída
+                Exercícios Práticos
               </h2>
               <p className="text-lg md:text-xl text-[#1ed7a4] font-bold max-w-3xl mx-auto mb-3">
                 Você já começou a arquitetar a sua pausa!

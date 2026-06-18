@@ -29,25 +29,63 @@ export const Profile = () => {
     }
   }, [user]);
 
+  const [vitalityScore, setVitalityScore] = useState(0);
+  const [timeScore, setTimeScore] = useState(0);
+
   const fetchEnergy = async () => {
     try {
       const { data } = await supabase
         .from('evaluations')
-        .select('solution_satisfaction')
+        .select('solution_satisfaction, scores, solution_time_relation')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (data && data.length > 0 && data[0].solution_satisfaction) {
-        const sat = data[0].solution_satisfaction;
-        const keys = ['foco', 'produtividade', 'felicidade', 'realizacao'];
-        let sum = 0;
-        let count = 0;
-        keys.forEach(k => {
-          if (sat[k]) { sum += sat[k]; count++; }
-        });
-        if (count > 0) {
-          setEnergyScore(Math.round((sum / count) * 10));
+      if (data && data.length > 0) {
+        const evalData = data[0];
+        
+        if (evalData.solution_satisfaction) {
+          const sat = evalData.solution_satisfaction;
+          const keys = ['foco', 'produtividade', 'felicidade', 'realizacao'];
+          let sum = 0;
+          let count = 0;
+          keys.forEach(k => {
+            if (sat[k]) { sum += sat[k]; count++; }
+          });
+          if (count > 0) {
+            setEnergyScore(Math.round((sum / count) * 10));
+          }
+        }
+
+        if (evalData.scores) {
+          const scores = evalData.scores;
+          const CATEGORY_DATA = { fisico: 80, mental: 80, sensorial: 80, criativo: 90, emocional: 80, social: 80, espiritual: 50 };
+          let vitSum = 0;
+          let vitCount = 0;
+          Object.keys(CATEGORY_DATA).forEach(key => {
+            if (scores[key] !== undefined && scores[key] !== null) {
+              vitSum += Math.min(100, Math.round((scores[key] / CATEGORY_DATA[key]) * 100));
+              vitCount++;
+            }
+          });
+          if (vitCount > 0) {
+            setVitalityScore(Math.round(vitSum / vitCount));
+          }
+        }
+
+        if (evalData.solution_time_relation) {
+          const timeRel = evalData.solution_time_relation;
+          let timeSum = 0;
+          let timeCount = 0;
+          Object.values(timeRel).forEach(val => {
+            if (val !== undefined && val !== null) {
+              timeSum += val * 10;
+              timeCount++;
+            }
+          });
+          if (timeCount > 0) {
+            setTimeScore(Math.round(timeSum / timeCount));
+          }
         }
       }
     } catch (e) {
@@ -153,21 +191,25 @@ export const Profile = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 min-h-screen font-display">
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
+        {/* Sidebar */}
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-12 bg-background-light">
-          <div className="max-w-[1000px] mx-auto w-full h-full flex flex-col">
-            <header className="flex justify-between items-center mb-12">
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 bg-background-light relative w-full">
+          {/* Header */}
+          <div className="max-w-7xl mx-auto space-y-6 lg:space-y-10">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 pb-6 lg:pb-8">
               <div>
-                <h2 className="text-4xl font-black text-slate-800 tracking-tight">Meu Perfil</h2>
-                <p className="text-slate-500 font-medium mt-2 text-lg">Gerencie suas informações pessoais e métricas.</p>
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-800 tracking-tight">Meu Perfil</h2>
+                <p className="text-slate-500 font-medium mt-2 text-sm md:text-base lg:text-lg">Gerencie suas informações e preferências.</p>
               </div>
               <div className="flex items-center gap-4">
               </div>
             </header>
 
-            <div className="grid grid-cols-12 gap-10">
-              <div className="col-span-12 lg:col-span-8 flex flex-col gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+              <div className="col-span-1 lg:col-span-8 flex flex-col gap-8">
                 <div className="bg-white rounded-[2rem] p-10 shadow-sm">
                   <h3 className="text-xl font-bold mb-8 flex items-center gap-2 text-slate-800">
                     <User size={24} className="text-primary" /> Dados Pessoais
@@ -254,14 +296,26 @@ export const Profile = () => {
                 </div>
               </div>
               
-              <div className="col-span-12 lg:col-span-4 flex flex-col gap-8">
-                <div className="bg-primary text-white rounded-[2rem] p-10 shadow-lg shadow-primary/20 flex flex-col justify-between text-center relative overflow-hidden">
-                  <div className="relative z-10 mb-4">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-white/70 mb-4">Média de Satisfação</h3>
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="text-7xl font-black text-accent tracking-tighter">{energyScore}<span className="text-3xl opacity-80">%</span></span>
-                      <span className="text-lg font-bold">
-                        {energyScore >= 80 ? 'Alto Astral' : energyScore >= 50 ? 'Equilibrado' : 'Atenção'}
+              <div className="col-span-1 lg:col-span-4 flex flex-col gap-6">
+                <div className="bg-brand-pink text-white rounded-[2rem] p-8 shadow-lg shadow-brand-pink/20 flex flex-col justify-between text-center relative overflow-hidden">
+                  <div className="relative z-10 mb-2">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-white/70 mb-3">Sua Energia</h3>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-6xl font-black text-white tracking-tighter">{vitalityScore}<span className="text-2xl opacity-80">%</span></span>
+                      <span className="text-base font-bold">
+                        Vitalidade
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-mint text-[#004b4c] rounded-[2rem] p-8 shadow-lg shadow-mint/20 flex flex-col justify-between text-center relative overflow-hidden">
+                  <div className="relative z-10 mb-2">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-[#004b4c]/70 mb-3">Sua Relação com o Tempo</h3>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-6xl font-black text-[#004b4c] tracking-tighter">{timeScore}<span className="text-2xl opacity-80">%</span></span>
+                      <span className="text-base font-bold">
+                        Satisfação
                       </span>
                     </div>
                   </div>

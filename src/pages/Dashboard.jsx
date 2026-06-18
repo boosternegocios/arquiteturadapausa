@@ -33,10 +33,10 @@ const TIME_RELATION_DATA = {
   importancia: { label: 'Prioriza atividades', shortLabel: 'Prioridade', colorClass: 'bg-emerald-400' },
   mensagens: { label: 'Protege o tempo pessoal', shortLabel: 'Limites', colorClass: 'bg-blue-400' },
   tempo_livre: { label: 'Satisfeito com Tempo Livre', shortLabel: 'Tempo Livre', colorClass: 'bg-purple-400' },
-  delega_centraliza: { label: 'Centraliza por insegurança', shortLabel: 'Centralização', colorClass: 'bg-pink-400' },
-  limite_corpo: { label: 'Ja desrespeitou seu corpo', shortLabel: 'Excesso', colorClass: 'bg-red-400' },
-  stress: { label: 'Sente stress crônico', shortLabel: 'Stress', colorClass: 'bg-orange-400' },
-  frustracao_agenda: { label: 'É frustrado com a sua agenda', shortLabel: 'Frustração', colorClass: 'bg-yellow-400' }
+  delega_centraliza: { label: 'Delega com segurança', shortLabel: 'Delegação', colorClass: 'bg-pink-400' },
+  limite_corpo: { label: 'Respeita o corpo', shortLabel: 'Respeito', colorClass: 'bg-red-400' },
+  stress: { label: 'Não sente stress', shortLabel: 'Calma', colorClass: 'bg-orange-400' },
+  frustracao_agenda: { label: 'Satisfeito com a agenda', shortLabel: 'Satisfação', colorClass: 'bg-yellow-400' }
 }
 
 export const Dashboard = () => {
@@ -58,6 +58,7 @@ export const Dashboard = () => {
     realizacao: 0
   })
   const [hasRecord, setHasRecord] = useState(false)
+  const [timeScore, setTimeScore] = useState(0)
   const [loading, setLoading] = useState(true)
   const [journeyProgress, setJourneyProgress] = useState(0)
   const [nextCategory, setNextCategory] = useState('equilibrio')
@@ -65,9 +66,20 @@ export const Dashboard = () => {
   const [topFatigue, setTopFatigue] = useState(null)
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchEvaluations = async () => {
       if (!user) return
       
+      // Safety timeout
+      const timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn("Dashboard fetchEvaluations timeout! Forcing loading to false.");
+          setLoading(false);
+          setHasRecord(false);
+        }
+      }, 5000);
+
       try {
         setLoading(true)
         const { data, error } = await supabase
@@ -77,6 +89,9 @@ export const Dashboard = () => {
           .order('created_at', { ascending: false })
           .limit(1)
         
+        clearTimeout(timeoutId);
+        if (!isMounted) return;
+
         if (error) throw error
         
         if (data && data.length > 0) {
@@ -107,11 +122,21 @@ export const Dashboard = () => {
 
             // Radar scores
             const normRadar = {}
+            let timeSum = 0;
+            let timeCount = 0;
             Object.keys(TIME_RELATION_DATA).forEach(key => {
-              const rawVal = fetchedTimeRel[key] || 0
-              normRadar[key] = Math.min(100, rawVal * 10)
+              const rawVal = fetchedTimeRel[key]
+              if (rawVal !== undefined && rawVal !== null) {
+                const perc = Math.min(100, rawVal * 10)
+                normRadar[key] = perc
+                timeSum += perc;
+                timeCount++;
+              } else {
+                normRadar[key] = 0;
+              }
             })
             setRadarScores(normRadar)
+            if (timeCount > 0) setTimeScore(Math.round(timeSum / timeCount))
 
             // Satisfaction scores for Index
             const normSat = {}
@@ -147,15 +172,22 @@ export const Dashboard = () => {
           }
         } else {
           setHasRecord(false)
+          setJourneyProgress(0)
+          setNextCategory('equilibrio')
+          setTimeScore(0)
         }
       } catch (err) {
         console.error('Erro ao buscar dados:', err)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     fetchEvaluations()
+    
+    return () => {
+      isMounted = false;
+    }
   }, [user])
 
   // Get Route for button
@@ -190,22 +222,28 @@ export const Dashboard = () => {
   }))
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display">
-      <div className="flex h-screen overflow-hidden">
-        
+    <div className="bg-background-light dark:bg-background-dark text-slate-900 min-h-screen font-display">
+      <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
         {/* Sidebar */}
         <Sidebar />
-        
+
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-12 bg-background-light">
-          <div className="max-w-[1400px] mx-auto w-full h-full flex flex-col">
-            {/* Header */}
-            <header className="flex justify-between items-center mb-12">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 lg:p-12 bg-background-light relative w-full">
+          {/* Header */}
+          <div className="max-w-7xl mx-auto space-y-6 lg:space-y-10">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 pb-6 lg:pb-8">
               <div>
-                <h2 className="text-4xl font-black text-slate-800 tracking-tight">Radar de Velocidade</h2>
-                <p className="text-slate-500 font-medium mt-2 text-lg">Bom dia, {user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Alex')}!</p>
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-800 tracking-tight">Radar de Velocidade</h2>
+                <p className="text-slate-500 font-medium mt-2 text-sm md:text-base lg:text-lg">Bom dia, {user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Alex')}!</p>
               </div>
               <div className="flex items-center gap-4">
+                {hasRecord && (
+                  <div className="bg-mint/20 text-[#004b4c] px-3 py-2 md:px-4 rounded-xl flex items-center gap-2 border border-mint/40">
+                    <span className="text-[10px] hidden md:inline font-bold uppercase tracking-widest">Sua Relação com o Tempo:</span>
+                    <span className="text-[10px] md:hidden font-bold uppercase tracking-widest">Satisfação:</span>
+                    <span className="text-base md:text-lg font-black">{timeScore}%</span>
+                  </div>
+                )}
               </div>
             </header>
             
@@ -220,12 +258,12 @@ export const Dashboard = () => {
                 </div>
 
                 {/* Popup Blur Overlay that Auto-Opens */}
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-[3rem] p-10 md:p-16 max-w-[600px] w-full flex flex-col items-center text-center shadow-2xl scale-100 relative overflow-hidden">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto">
+                  <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 max-w-[600px] w-full flex flex-col items-center text-center shadow-2xl relative overflow-y-auto max-h-[90vh] my-auto">
                     
                     <button 
                       onClick={() => navigate('/intro')}
-                      className="absolute top-6 right-6 w-10 h-10 bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors z-20"
+                      className="absolute top-4 right-4 md:top-6 md:right-6 w-10 h-10 bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors z-20 shrink-0"
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
@@ -234,28 +272,28 @@ export const Dashboard = () => {
                     <div className="absolute -top-20 -right-20 w-64 h-64 bg-brand-pink/10 rounded-full blur-[60px] pointer-events-none"></div>
                     <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-[60px] pointer-events-none"></div>
                     
-                    <div className="w-24 h-24 bg-brand-pink/10 rounded-full flex items-center justify-center mb-10 text-brand-pink border border-brand-pink/20 relative z-10">
-                      <FileText size={40} strokeWidth={2.5} />
+                    <div className="w-20 h-20 md:w-24 md:h-24 bg-brand-pink/10 rounded-full flex items-center justify-center mb-6 md:mb-10 text-brand-pink border border-brand-pink/20 relative z-10 shrink-0">
+                      <FileText size={32} strokeWidth={2.5} className="md:w-10 md:h-10" />
                     </div>
                     
-                    <h3 className="text-3xl lg:text-4xl font-black text-slate-800 mb-6 tracking-tight relative z-10 leading-tight">
+                    <h3 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-800 mb-4 md:mb-6 tracking-tight relative z-10 leading-tight">
                       Pronto para avaliar seus impulsionadores de fadiga?
                     </h3>
-                    <p className="text-slate-500 text-lg mb-12 leading-relaxed font-medium relative z-10 px-2 lg:px-8">
+                    <p className="text-slate-500 text-base md:text-lg mb-8 md:mb-12 leading-relaxed font-medium relative z-10 px-0 md:px-8">
                       O cansaço é multifacetado, então tentar diminuir a fadiga sem identificar sua causa é como tentar encher um balde furado. Você sabe que tipo de cansaço está sentindo e de que tipo de recuperação precisa?
                     </p>
                     
                     <button 
                       onClick={() => navigate(getRoute())} 
-                      className="bg-[#eb6496] relative z-10 text-white w-full py-5 rounded-2xl font-bold text-sm tracking-[0.15em] uppercase shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3"
-                      style={{ marginBottom: '32px' }}
+                      className="bg-[#eb6496] relative z-10 text-white w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm tracking-[0.15em] uppercase shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 shrink-0 mb-6"
                     >
                       {journeyProgress > 0 ? 'Continuar Avaliação' : 'Iniciar a avaliação'} <ArrowRight size={18} strokeWidth={2.5} />
                     </button>
                     
                     <button 
                       onClick={() => navigate('/intro')}
-                      className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10"
+                      className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10 shrink-0 mb-2"
+                      style={{ marginTop: '24px' }}
                     >
                       Voltar para o Início
                     </button>
@@ -264,26 +302,48 @@ export const Dashboard = () => {
                 
               </div>
             ) : (
-              <div className="grid grid-cols-12 gap-10 flex-1 relative z-10">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 flex-1 relative z-10">
             
             {/* Left Column */}
-            <div className="col-span-12 lg:col-span-7 flex flex-col gap-8">
+            <div className="col-span-1 lg:col-span-7 flex flex-col gap-8 min-w-0 w-full max-w-full">
               
               {/* Radar Chart Card */}
-              <div className="bg-white rounded-[2rem] p-8 shadow-sm">
-                <div className="flex justify-between items-center mb-8">
+              <div className="bg-white rounded-[2rem] p-4 md:p-8 shadow-sm overflow-hidden w-full max-w-full box-border">
+                <div className="flex justify-between items-center mb-4 md:mb-8">
                   <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
                     <RechartsRadar size={24} className="text-accent" /> Radar de Velocidade
                   </h3>
                 </div>
                 
-                <div className="relative aspect-square max-h-[400px] mx-auto flex items-center justify-center w-full -mt-4">
+                <div className="relative aspect-square max-h-[300px] md:max-h-[400px] mx-auto flex items-center justify-center w-full -mt-2 md:-mt-4 overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="82%" data={radarData}>
+                    <RadarChart cx="50%" cy="50%" outerRadius={window.innerWidth < 768 ? "45%" : "65%"} data={radarData}>
                       <PolarGrid stroke="#f1f5f9" strokeWidth={2} />
                       <PolarAngleAxis 
                         dataKey="radarLabel" 
-                        tick={{ fill: "#94a3b8", fontSize: 10, fontWeight: 700 }} 
+                        tick={(props) => {
+                          const { payload, x, y, textAnchor } = props;
+                          const words = payload.value.split(' ');
+                          const lines = [];
+                          let currentLine = '';
+                          words.forEach(word => {
+                            if ((currentLine + word).length > 12) {
+                              if (currentLine) lines.push(currentLine.trim());
+                              currentLine = word + ' ';
+                            } else {
+                              currentLine += word + ' ';
+                            }
+                          });
+                          if (currentLine) lines.push(currentLine.trim());
+
+                          return (
+                            <text x={x} y={y} textAnchor={textAnchor} fill="#94a3b8" fontSize={window.innerWidth < 768 ? 9 : 10} fontWeight={700}>
+                              {lines.map((line, index) => (
+                                <tspan x={x} dy={index === 0 ? 0 : 12} key={index}>{line}</tspan>
+                              ))}
+                            </text>
+                          );
+                        }} 
                       />
                       <RechartsRadar 
                         name="Velocidade" 
@@ -309,7 +369,7 @@ export const Dashboard = () => {
             </div>
             
             {/* Right Column: Fatigue List */}
-            <div className="col-span-12 lg:col-span-5 flex flex-col gap-8">
+            <div className="col-span-1 lg:col-span-5 flex flex-col gap-8">
               
               {hasRecord && topFatigue && (
                 <div className="bg-gradient-to-br from-brand-pink to-[#d84e80] text-white rounded-[2rem] p-8 relative overflow-hidden shadow-xl shadow-brand-pink/20 shrink-0">

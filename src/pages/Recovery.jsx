@@ -29,17 +29,17 @@ const QUESTIONS = {
     { key: 'importancia', label: 'Define bem a importância e a urgência das atividades' },
     { key: 'mensagens', label: 'Evita enviar msgs fora do horário de trabalho' },
     { key: 'tempo_livre', label: 'Considera seu tempo livre semanal satisfatório' },
-    { key: 'limite_corpo', label: 'Já desrespeitou o limite do seu corpo por excesso de atividades' },
-    { key: 'stress', label: 'Sente stress crônico nos últimos meses' },
-    { key: 'frustracao_agenda', label: 'Vive em um estado de frustração crônica com a sua agenda?' },
-    { key: 'delega_centraliza', label: 'Centraliza por insegurança?' },
+    { key: 'limite_corpo', label: 'Não desrespeita o limite do seu corpo por excesso de atividades' },
+    { key: 'stress', label: 'Não sente stress crônico' },
+    { key: 'frustracao_agenda', label: 'Vive satisfeito com a sua agenda' },
+    { key: 'delega_centraliza', label: 'Delega tarefas com segurança' },
   ],
   internal_speed: [
-    { key: 'acelerada_lenta', label: 'Lenta ou Acelerada?' },
-    { key: 'focada_relaxada', label: 'Focada ou Dispersa?' },
+    { key: 'acelerada_lenta', label: 'Lento(a) ou Acelerado(a)?' },
+    { key: 'focada_relaxada', label: 'Focado(a) ou Disperso(a)?' },
     { key: 'paciente_impaciente', label: 'Paciente ou Impaciente?' },
-    { key: 'ponderada_impulsiva', label: 'Ponderada ou Impulsiva?' },
-    { key: 'decisao_rapida_lenta', label: 'Toma decisões lentamente ou Toma decisões rapidamente?' },
+    { key: 'ponderada_impulsiva', label: 'Ponderado(a) ou Impulsivo(a)?' },
+    { key: 'decisao_rapida_lenta', label: 'Toma decisões lentamente ou rapidamente?' },
   ],
   beliefs: [
     { key: 'sacrificio', label: 'Preciso me sacrificar para atingir meus objetivos' },
@@ -546,14 +546,14 @@ export const Recovery = () => {
   }
 
   return (
-    <div className="bg-[#fcfaf5] text-slate-900 min-h-screen font-display">
-      <div className="flex h-screen overflow-hidden">
+    <div className="bg-[#f8f3e9] text-slate-900 min-h-screen font-display">
+      <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
         
-        {/* Sidebar Matches Second Image perfectly (Mentoria e Negócios) */}
+        {/* Sidebar */}
         <Sidebar />
-
-        {/* Main Area */}
-        <main ref={mainRef} className="flex-1 overflow-y-auto">
+        
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 w-full relative">
           <div className="max-w-[1000px] mx-auto w-full p-8 md:p-14 lg:p-20">
             
             {/* Header / Progress element matching Image 1 */}

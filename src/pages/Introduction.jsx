@@ -57,14 +57,14 @@ export const Introduction = () => {
   }, [user])
 
   return (
-    <div className="bg-[#007b7a] text-slate-100 min-h-screen">
-      <div className="flex h-screen overflow-hidden">
+    <div className="bg-[#007b7a] text-slate-100 min-h-screen font-display">
+      <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
         
         {/* Sidebar */}
         <Sidebar />
         
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-8 md:p-16 flex flex-col justify-center items-center relative">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 h-[100dvh] w-full relative">
           
           <div className="max-w-[1000px] w-full">
             <div className="mb-12">
