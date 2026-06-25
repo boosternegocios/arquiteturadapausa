@@ -160,9 +160,25 @@ export const Recovery = () => {
   }, [user])
 
   const handleSave = async (isFinal = false, isAdvancing = false) => {
-    if (!evaluationId) {
-      alert('Não foi possível conectar ao banco de dados. Verifique sua conexão ou recarregue a página.')
-      return
+    let currentEvalId = evaluationId;
+
+    if (!currentEvalId) {
+      try {
+        setSaving(true)
+        const { data: newEval, error: insertError } = await supabase
+          .from('evaluations')
+          .insert([{ user_id: user.id, status: 'draft' }])
+          .select()
+        if (insertError) throw insertError
+        if (newEval && newEval.length > 0) {
+          currentEvalId = newEval[0].id
+          setEvaluationId(currentEvalId)
+        }
+      } catch (e) {
+        setSaving(false)
+        alert('Não foi possível conectar ao banco de dados: ' + e.message)
+        return
+      }
     }
 
     if (isAdvancing) {
@@ -202,7 +218,7 @@ export const Recovery = () => {
       const { error } = await supabase
         .from('evaluations')
         .update(updates)
-        .eq('id', evaluationId)
+        .eq('id', currentEvalId)
 
       if (error) throw error
 
