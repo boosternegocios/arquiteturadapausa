@@ -249,7 +249,7 @@ export const SpecificSolution = () => {
         </main>
 
         {/* Footer Actions */}
-        <div className="fixed bottom-0 right-0 left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-8 px-10 md:px-20 z-30 pointer-events-none">
+        <div className="fixed bottom-0 right-0 left-0 lg:left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-8 px-10 md:px-20 z-30 pointer-events-none">
           <div className="max-w-5xl mx-auto w-full flex justify-between items-center pointer-events-auto">
             <button 
               onClick={() => navigate('/recovery/pauses')}
