@@ -162,13 +162,19 @@ export const Recovery = () => {
   const handleSave = async (isFinal = false, isAdvancing = false) => {
     let currentEvalId = evaluationId;
 
+    const fetchWithTimeout = (promise, ms = 8000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Conexão muito lenta. Tente novamente.')), ms))
+      ])
+    }
+
     if (!currentEvalId) {
       try {
         setSaving(true)
-        const { data: newEval, error: insertError } = await supabase
-          .from('evaluations')
-          .insert([{ user_id: user.id, status: 'draft' }])
-          .select()
+        const { data: newEval, error: insertError } = await fetchWithTimeout(
+          supabase.from('evaluations').insert([{ user_id: user.id, status: 'draft' }]).select()
+        )
         if (insertError) throw insertError
         if (newEval && newEval.length > 0) {
           currentEvalId = newEval[0].id
@@ -215,10 +221,9 @@ export const Recovery = () => {
         solution_status: isFinal ? 'completed' : 'draft'
       }
 
-      const { error } = await supabase
-        .from('evaluations')
-        .update(updates)
-        .eq('id', currentEvalId)
+      const { error } = await fetchWithTimeout(
+        supabase.from('evaluations').update(updates).eq('id', currentEvalId)
+      )
 
       if (error) throw error
 
@@ -255,7 +260,7 @@ export const Recovery = () => {
       {questions.map((q, index) => (
         <div key={q.key} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${index * 100}ms` }}>
           <h3 className="text-xl font-bold text-slate-800 mb-6">{q.label}</h3>
-          <div className="flex justify-between md:justify-start gap-2 md:gap-4 flex-wrap">
+          <div className="grid grid-cols-5 md:flex md:justify-start gap-2 md:gap-4 md:flex-wrap place-items-center">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => {
               const isSelected = formData[section][q.key] === val
               // Decide color based on value
