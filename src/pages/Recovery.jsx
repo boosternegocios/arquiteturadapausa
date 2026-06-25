@@ -178,6 +178,17 @@ export const Recovery = () => {
       }
     }
 
+    if (isAdvancing && !isFinal) {
+      if (step === 'internal-speed' || step === 'time-tips') {
+        navigate('/intro')
+      } else {
+        const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
+        if (nextStepIndex < STEPS.length) {
+          navigate(`/recovery/${STEPS[nextStepIndex].id}`)
+        }
+      }
+    }
+
     setSaving(true)
     let currentEvalId = evaluationId;
 
@@ -235,18 +246,9 @@ export const Recovery = () => {
     } finally {
       setSaving(false)
       
-      if (isAdvancing) {
-        if (isFinal) {
-          navigate('/contact')
-        } else if (step === 'internal-speed' || step === 'time-tips') {
-          navigate('/intro')
-        } else {
-          const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
-          if (nextStepIndex < STEPS.length) {
-            navigate(`/recovery/${STEPS[nextStepIndex].id}`)
-          }
-        }
-      } else if (saveSuccess) {
+      if (isAdvancing && isFinal) {
+        navigate('/contact')
+      } else if (!isAdvancing && saveSuccess) {
         alert('Rascunho salvo com sucesso!')
       }
     }
