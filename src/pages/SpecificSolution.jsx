@@ -249,28 +249,28 @@ export const SpecificSolution = () => {
         </main>
 
         {/* Footer Actions */}
-        <div className="fixed bottom-0 right-0 left-0 lg:left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-8 px-10 md:px-20 z-30 pointer-events-none">
-          <div className="max-w-5xl mx-auto w-full flex justify-between items-center pointer-events-auto">
+        <div className="fixed bottom-0 right-0 left-0 lg:left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-4 md:pb-8 px-4 md:px-10 lg:px-20 z-30 pointer-events-none">
+          <div className="max-w-5xl mx-auto w-full flex justify-between items-center pointer-events-auto gap-2">
             <button 
               onClick={() => navigate('/recovery/pauses')}
-              className="flex items-center gap-2 font-bold text-slate-500 uppercase tracking-widest text-sm hover:text-slate-800 transition-colors"
+              className="flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
             >
-              <ArrowLeft size={18} strokeWidth={2.5} /> Etapas de Ritmo
+              <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">Voltar</span>
             </button>
-            <div className="flex gap-6 items-center">
+            <div className="flex gap-3 md:gap-6 items-center">
               <button 
-                onClick={() => handleSave(false)} 
-                disabled={saving || loading}
-                className="font-bold text-slate-600 uppercase tracking-widest text-xs hover:text-slate-900 transition-colors"
+                onClick={() => navigate('/intro')}
+                className="font-bold text-slate-600 uppercase tracking-widest text-[9px] md:text-xs hover:text-slate-900 transition-colors text-center leading-tight"
               >
-                Salvar Rascunho
+                Voltar ao<br className="sm:hidden"/> Início
               </button>
               <button 
-                onClick={() => handleSave(true)}
-                disabled={saving || loading}
-                className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-8 py-4 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
+                onClick={() => window.open('https://api.whatsapp.com/send?phone=5511999999999&text=Ol%C3%A1%2C%20gostaria%20de%20agendar%20minha%20mentoria%20com%20a%20Carol!', '_blank')}
+                className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-4 py-3 md:px-8 md:py-4 rounded-xl font-bold text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0"
               >
-                Concluir Reflexão <CheckCircle size={18} strokeWidth={2.5} />
+                <span className="sm:hidden">Agendar Mentoria</span>
+                <span className="hidden sm:inline">Agendar Mentoria Agora</span>
+                <ArrowRight size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
               </button>
             </div>
           </div>
