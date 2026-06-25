@@ -96,16 +96,29 @@ export const Recovery = () => {
   })
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchEvaluation = async () => {
       if (!user) return
-      setLoading(true)
+      
+      const timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn("Recovery fetchEvaluation timeout! Forcing loading to false.");
+          setLoading(false);
+        }
+      }, 5000);
+
       try {
+        setLoading(true)
         const { data, error } = await supabase
           .from('evaluations')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
+
+        clearTimeout(timeoutId);
+        if (!isMounted) return;
 
         if (error) throw error
         
@@ -136,14 +149,21 @@ export const Recovery = () => {
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchEvaluation()
+    
+    return () => {
+      isMounted = false;
+    }
   }, [user])
 
   const handleSave = async (isFinal = false, isAdvancing = false) => {
-    if (!evaluationId) return
+    if (!evaluationId) {
+      alert('Não foi possível conectar ao banco de dados. Verifique sua conexão ou recarregue a página.')
+      return
+    }
 
     if (isAdvancing) {
       if (step === 'satisfaction' && Object.keys(formData.satisfaction).length < QUESTIONS.satisfaction.length) {
@@ -574,7 +594,7 @@ export const Recovery = () => {
                   <div className="absolute top-0 left-0 w-2 h-full bg-[#eb6496]/80"></div>
                   <p>Na modernidade, substituímos o ritmo da natureza pela <strong className="text-[#eb6496] font-bold">velocidade das máquinas</strong> e transformamos o tempo em uma <strong className="text-[#eb6496] font-bold">moeda de troca</strong>. Se tempo é dinheiro, quanto mais rápido, melhor.</p>
                   <p>A vida se tornou tão acelerada que não conseguimos dar um passo para fora da <strong className="text-[#eb6496] font-bold">pressa</strong>. Ela está dentro e fora de nós. Mas, afinal, <strong className="text-[#eb6496] font-bold">para que corremos tanto?</strong></p>
-                  <p>Considerando sua relação com o tempo, pense nos aspectos que afetam o ritmo da vida que você almeja. Seu modo de viver e trabalhar estão compatíveis com sua <strong className="text-[#eb6496] font-bold">velocidade interna?</strong></p>
+                  <p>Considerando sua relação com o tempo, pense nos aspectos que afetam o ritmo de vida que você almeja. Seu modo de viver e trabalhar estão compatíveis com sua <strong className="text-[#eb6496] font-bold">velocidade interna?</strong></p>
                 </div>
               )}
 
