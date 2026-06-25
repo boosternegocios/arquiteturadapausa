@@ -181,9 +181,7 @@ export const Recovery = () => {
           setEvaluationId(currentEvalId)
         }
       } catch (e) {
-        setSaving(false)
-        alert('Não foi possível conectar ao banco de dados: ' + e.message)
-        return
+        console.error('Insert error:', e)
       }
     }
 
@@ -206,27 +204,38 @@ export const Recovery = () => {
     }
 
     setSaving(true)
+    let saveSuccess = false;
+    
     try {
-      let beliefsToSave = formData.beliefs
-      if (isAdvancing && step === 'time-tips') {
-        beliefsToSave = { ...beliefsToSave, _card2_completed: true }
+      if (currentEvalId) {
+        let beliefsToSave = formData.beliefs
+        if (isAdvancing && step === 'time-tips') {
+          beliefsToSave = { ...beliefsToSave, _card2_completed: true }
+        }
+
+        const updates = {
+          solution_satisfaction: formData.satisfaction,
+          solution_time_relation: formData.time_relation,
+          solution_internal_speed: formData.internal_speed,
+          solution_beliefs: beliefsToSave,
+          solution_rhythm_impacts: formData.rhythm_impacts.filter(r => r.aspect.trim() || r.action.trim()),
+          solution_status: isFinal ? 'completed' : 'draft'
+        }
+
+        const { error } = await fetchWithTimeout(
+          supabase.from('evaluations').update(updates).eq('id', currentEvalId)
+        )
+        if (error) throw error
+        saveSuccess = true;
       }
-
-      const updates = {
-        solution_satisfaction: formData.satisfaction,
-        solution_time_relation: formData.time_relation,
-        solution_internal_speed: formData.internal_speed,
-        solution_beliefs: beliefsToSave,
-        solution_rhythm_impacts: formData.rhythm_impacts.filter(r => r.aspect.trim() || r.action.trim()),
-        solution_status: isFinal ? 'completed' : 'draft'
+    } catch (error) {
+      console.error('Erro ao salvar formulário:', error)
+      if (!isAdvancing) {
+        alert('Aviso: Não foi possível salvar o rascunho. Verifique sua conexão. (' + error.message + ')')
       }
-
-      const { error } = await fetchWithTimeout(
-        supabase.from('evaluations').update(updates).eq('id', currentEvalId)
-      )
-
-      if (error) throw error
-
+    } finally {
+      setSaving(false)
+      
       if (isAdvancing) {
         if (isFinal) {
           navigate('/contact')
@@ -238,15 +247,9 @@ export const Recovery = () => {
             navigate(`/recovery/${STEPS[nextStepIndex].id}`)
           }
         }
-      } else {
-        // Provide simple visual feedback or just stay on page
+      } else if (saveSuccess) {
         alert('Rascunho salvo com sucesso!')
       }
-    } catch (error) {
-      console.error('Erro ao salvar formulário:', error)
-      alert('Erro no banco de dados: ' + error.message)
-    } finally {
-      setSaving(false)
     }
   }
 
