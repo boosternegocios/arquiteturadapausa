@@ -160,31 +160,6 @@ export const Recovery = () => {
   }, [user])
 
   const handleSave = async (isFinal = false, isAdvancing = false) => {
-    let currentEvalId = evaluationId;
-
-    const fetchWithTimeout = (promise, ms = 8000) => {
-      return Promise.race([
-        promise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Conexão muito lenta. Tente novamente.')), ms))
-      ])
-    }
-
-    if (!currentEvalId) {
-      try {
-        setSaving(true)
-        const { data: newEval, error: insertError } = await fetchWithTimeout(
-          supabase.from('evaluations').insert([{ user_id: user.id, status: 'draft' }]).select()
-        )
-        if (insertError) throw insertError
-        if (newEval && newEval.length > 0) {
-          currentEvalId = newEval[0].id
-          setEvaluationId(currentEvalId)
-        }
-      } catch (e) {
-        console.error('Insert error:', e)
-      }
-    }
-
     if (isAdvancing) {
       if (step === 'satisfaction' && Object.keys(formData.satisfaction).length < QUESTIONS.satisfaction.length) {
         alert('Por favor, responda todas as perguntas desta etapa antes de avançar.')
@@ -204,6 +179,30 @@ export const Recovery = () => {
     }
 
     setSaving(true)
+    let currentEvalId = evaluationId;
+
+    const fetchWithTimeout = (promise, ms = 8000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Conexão muito lenta. Tente novamente.')), ms))
+      ])
+    }
+
+    if (!currentEvalId) {
+      try {
+        const { data: newEval, error: insertError } = await fetchWithTimeout(
+          supabase.from('evaluations').insert([{ user_id: user.id, status: 'draft' }]).select()
+        )
+        if (insertError) throw insertError
+        if (newEval && newEval.length > 0) {
+          currentEvalId = newEval[0].id
+          setEvaluationId(currentEvalId)
+        }
+      } catch (e) {
+        console.error('Insert error:', e)
+      }
+    }
+
     let saveSuccess = false;
     
     try {
@@ -669,14 +668,14 @@ export const Recovery = () => {
               <button 
                 onClick={() => handleSave(false)} 
                 disabled={saving}
-                className="font-bold text-slate-600 uppercase tracking-widest text-[9px] md:text-xs hover:text-slate-900 transition-colors text-center leading-tight"
+                className="font-bold text-slate-600 uppercase tracking-widest text-[9px] md:text-xs hover:text-slate-900 transition-colors text-center leading-tight disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Salvar<br className="sm:hidden"/> Rascunho
               </button>
               <button 
                 onClick={() => handleSave(isLastStep, true)}
                 disabled={saving}
-                className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-4 py-3 md:px-8 md:py-4 rounded-xl font-bold text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0"
+                className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-4 py-3 md:px-8 md:py-4 rounded-xl font-bold text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 <span className="sm:hidden">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir' : (step === 'pauses' ? 'Plano' : (isLastStep ? 'Concluir' : 'Próxima'))}</span>
                 <span className="hidden sm:inline">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : (step === 'pauses' ? 'Solicitar plano personalizado' : (isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'))}</span>
