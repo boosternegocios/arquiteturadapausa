@@ -175,10 +175,10 @@ export const Introduction = () => {
 
   return (
     <div className="bg-[#007b7a] text-slate-100 min-h-screen font-display">
-      <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:h-[100dvh] lg:overflow-hidden">
         <Sidebar />
 
-        <main className="flex-1 flex flex-col overflow-hidden h-[100dvh] w-full">
+        <main className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden lg:h-[100dvh] w-full">
           
           {/* Header */}
           <div className="px-6 md:px-10 lg:px-14 pt-8 pb-6 shrink-0">
@@ -194,8 +194,8 @@ export const Introduction = () => {
           </div>
 
           {/* Cards Grid — fill remaining height with padding */}
-          <div className="flex-1 min-h-0 px-6 md:px-10 lg:px-14 pb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 h-full rounded-2xl overflow-hidden border border-white/10">
+          <div className="shrink-0 lg:flex-1 lg:min-h-0 px-6 md:px-10 lg:px-14 pb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 h-auto lg:h-full rounded-2xl overflow-hidden border border-white/10">
             {cards.map((card, i) => {
               const isActive = activeCard === card.num
               const isDone = card.done || (card.num === 4 && step3Done)

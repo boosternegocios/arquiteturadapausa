@@ -232,7 +232,7 @@ export const Dashboard = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 min-h-screen font-display">
-      <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:lg:h-[100dvh] lg:lg:overflow-hidden">
         {/* Sidebar */}
         <Sidebar />
 
