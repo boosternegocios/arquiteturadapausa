@@ -59,64 +59,84 @@ export const VitalityRadar = () => {
         setLoading(true)
         const { data, error } = await supabase
           .from('evaluations')
-          .select('scores, status')
+          .select('solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution, status')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
         
         if (error) throw error
         
-        if (data && data.length > 0 && data[0].scores && Object.keys(data[0].scores).length > 0) {
-          const fetchedScores = data[0].scores
-          const status = data[0].status
+        if (data && data.length > 0) {
+          const evalData = data[0]
           
-          setHasRecord(true)
-          setAssessmentStatus(status)
-
-          const normalized = {}
-          let highestScore = -1
-          let highestCat = null
-          let vitSum = 0;
-          let vitCount = 0;
-
-          Object.keys(CATEGORY_DATA).forEach(key => {
-            const rawVal = fetchedScores[key]
-            if (rawVal !== undefined && rawVal !== null) {
-              const maxVal = CATEGORY_DATA[key].max
-              const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
-              normalized[key] = perc
-              vitSum += perc;
-              vitCount++;
-
-              // Find top fatigue category accurately
-              if (perc > highestScore) {
-                highestScore = perc
-                highestCat = { key, label: CATEGORY_DATA[key].label, percentage: perc }
-              }
-            } else {
-              normalized[key] = 0;
-            }
-          })
-
-          setScores(normalized)
-          setTopFatigue(highestCat)
-          if (vitCount > 0) setVitalityScore(Math.round(vitSum / vitCount))
-          
-          // Calcular o progresso e determinar próxima categoria com a ordem original do app
-          const validCategories = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
-          const answeredCount = validCategories.filter(cat => fetchedScores[cat] !== undefined && fetchedScores[cat] !== null).length
-          setJourneyProgress(Math.round((answeredCount / 7) * 100))
-          
-          if (status === 'draft') {
-            const nextCat = validCategories.find(cat => fetchedScores[cat] === undefined || fetchedScores[cat] === null)
-            setNextCategory(nextCat || 'fisico')
+          let nextRoute = '/intro';
+          if (!evalData.solution_satisfaction || Object.keys(evalData.solution_satisfaction).length === 0) {
+            nextRoute = '/recovery/satisfaction';
+          } else if (!evalData.solution_time_relation || Object.keys(evalData.solution_time_relation).length === 0) {
+            nextRoute = '/recovery/time-relation';
+          } else if (!evalData.solution_internal_speed || Object.keys(evalData.solution_internal_speed).length === 0) {
+            nextRoute = '/recovery/internal-speed';
+          } else if (!evalData.solution_beliefs || !evalData.solution_beliefs._card2_completed) {
+            nextRoute = '/recovery/beliefs';
+          } else if (!evalData.scores || Object.keys(evalData.scores).length < 7) {
+            nextRoute = '/assessment/fisico';
+          } else if (Object.keys(evalData.top_fatigue_solution || {}).filter(k => evalData.top_fatigue_solution[k]?.isCompleted).length < 7) {
+            nextRoute = '/continue-healing';
           } else {
-            setNextCategory('fisico') // Se já concluiu, ao clicar vai reiniciar do zero
+            nextRoute = '/contact';
+          }
+          setNextCategory(nextRoute);
+
+          const validCategories = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
+          const allScoresComplete = evalData.scores && validCategories.every(cat => evalData.scores[cat] !== undefined && evalData.scores[cat] !== null)
+          
+          if (allScoresComplete) {
+            const fetchedScores = evalData.scores
+            const status = evalData.status
+            
+            setHasRecord(true)
+            setAssessmentStatus(status)
+
+            const normalized = {}
+            let highestScore = -1
+            let highestCat = null
+            let vitSum = 0;
+            let vitCount = 0;
+
+            Object.keys(CATEGORY_DATA).forEach(key => {
+              const rawVal = fetchedScores[key]
+              if (rawVal !== undefined && rawVal !== null) {
+                const maxVal = CATEGORY_DATA[key].max
+                const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
+                normalized[key] = perc
+                vitSum += perc;
+                vitCount++;
+
+                // Find top fatigue category accurately
+                if (perc > highestScore) {
+                  highestScore = perc
+                  highestCat = { key, label: CATEGORY_DATA[key].label, percentage: perc }
+                }
+              } else {
+                normalized[key] = 0;
+              }
+            })
+
+            setScores(normalized)
+            setTopFatigue(highestCat)
+            if (vitCount > 0) setVitalityScore(Math.round(vitSum / vitCount))
+            
+            const answeredCount = validCategories.filter(cat => fetchedScores[cat] !== undefined && fetchedScores[cat] !== null).length
+            setJourneyProgress(Math.round((answeredCount / 7) * 100))
+          } else {
+            setHasRecord(false)
+            setJourneyProgress(0)
+            setVitalityScore(0)
           }
         } else {
           setHasRecord(false)
           setJourneyProgress(0)
-          setNextCategory('fisico')
+          setNextCategory('/recovery/satisfaction')
           setVitalityScore(0)
         }
       } catch (err) {
@@ -193,6 +213,13 @@ export const VitalityRadar = () => {
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto">
                   <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 max-w-[600px] w-full flex flex-col items-center text-center shadow-2xl relative overflow-y-auto max-h-[90vh] my-auto">
                     
+                    <button 
+                      onClick={() => navigate('/intro')}
+                      className="absolute top-4 right-4 md:top-6 md:right-6 w-10 h-10 bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors z-20 shrink-0"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                    
                     {/* Pink decorative blob */}
                     <div className="absolute -top-20 -right-20 w-64 h-64 bg-brand-pink/10 rounded-full blur-[60px] pointer-events-none"></div>
                     <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-[60px] pointer-events-none"></div>
@@ -202,25 +229,25 @@ export const VitalityRadar = () => {
                     </div>
                     
                     <h3 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-800 mb-4 md:mb-6 tracking-tight relative z-10 leading-tight">
-                      Pronto para avaliar seus impulsionadores de fadiga?
+                      Você ainda não gerou métricas
                     </h3>
                     <p className="text-slate-500 text-base md:text-lg mb-8 md:mb-12 leading-relaxed font-medium relative z-10 px-0 md:px-8">
-                      O cansaço é multifacetado, então tentar diminuir a fadiga sem identificar sua causa é como tentar encher um balde furado. Você sabe que tipo de cansaço está sentindo e de que tipo de recuperação precisa?
+                      Para visualizar o seu Radar de Vitalidade, você precisa completar os exercícios pendentes. Continue de onde parou para prosseguir com o diagnóstico.
                     </p>
                     
                     <button 
-                      onClick={() => navigate('/continue-healing')} 
+                      onClick={() => navigate(nextCategory)} 
                       className="bg-[#eb6496] relative z-10 text-white w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm tracking-[0.15em] uppercase shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 shrink-0 mb-6"
                     >
-                      Iniciar a avaliação <ArrowRight size={18} strokeWidth={2.5} />
+                      Continuar de onde parei <ArrowRight size={18} strokeWidth={2.5} />
                     </button>
                     
                     <button 
-                      onClick={() => navigate(`/assessment/${nextCategory}`)}
+                      onClick={() => navigate('/intro')}
                       className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10 shrink-0 mb-2"
                       style={{ marginTop: '24px' }}
                     >
-                      Voltar de onde parei
+                      Voltar para o Início
                     </button>
                   </div>
                 </div>

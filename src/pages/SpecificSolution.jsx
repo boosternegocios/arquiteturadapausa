@@ -252,7 +252,7 @@ export const SpecificSolution = () => {
         <div className="fixed bottom-0 right-0 left-0 lg:left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-4 md:pb-8 px-4 md:px-10 lg:px-20 z-30 pointer-events-none">
           <div className="max-w-5xl mx-auto w-full flex justify-between items-center pointer-events-auto gap-2">
             <button 
-              onClick={() => navigate('/recovery/pauses')}
+              onClick={() => navigate('/continue-healing')}
               className="flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
             >
               <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">Voltar</span>
@@ -265,12 +265,13 @@ export const SpecificSolution = () => {
                 Voltar ao<br className="sm:hidden"/> Início
               </button>
               <button 
-                onClick={() => window.open('https://api.whatsapp.com/send?phone=5511999999999&text=Ol%C3%A1%2C%20gostaria%20de%20agendar%20minha%20mentoria%20com%20a%20Carol!', '_blank')}
-                className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-4 py-3 md:px-8 md:py-4 rounded-xl font-bold text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0"
+                onClick={() => handleSave(true)}
+                disabled={saving}
+                className="bg-[#1ed7a4] shadow-[0_10px_20px_rgba(30,215,164,0.3)] hover:shadow-[0_15px_30px_rgba(30,215,164,0.4)] text-[#004b4c] px-4 py-3 md:px-8 md:py-4 rounded-xl font-black text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#1bc294] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="sm:hidden">Agendar Mentoria</span>
-                <span className="hidden sm:inline">Agendar Mentoria Agora</span>
-                <ArrowRight size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
+                <span className="sm:hidden">{saving ? 'Salvando...' : 'Concluir'}</span>
+                <span className="hidden sm:inline">{saving ? 'Salvando...' : 'Concluir Exercício'}</span>
+                {!saving && <CheckCircle size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />}
               </button>
             </div>
           </div>

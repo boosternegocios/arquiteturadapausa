@@ -111,12 +111,36 @@ export const Dashboard = () => {
           
           const plans = evalData.top_fatigue_solution || {}
           const hasActionPlan = Object.values(plans).some(p => p.isCompleted)
+          const completedOasis = Object.keys(plans).filter(k => plans[k]?.isCompleted).length
           if (hasActionPlan) progress += 21
           
           setJourneyProgress(Math.min(100, progress))
           
-          // Only hide the popup if they have actually answered velocity radar
-          if (Object.keys(fetchedTimeRel).length > 0 || Object.keys(fetchedSat).length > 0) {
+          let nextRoute = '/intro';
+          if (!fetchedSat || Object.keys(fetchedSat).length === 0) {
+            nextRoute = '/recovery/satisfaction';
+          } else if (!fetchedTimeRel || Object.keys(fetchedTimeRel).length === 0) {
+            nextRoute = '/recovery/time-relation';
+          } else if (!evalData.solution_internal_speed || Object.keys(evalData.solution_internal_speed).length === 0) {
+            nextRoute = '/recovery/internal-speed';
+          } else if (!evalData.solution_beliefs || !evalData.solution_beliefs._card2_completed) {
+            nextRoute = '/recovery/beliefs';
+          } else if (!scores || Object.keys(scores).length < 7) {
+            nextRoute = '/assessment/fisico';
+          } else if (completedOasis < 7) {
+            nextRoute = '/continue-healing';
+          } else {
+            nextRoute = '/contact';
+          }
+          setNextCategory(nextRoute);
+
+          // Only show radar if Card 1 is FULLY completed (all 8 time_relation + all 4 satisfaction)
+          const TIME_RELATION_KEYS = ['equilibrio', 'importancia', 'mensagens', 'tempo_livre', 'delega_centraliza', 'limite_corpo', 'stress', 'frustracao_agenda']
+          const SATISFACTION_KEYS = ['foco', 'produtividade', 'realizacao', 'ritmo']
+          const timeRelComplete = TIME_RELATION_KEYS.every(k => fetchedTimeRel[k] !== undefined && fetchedTimeRel[k] !== null)
+          const satComplete = SATISFACTION_KEYS.every(k => fetchedSat[k] !== undefined && fetchedSat[k] !== null)
+
+          if (timeRelComplete && satComplete) {
             setHasRecord(true)
             setAssessmentStatus(status)
 
@@ -150,30 +174,20 @@ export const Dashboard = () => {
 
               if (perc > highestScore) {
                 highestScore = perc
-                highestCat = { key, label: SATISFACTION_DATA[key].label, percentage: perc }
+                highestCat = key
               }
             })
             setSatisfactionScores(normSat)
-            setTopFatigue(highestCat)
-            
-            // Progress based on SATISFACTION
-            const validCategories = Object.keys(SATISFACTION_DATA)
-            const answeredCount = validCategories.filter(cat => fetchedSat[cat] !== undefined && fetchedSat[cat] !== null).length
-            
-            if (status === 'draft') {
-              const nextCat = validCategories.find(cat => fetchedSat[cat] === undefined || fetchedSat[cat] === null)
-              setNextCategory(nextCat || 'foco')
-            } else {
-              setNextCategory('foco')
+            if (highestCat) {
+              setTopFatigue({ key: highestCat, label: SATISFACTION_DATA[highestCat].label, percentage: Math.round(highestScore) })
             }
           } else {
-            // User has a record but hasn't started Velocity Radar
             setHasRecord(false) 
           }
         } else {
           setHasRecord(false)
           setJourneyProgress(0)
-          setNextCategory('equilibrio')
+          setNextCategory('/intro')
           setTimeScore(0)
         }
       } catch (err) {
@@ -192,12 +206,7 @@ export const Dashboard = () => {
 
   // Get Route for button
   const getRoute = () => {
-    if (journeyProgress > 0) {
-      if (journeyProgress < 30) return '/recovery/satisfaction' // just starting velocity
-      if (journeyProgress < 79) return '/intro' // 7 fatigues
-      return '/continue-healing'
-    }
-    return '/intro'
+    return nextCategory;
   }
 
   const handleLogout = async () => {
@@ -277,17 +286,17 @@ export const Dashboard = () => {
                     </div>
                     
                     <h3 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-800 mb-4 md:mb-6 tracking-tight relative z-10 leading-tight">
-                      Pronto para avaliar seus impulsionadores de fadiga?
+                      Você ainda não gerou métricas
                     </h3>
                     <p className="text-slate-500 text-base md:text-lg mb-8 md:mb-12 leading-relaxed font-medium relative z-10 px-0 md:px-8">
-                      O cansaço é multifacetado, então tentar diminuir a fadiga sem identificar sua causa é como tentar encher um balde furado. Você sabe que tipo de cansaço está sentindo e de que tipo de recuperação precisa?
+                      Para visualizar o seu Radar de Velocidade, você precisa completar os exercícios pendentes. Continue de onde parou para prosseguir com o diagnóstico.
                     </p>
                     
                     <button 
                       onClick={() => navigate(getRoute())} 
                       className="bg-[#eb6496] relative z-10 text-white w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm tracking-[0.15em] uppercase shadow-[0_15px_30px_-5px_rgba(235,100,150,0.4)] hover:shadow-[0_20px_35px_-5px_rgba(235,100,150,0.5)] hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-3 shrink-0 mb-6"
                     >
-                      {journeyProgress > 0 ? 'Continuar Avaliação' : 'Iniciar a avaliação'} <ArrowRight size={18} strokeWidth={2.5} />
+                      Continuar de onde parei <ArrowRight size={18} strokeWidth={2.5} />
                     </button>
                     
                     <button 

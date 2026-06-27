@@ -178,17 +178,6 @@ export const Recovery = () => {
       }
     }
 
-    if (isAdvancing && !isFinal) {
-      if (step === 'internal-speed' || step === 'time-tips') {
-        navigate('/intro')
-      } else {
-        const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
-        if (nextStepIndex < STEPS.length) {
-          navigate(`/recovery/${STEPS[nextStepIndex].id}`)
-        }
-      }
-    }
-
     setSaving(true)
     let currentEvalId = evaluationId;
 
@@ -223,10 +212,16 @@ export const Recovery = () => {
           beliefsToSave = { ...beliefsToSave, _card2_completed: true }
         }
 
+        let speedToSave = formData.internal_speed
+        if (isAdvancing && step === 'internal-speed') {
+          const speedDefaults = { acelerada_lenta: 5, focada_relaxada: 5, paciente_impaciente: 5, ponderada_impulsiva: 5, decisao_rapida_lenta: 5 }
+          speedToSave = { ...speedDefaults, ...speedToSave }
+        }
+
         const updates = {
           solution_satisfaction: formData.satisfaction,
           solution_time_relation: formData.time_relation,
-          solution_internal_speed: formData.internal_speed,
+          solution_internal_speed: speedToSave,
           solution_beliefs: beliefsToSave,
           solution_rhythm_impacts: formData.rhythm_impacts.filter(r => r.aspect.trim() || r.action.trim()),
           solution_status: isFinal ? 'completed' : 'draft'
@@ -246,9 +241,20 @@ export const Recovery = () => {
     } finally {
       setSaving(false)
       
-      if (isAdvancing && isFinal) {
-        navigate('/contact')
-      } else if (!isAdvancing && saveSuccess) {
+      if (isAdvancing) {
+        if (isFinal) {
+          navigate('/contact')
+        } else {
+          if (step === 'internal-speed' || step === 'time-tips') {
+            navigate('/intro')
+          } else {
+            const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
+            if (nextStepIndex < STEPS.length) {
+              navigate(`/recovery/${STEPS[nextStepIndex].id}`)
+            }
+          }
+        }
+      } else if (saveSuccess) {
         alert('Rascunho salvo com sucesso!')
       }
     }

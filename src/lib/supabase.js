@@ -10,6 +10,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storageKey: 'arqpausa-auth-v2',
-    persistSession: true
+    persistSession: true,
+    // Bypass navigator.locks to prevent tab-switch freezes
+    lock: async (_name, _acquireTimeout, fn) => fn()
   }
 })

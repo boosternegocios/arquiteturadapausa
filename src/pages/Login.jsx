@@ -23,7 +23,7 @@ export const Login = () => {
     try {
       const { error } = await signIn(email, password)
       if (error) throw error
-      navigate('/')
+      navigate('/intro')
     } catch (err) {
       if (err?.message?.includes('Email not confirmed')) {
         setError('Por favor, verifique a sua caixa de e-mail e clique no link de confirmação antes de entrar.')

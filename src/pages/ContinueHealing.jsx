@@ -4,7 +4,7 @@ import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { 
-  ArrowLeft, Save, LayoutDashboard, Settings, LogOut, CheckCircle, FileText, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart
+  ArrowLeft, Save, LayoutDashboard, Settings, LogOut, CheckCircle, FileText, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart, Lock
 } from 'lucide-react'
 
 // Informações estendidas para os cards do Oásis
@@ -23,6 +23,7 @@ export const ContinueHealing = () => {
   const { user, signOut } = useAuth()
   const [loading, setLoading] = useState(true)
   const [completedTracks, setCompletedTracks] = useState([])
+  const [isAssessmentCompleted, setIsAssessmentCompleted] = useState(false)
 
   useEffect(() => {
     const fetchEvaluation = async () => {
@@ -31,19 +32,24 @@ export const ContinueHealing = () => {
       try {
         const { data, error } = await supabase
           .from('evaluations')
-          .select('top_fatigue_solution')
+          .select('top_fatigue_solution, status')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
 
         if (error) throw error
         
-          if (data && data.length > 0 && data[0].top_fatigue_solution) {
-            // Conta apenas como concluído os que tem a flag isCompleted
-            const tracks = Object.keys(data[0].top_fatigue_solution).filter(
-              key => data[0].top_fatigue_solution[key]?.isCompleted === true
-            )
-            setCompletedTracks(tracks)
+          if (data && data.length > 0) {
+            setIsAssessmentCompleted(data[0].status === 'completed')
+            if (data[0].top_fatigue_solution) {
+              // Conta apenas como concluído os que tem a flag isCompleted
+              const tracks = Object.keys(data[0].top_fatigue_solution).filter(
+                key => data[0].top_fatigue_solution[key]?.isCompleted === true
+              )
+              setCompletedTracks(tracks)
+            }
+          } else {
+            setIsAssessmentCompleted(false)
           }
         } catch (error) {
           console.error('Erro ao carregar dados:', error)
@@ -67,10 +73,32 @@ export const ContinueHealing = () => {
   
         {/* Main Área Oásis */}
         <main className="flex-1 overflow-y-auto relative bg-[#004b4c]">
+          
+          {/* Overlay Bloqueador */}
+          {!loading && !isAssessmentCompleted && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-[#004b4c]/80 backdrop-blur-md">
+              <div className="bg-white rounded-3xl p-8 md:p-10 max-w-lg w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+                <div className="w-16 h-16 bg-amber-100 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Lock size={32} strokeWidth={2.5} />
+                </div>
+                <h3 className="text-2xl font-black text-[#004b4c] font-display mb-3">Acesso Bloqueado</h3>
+                <p className="text-slate-600 font-medium mb-8 leading-relaxed">
+                  Você ainda não preencheu todas as questões necessárias do diagnóstico para acessar os Exercícios Práticos. Por favor, retorne e continue exatamente de onde parou.
+                </p>
+                <button
+                  onClick={() => navigate('/intro')}
+                  className="w-full py-4 bg-[#1ed7a4] hover:bg-[#19c898] text-[#004b4c] font-black uppercase tracking-widest text-sm rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-1"
+                >
+                  Continuar Diagnóstico
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Glow de fundo */}
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[#1ed7a4]/10 rounded-full blur-[120px] pointer-events-none"></div>
   
-          <div className="max-w-7xl mx-auto w-full p-4 md:p-6 lg:p-8 xl:px-12 relative z-10">
+          <div className={`max-w-7xl mx-auto w-full p-4 md:p-6 lg:p-8 xl:px-12 relative z-10 ${!isAssessmentCompleted ? 'opacity-20 pointer-events-none blur-sm transition-all duration-500' : ''}`}>
             
             <div className="text-center mb-8 animate-in fade-in slide-in-from-top-10">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-[#eb6496] rounded-2xl shadow-xl text-white mb-4 transform rotate-3 hover:rotate-6 transition-transform">
@@ -104,9 +132,10 @@ export const ContinueHealing = () => {
                     <button
                       key={cat.id}
                       onClick={() => navigate(`/specific-solution/${cat.id}`)}
+                      disabled={isCompleted}
                       className={`relative group text-left rounded-3xl p-5 border shadow-lg transition-all overflow-hidden flex flex-col min-h-[170px] ${
                         isCompleted 
-                          ? 'bg-slate-200 border-slate-300 opacity-60 hover:opacity-100' 
+                          ? 'bg-slate-200 border-slate-300 opacity-60 cursor-not-allowed' 
                           : 'bg-white border-slate-100 hover:shadow-xl hover:-translate-y-1 hover:border-[#1ed7a4]/30'
                       }`}
                     >
@@ -143,7 +172,7 @@ export const ContinueHealing = () => {
 
           <div className="mt-12 mb-10 pb-20 text-center animate-in fade-in" style={{animationDelay: '300ms'}}>
              <button 
-              onClick={() => navigate('/')} 
+              onClick={() => navigate('/intro')} 
               className="px-10 py-5 rounded-2xl bg-white/5 text-white font-bold tracking-widest uppercase text-sm border border-white/10 hover:bg-white/10 transition-colors shadow-lg"
             >
               Voltar ao Início

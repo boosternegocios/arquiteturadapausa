@@ -115,6 +115,18 @@ export const Sidebar = () => {
     window.location.href = '/login';
   };
 
+  const handleReset = async () => {
+    if (window.confirm("Isso vai apagar TODO o seu progresso. Tem certeza?")) {
+      try {
+        await supabase.from('evaluations').delete().eq('user_id', user.id);
+        alert("Progresso apagado com sucesso!");
+        window.location.href = '/intro';
+      } catch (err) {
+        alert("Erro ao apagar: " + err.message);
+      }
+    }
+  };
+
   const isActive = (path) => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
@@ -177,7 +189,7 @@ export const Sidebar = () => {
           <button 
             onClick={() => navigate('/intro')} 
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-              (isActive('/intro') || isActive('/assessment') || location.pathname === '/recovery/pauses')
+              (isActive('/intro') || isActive('/assessment') || isActive('/recovery') || isActive('/result') || isActive('/solution'))
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
             }`}
@@ -186,9 +198,9 @@ export const Sidebar = () => {
           </button>
 
           <button 
-            onClick={() => navigate('/')} 
+            onClick={() => navigate('/dashboard')} 
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-              isActive('/') 
+              isActive('/dashboard') 
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
             }`}
@@ -210,7 +222,7 @@ export const Sidebar = () => {
           <button 
             onClick={() => navigate('/continue-healing')} 
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-              ((isActive('/continue-healing') || isActive('/specific-solution') || isActive('/recovery') || isActive('/result') || isActive('/solution')) && location.pathname !== '/recovery/pauses')
+              (isActive('/continue-healing') || isActive('/specific-solution'))
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
             }`}

@@ -17,8 +17,8 @@ export const AuthRoute = ({ children }) => {
   const { user } = useAuth()
 
   if (user) {
-    // Redirect from login/register to dashboard if already authenticated
-    return <Navigate to="/" replace />
+    // Redirect from login/register to Autoavaliação (main entry point)
+    return <Navigate to="/intro" replace />
   }
 
   return children

@@ -24,9 +24,18 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Default Route */}
+          {/* Default Route → always land on Autoavaliação */}
           <Route 
             path="/" 
+            element={
+              <ProtectedRoute>
+                <Introduction />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/dashboard" 
             element={
               <ProtectedRoute>
                 <Dashboard />
