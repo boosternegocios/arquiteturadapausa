@@ -160,23 +160,8 @@ export const Recovery = () => {
   }, [user])
 
   const handleSave = async (isFinal = false, isAdvancing = false) => {
-    if (isAdvancing) {
-      if (step === 'satisfaction' && Object.keys(formData.satisfaction).length < QUESTIONS.satisfaction.length) {
-        alert('Por favor, responda todas as perguntas desta etapa antes de avançar.')
-        return
-      }
-      if (step === 'time-relation' && Object.keys(formData.time_relation).length < QUESTIONS.time_relation.length) {
-        alert('Por favor, responda todas as perguntas desta etapa antes de avançar.')
-        return
-      }
-      if (step === 'beliefs') {
-        const answersCount = Object.keys(formData.beliefs).filter(k => k !== '_card2_completed').length
-        if (answersCount < QUESTIONS.beliefs.length) {
-          alert('Por favor, responda todas as perguntas desta etapa antes de avançar.')
-          return
-        }
-      }
-    }
+    // As validações rígidas de length foram removidas porque os sliders já mostram o valor "5" (meio)
+    // visualmente por padrão, então se o usuário não tocar neles, o sistema deve assumir 5.
 
     setSaving(true)
     let currentEvalId = evaluationId;
@@ -208,6 +193,10 @@ export const Recovery = () => {
     try {
       if (currentEvalId) {
         let beliefsToSave = formData.beliefs
+        if (isAdvancing && step === 'beliefs') {
+          const beliefsDefaults = { sacrificio: 5, utilidade: 5, sozinho: 5, meta_x: 5, pressao: 5, desorganizado: 5, bem_feito: 5, liberdade: 5, improdutivo: 5, tempo_insuficiente: 5, dar_conta: 5 }
+          beliefsToSave = { ...beliefsDefaults, ...beliefsToSave }
+        }
         if (isAdvancing && step === 'time-tips') {
           beliefsToSave = { ...beliefsToSave, _card2_completed: true }
         }
