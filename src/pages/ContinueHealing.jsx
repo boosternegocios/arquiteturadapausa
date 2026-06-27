@@ -66,7 +66,7 @@ export const ContinueHealing = () => {
     }
   
     return (
-      <div className="bg-[#fcfaf5] text-slate-900 h-[100dvh] font-display flex flex-col lg:flex-row overflow-hidden">
+      <div className="bg-[#fcfaf5] text-slate-900 lg:h-[100dvh] font-display flex flex-col lg:flex-row lg:overflow-hidden overflow-x-hidden">
         
         {/* Sidebar - Copiado perfeitamente de SpecificSolution */}
         <Sidebar />
@@ -96,7 +96,7 @@ export const ContinueHealing = () => {
           )}
 
           {/* Glow de fundo */}
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[#1ed7a4]/10 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[min(800px,100vw)] h-[800px] bg-[#1ed7a4]/10 rounded-full blur-[120px] pointer-events-none"></div>
   
           <div className={`max-w-7xl mx-auto w-full p-4 md:p-6 lg:p-8 xl:px-12 relative z-10 ${!isAssessmentCompleted ? 'opacity-20 pointer-events-none blur-sm transition-all duration-500' : ''}`}>
             
