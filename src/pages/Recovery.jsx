@@ -212,6 +212,18 @@ export const Recovery = () => {
           beliefsToSave = { ...beliefsToSave, _card2_completed: true }
         }
 
+        let satToSave = formData.satisfaction
+        if (isAdvancing && step === 'satisfaction') {
+          const satDefaults = { foco: 5, produtividade: 5, realizacao: 5, ritmo: 5 }
+          satToSave = { ...satDefaults, ...satToSave }
+        }
+
+        let timeToSave = formData.time_relation
+        if (isAdvancing && step === 'time-relation') {
+          const timeDefaults = { equilibrio: 5, importancia: 5, mensagens: 5, tempo_livre: 5, delega_centraliza: 5, limite_corpo: 5, stress: 5, frustracao_agenda: 5 }
+          timeToSave = { ...timeDefaults, ...timeToSave }
+        }
+
         let speedToSave = formData.internal_speed
         if (isAdvancing && step === 'internal-speed') {
           const speedDefaults = { acelerada_lenta: 5, focada_relaxada: 5, paciente_impaciente: 5, ponderada_impulsiva: 5, decisao_rapida_lenta: 5 }
@@ -219,8 +231,8 @@ export const Recovery = () => {
         }
 
         const updates = {
-          solution_satisfaction: formData.satisfaction,
-          solution_time_relation: formData.time_relation,
+          solution_satisfaction: satToSave,
+          solution_time_relation: timeToSave,
           solution_internal_speed: speedToSave,
           solution_beliefs: beliefsToSave,
           solution_rhythm_impacts: formData.rhythm_impacts.filter(r => r.aspect.trim() || r.action.trim()),
