@@ -147,7 +147,7 @@ export const VitalityRadar = () => {
     }
 
     fetchEvaluations()
-  }, [user])
+  }, [user?.id])
 
   const handleLogout = async () => {
     try {

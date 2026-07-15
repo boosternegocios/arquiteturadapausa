@@ -58,7 +58,7 @@ export const ContinueHealing = () => {
         }
       }
       fetchEvaluation()
-    }, [user])
+    }, [user?.id])
   
     const handleLogout = async () => {
       await signOut()

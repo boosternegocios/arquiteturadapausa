@@ -54,7 +54,7 @@ export const Solution = () => {
       }
     }
     fetchTopFatigue()
-  }, [user])
+  }, [user?.id])
 
   const handleLogout = async () => {
     try {

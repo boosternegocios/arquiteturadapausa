@@ -202,7 +202,7 @@ export const Dashboard = () => {
     return () => {
       isMounted = false;
     }
-  }, [user])
+  }, [user?.id])
 
   // Get Route for button
   const getRoute = () => {

@@ -118,7 +118,7 @@ export const Introduction = () => {
     return () => {
       isMounted = false;
     }
-  }, [user])
+  }, [user?.id])
 
   const activeCard = step3Done ? null : step2Done ? 3 : step1Done ? 2 : 1
 

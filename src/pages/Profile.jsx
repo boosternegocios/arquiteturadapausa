@@ -27,7 +27,7 @@ export const Profile = () => {
       });
       fetchEnergy();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const [vitalityScore, setVitalityScore] = useState(0);
   const [timeScore, setTimeScore] = useState(0);

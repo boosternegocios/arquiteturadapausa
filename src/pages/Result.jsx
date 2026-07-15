@@ -88,7 +88,7 @@ export const Result = () => {
     }
 
     fetchResults()
-  }, [user])
+  }, [user?.id])
 
   const handleLogout = async () => {
     await signOut()

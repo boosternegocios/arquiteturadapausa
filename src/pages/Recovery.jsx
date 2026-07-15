@@ -157,7 +157,7 @@ export const Recovery = () => {
     return () => {
       isMounted = false;
     }
-  }, [user])
+  }, [user?.id])
 
   const handleSave = async (isFinal = false, isAdvancing = false) => {
     setSaving(true)

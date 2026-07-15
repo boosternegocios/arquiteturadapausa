@@ -111,7 +111,7 @@ export const Sidebar = () => {
       }
     };
     fetchEnergy();
-  }, [user]);
+  }, [user?.id]);
 
   const handleLogout = async () => {
     localStorage.clear();

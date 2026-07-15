@@ -98,7 +98,7 @@ export const Assessment = () => {
     }
     
     fetchQuestionsAndDraft()
-  }, [category, user])
+  }, [category, user?.id])
 
   const handleSliderChange = (questionId, value) => {
     setAnswers(prev => ({

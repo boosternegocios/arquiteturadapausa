@@ -84,7 +84,7 @@ export const SpecificSolution = () => {
       }
     }
     fetchEvaluation()
-  }, [user, category])
+  }, [user?.id, category])
 
   const validateFatigue = (category, data) => {
     if (!data) return false;
