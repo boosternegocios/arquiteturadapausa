@@ -68,7 +68,7 @@ export const SpiritualFatigue = ({ data, onChange }) => {
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO ESPIRITUAL</h2>
-        <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de cansaço Espiritual. Reconecte-se com seu propósito, sua cura interior e com os pequenos milagres ao seu redor.</p>
+        <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço espiritual, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>
 
       {renderTextBox('act01', '01. Momentos Difíceis', 'Fragilidade emocional e necessidade de cura são estados que todos nós passamos. Você já passou por algum momento que sentiu que seu coração estava partido? Como superou isso?', 'Resgate na memória o processo de cura pelo qual você passou...')}

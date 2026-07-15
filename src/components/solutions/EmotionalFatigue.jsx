@@ -129,7 +129,7 @@ export const EmotionalFatigue = ({ data, onChange }) => {
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO EMOCIONAL</h2>
-        <p className="text-lg text-slate-500 font-medium mb-8">Você obteve um alto índice de tensão Emocional. Esta seção te ajudará a eliminar o peso da performatividade excessiva.</p>
+        <p className="text-lg text-slate-500 font-medium mb-8">Se você obteve alto índice de cansaço emocional, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
 
         <div className="mb-10 bg-[#fcfaf5] border border-[#e2dacb] rounded-3xl p-8 md:p-10 text-slate-600 relative overflow-hidden shadow-sm">
           <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#eb6496]"></div>

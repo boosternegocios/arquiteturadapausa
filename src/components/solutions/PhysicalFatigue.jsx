@@ -304,7 +304,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Recuperação Física</h2>
-        <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de cansaço no pilar Físico. Aqui estão as ferramentas para sua recuperação sistêmica.</p>
+        <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço físico, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>
 
       {renderAct01()}

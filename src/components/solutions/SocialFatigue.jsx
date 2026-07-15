@@ -142,7 +142,7 @@ export const SocialFatigue = ({ data, onChange }) => {
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO SOCIAL</h2>
-        <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de tensão Social. Mapeie suas relações para proteger sua energia vital.</p>
+        <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço social, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>
 
       {renderAct01()}

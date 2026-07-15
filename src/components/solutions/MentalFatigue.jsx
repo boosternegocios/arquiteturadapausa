@@ -158,6 +158,7 @@ export const MentalFatigue = ({ data, onChange }) => {
       <div className="mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO MENTAL</h2>
         <p className="text-lg text-slate-500 font-medium">
+          Se você obteve alto índice de cansaço mental, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.<br /><br />
           Que imagens, frases, pessoas, lugares, eventos, emoções, medos e dúvidas estão flutuando no seu espaço mental?<br />
           Escreva abaixo tudo o que você encontrar ocupando seus pensamentos. Resista à vontade de analisar ou julgar cada pensamento, apenas reconheça sua presença.
         </p>

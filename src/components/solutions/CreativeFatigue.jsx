@@ -77,7 +77,7 @@ export const CreativeFatigue = ({ data, onChange }) => {
     <div className="w-full max-w-5xl mx-auto py-4">
       <div className="mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO CRIATIVA</h2>
-        <p className="text-lg text-slate-500 font-medium">Você obteve um alto índice de cansaço no pilar Criativo. Estas ferramentas vão restaurar seu fascínio e energia.</p>
+        <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço criativo, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>
 
       {renderAct01()}
