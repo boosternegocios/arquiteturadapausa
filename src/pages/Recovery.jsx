@@ -222,8 +222,7 @@ export const Recovery = () => {
           solution_time_relation: timeToSave,
           solution_internal_speed: speedToSave,
           solution_beliefs: beliefsToSave,
-          solution_rhythm_impacts: formData.rhythm_impacts.filter(r => r.aspect.trim() || r.action.trim()),
-          solution_status: isFinal ? 'completed' : 'draft'
+          solution_rhythm_impacts: formData.rhythm_impacts.filter(r => (r.aspect || '').trim() || (r.action || '').trim()),
         }
 
         const { error } = await fetchWithTimeout(
@@ -253,7 +252,7 @@ export const Recovery = () => {
     } catch (error) {
       console.error('Erro ao salvar formulário:', error)
       setSaving(false)
-      alert('Não foi possível salvar suas respostas. Verifique sua conexão e tente novamente.')
+      alert('Não foi possível salvar suas respostas: ' + (error?.message || 'Erro desconhecido') + '. Tente novamente.')
     }
   }
 
