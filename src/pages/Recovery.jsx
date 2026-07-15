@@ -39,7 +39,7 @@ const QUESTIONS = {
     { key: 'focada_relaxada', label: 'Focado(a) ou Disperso(a)?' },
     { key: 'paciente_impaciente', label: 'Paciente ou Impaciente?' },
     { key: 'ponderada_impulsiva', label: 'Ponderado(a) ou Impulsivo(a)?' },
-    { key: 'decisao_rapida_lenta', label: 'Toma decisões lentamente ou rapidamente?' },
+    { key: 'decisao_rapida_lenta', label: 'Toma decisões lentamente ou Rapidamente?' },
   ],
   beliefs: [
     { key: 'sacrificio', label: 'Preciso me sacrificar para atingir meus objetivos' },
@@ -311,9 +311,9 @@ export const Recovery = () => {
 
         return (
           <div key={q.key} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${index * 100}ms` }}>
-            <div className="flex justify-between items-center mb-6">
-              <span className={`font-bold text-lg ${currentValue < 5 ? 'text-[#eb6496]' : 'text-slate-400'}`}>{leftLabel}</span>
-              <span className={`font-bold text-lg ${currentValue > 6 ? 'text-[#1ed7a4]' : 'text-slate-400'}`}>{rightLabel}</span>
+            <div className="flex justify-between items-center mb-6 gap-4">
+              <span className={`font-bold text-sm md:text-lg ${currentValue < 5 ? 'text-[#eb6496]' : 'text-slate-400'}`}>{leftLabel}</span>
+              <span className={`font-bold text-sm md:text-lg text-right ${currentValue > 6 ? 'text-[#1ed7a4]' : 'text-slate-400'}`}>{rightLabel}</span>
             </div>
             <div className="relative pt-6 pb-2">
               {/* Fake track */}
