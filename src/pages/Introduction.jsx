@@ -30,28 +30,28 @@ export const Introduction = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchProgress = async () => {
       if (!user) return
       setLoading(true)
       try {
-        const fetchWithTimeout = (promise, ms = 8000) => {
-          return Promise.race([
-            promise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ao buscar dados')), ms))
-          ])
-        }
-
-        const { data } = await fetchWithTimeout(
-          supabase
-            .from('evaluations')
-            .select('status, solution_satisfaction, solution_time_relation, solution_internal_speed, solution_beliefs, top_fatigue_solution, scores')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-        )
+        console.log('[Introduction] Buscando progresso para user:', user.id);
+        const { data, error } = await supabase
+          .from('evaluations')
+          .select('status, solution_satisfaction, solution_time_relation, solution_internal_speed, solution_beliefs, top_fatigue_solution, scores, id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
         
+        if (error) throw error;
+        
+        if (!isMounted) return;
+
         if (data && data.length > 0) {
           const d = data[0]
+          console.log('[Introduction] Dados encontrados:', d);
+          
           const sat = d.solution_satisfaction || {}
           const timeRel = d.solution_time_relation || {}
           const intSpeed = d.solution_internal_speed || {}
@@ -61,6 +61,9 @@ export const Introduction = () => {
           const timeDone = TIME_RELATION_KEYS.every(k => timeRel[k] !== undefined && timeRel[k] !== null)
           const speedDone = INTERNAL_SPEED_KEYS.every(k => intSpeed[k] !== undefined && intSpeed[k] !== null)
           const card1Complete = satDone && timeDone && speedDone
+          
+          console.log(`[Introduction] Card 1 status: satDone=${satDone}, timeDone=${timeDone}, speedDone=${speedDone} -> card1Complete=${card1Complete}`);
+          
           setStep1Done(card1Complete)
 
           if (!satDone) setNextStep1Route('/recovery/satisfaction')
@@ -68,6 +71,7 @@ export const Introduction = () => {
           else if (!speedDone) setNextStep1Route('/recovery/internal-speed')
 
           const card2Complete = beliefs._card2_completed === true
+          console.log(`[Introduction] Card 2 status: card2Complete=${card2Complete}`);
           setStep2Done(card2Complete)
 
           const beliefsKeys = ['sacrificio', 'utilidade', 'sozinho', 'meta_x', 'pressao', 'desorganizado', 'bem_feito', 'liberdade', 'improdutivo', 'tempo_insuficiente', 'dar_conta']
@@ -92,9 +96,6 @@ export const Introduction = () => {
                 }
               }
             } else if (d.scores && Object.keys(d.scores).length >= 7 && d.status === 'draft') {
-              // Se tiver as 7 chaves mas ainda for rascunho, ou é o valor padrão do Supabase ou o usuário preencheu tudo mas não finalizou
-              // Se d.answers existir e tiver muitas respostas, ele deve estar no final
-              // Para simplificar, verificamos se d.answers existe na query? Não adicionamos, mas podemos assumir 'fisico' se for o estado inicial
               nextCat = 'fisico'
             }
             
@@ -110,12 +111,16 @@ export const Introduction = () => {
           if (completedCount >= 7) setStep3Done(true)
         }
       } catch (error) {
-        console.error(error)
+        console.error('[Introduction] Erro ao buscar:', error)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchProgress()
+    
+    return () => {
+      isMounted = false;
+    }
   }, [user])
 
   const activeCard = step3Done ? null : step2Done ? 3 : step1Done ? 2 : 1
