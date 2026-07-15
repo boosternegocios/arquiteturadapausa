@@ -683,15 +683,28 @@ export const Recovery = () => {
               >
                 Salvar<br className="sm:hidden"/> Rascunho
               </button>
-              <button 
-                onClick={() => handleSave(isLastStep, true)}
-                disabled={saving}
-                className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-4 py-3 md:px-8 md:py-4 rounded-xl font-bold text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              >
-                <span className="sm:hidden">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir' : (step === 'pauses' ? 'Plano' : (isLastStep ? 'Concluir' : 'Próxima'))}</span>
-                <span className="hidden sm:inline">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : (step === 'pauses' ? 'Solicitar plano personalizado' : (isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'))}</span>
-                <ArrowRight size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
-              </button>
+              
+              {(() => {
+                // Validação para impedir avanço sem responder
+                let canAdvance = true;
+                if (step === 'satisfaction') canAdvance = Object.keys(formData.satisfaction).length === QUESTIONS.satisfaction.length;
+                if (step === 'time-relation') canAdvance = Object.keys(formData.time_relation).length === QUESTIONS.time_relation.length;
+                if (step === 'internal-speed') canAdvance = Object.keys(formData.internal_speed).length === QUESTIONS.internal_speed.length;
+                if (step === 'beliefs') canAdvance = Object.keys(formData.beliefs).length === QUESTIONS.beliefs.length;
+                
+                return (
+                  <button 
+                    onClick={() => handleSave(isLastStep, true)}
+                    disabled={saving || !canAdvance}
+                    className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-4 py-3 md:px-8 md:py-4 rounded-xl font-bold text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                    title={!canAdvance ? "Por favor, responda todas as perguntas antes de avançar." : ""}
+                  >
+                    <span className="sm:hidden">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir' : (step === 'pauses' ? 'Plano' : (isLastStep ? 'Concluir' : 'Próxima'))}</span>
+                    <span className="hidden sm:inline">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : (step === 'pauses' ? 'Solicitar plano personalizado' : (isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'))}</span>
+                    <ArrowRight size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
+                  </button>
+                )
+              })()}
             </div>
           </div>
         </div>
