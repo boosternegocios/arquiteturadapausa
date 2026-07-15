@@ -430,16 +430,16 @@ export const Recovery = () => {
       <div className="flex flex-col md:flex-row gap-12 md:gap-8 justify-center w-full">
       
       {/* Ciclo Negativo */}
-      <div className="flex-1 flex flex-col items-center p-8 bg-slate-50/80 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-        <div className="w-64 h-64 rounded-full border-dashed border-4 border-slate-300 relative flex items-center justify-center mb-8 rotate-12 transition-transform duration-1000 group-hover:rotate-45">
-          <div className="absolute -top-6 bg-slate-800 text-white p-3 rounded-xl shadow-lg border border-slate-700 w-40 text-center text-xs font-bold leading-tight z-10">Procrastinação<br/>Atraso<br/><span className="text-[10px] font-normal opacity-70">Volume</span></div>
-          <div className="absolute -right-12 bg-slate-800 text-white p-3 rounded-xl shadow-lg border border-slate-700 w-40 text-center text-xs font-bold leading-tight z-10">Ansiedade<br/>Frustração<br/><span className="text-[10px] font-normal opacity-70">Prazo inviável</span></div>
-          <div className="absolute -bottom-6 -left-6 bg-slate-800 text-white p-3 rounded-xl shadow-lg border border-slate-700 w-40 text-center text-xs font-bold leading-tight z-10">Fracasso<br/><span className="text-[10px] font-normal opacity-70">Culpa e incapacidade</span></div>
+      <div className="flex-1 flex flex-col items-center p-6 md:p-8 bg-slate-50/80 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="w-44 h-44 md:w-64 md:h-64 rounded-full border-dashed border-4 border-slate-300 relative flex items-center justify-center mb-6 md:mb-8 rotate-12 transition-transform duration-1000 group-hover:rotate-45">
+          <div className="absolute -top-4 md:-top-6 bg-slate-800 text-white p-2 md:p-3 rounded-xl shadow-lg border border-slate-700 w-28 md:w-40 text-center text-[10px] md:text-xs font-bold leading-tight z-10">Procrastinação<br/>Atraso<br/><span className="text-[9px] md:text-[10px] font-normal opacity-70">Volume</span></div>
+          <div className="absolute -right-4 md:-right-12 bg-slate-800 text-white p-2 md:p-3 rounded-xl shadow-lg border border-slate-700 w-28 md:w-40 text-center text-[10px] md:text-xs font-bold leading-tight z-10">Ansiedade<br/>Frustração<br/><span className="text-[9px] md:text-[10px] font-normal opacity-70">Prazo inviável</span></div>
+          <div className="absolute -bottom-4 -left-2 md:-bottom-6 md:-left-6 bg-slate-800 text-white p-2 md:p-3 rounded-xl shadow-lg border border-slate-700 w-28 md:w-40 text-center text-[10px] md:text-xs font-bold leading-tight z-10">Fracasso<br/><span className="text-[9px] md:text-[10px] font-normal opacity-70">Culpa e incapacidade</span></div>
           
-          <div className="w-32 h-32 rounded-full border-4 border-[#eb6496] border-t-transparent border-l-transparent opacity-30 animate-spin" style={{ animationDuration: '3s' }}></div>
+          <div className="w-20 h-20 md:w-32 md:h-32 rounded-full border-4 border-[#eb6496] border-t-transparent border-l-transparent opacity-30 animate-spin" style={{ animationDuration: '3s' }}></div>
         </div>
-        <h3 className="text-3xl font-black text-slate-800 mb-2">Ciclo Negativo</h3>
-        <p className="text-sm font-bold uppercase tracking-widest text-slate-500 text-center leading-relaxed">Gera sentimentos negativos e esgotamento. É alimentado por um volume de atividades irrealista, pela cobrança por produtividade e pela sensação de que "nunca há tempo suficiente".</p>
+        <h3 className="text-2xl md:text-3xl font-black text-slate-800 mb-2">Ciclo Negativo</h3>
+        <p className="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-500 text-center leading-relaxed">Gera sentimentos negativos e esgotamento. É alimentado por um volume de atividades irrealista, pela cobrança por produtividade e pela sensação de que "nunca há tempo suficiente".</p>
       </div>
 
       <div className="text-slate-300 shrink-0 hidden md:block">
@@ -447,16 +447,16 @@ export const Recovery = () => {
       </div>
 
       {/* Ciclo Realista */}
-      <div className="flex-1 flex flex-col items-center p-8 bg-gradient-to-br from-[#1ed7a4]/10 to-transparent rounded-[3rem] border border-[#1ed7a4]/20 shadow-sm relative overflow-hidden group">
-        <div className="w-64 h-64 rounded-full border-solid border-4 border-[#1ed7a4]/30 relative flex items-center justify-center mb-8 -rotate-12 transition-transform duration-1000 group-hover:rotate-0">
-          <div className="absolute -top-6 -left-6 bg-white text-[#004b4c] p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-40 text-center text-sm font-black leading-tight z-10">Hierarquizar<br/>Atividades</div>
-          <div className="absolute -right-6 top-1/2 -translate-y-1/2 bg-white text-[#004b4c] p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-40 text-center text-sm font-black leading-tight z-10">Melhor feito<br/>que perfeito</div>
-          <div className="absolute -bottom-8 left-8 bg-white text-[#004b4c] p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-44 text-center text-sm font-black leading-tight z-10">Foco individual e<br/>Pacto coletivo</div>
+      <div className="flex-1 flex flex-col items-center p-6 md:p-8 bg-gradient-to-br from-[#1ed7a4]/10 to-transparent rounded-[2rem] md:rounded-[3rem] border border-[#1ed7a4]/20 shadow-sm relative overflow-hidden group">
+        <div className="w-44 h-44 md:w-64 md:h-64 rounded-full border-solid border-4 border-[#1ed7a4]/30 relative flex items-center justify-center mb-6 md:mb-8 -rotate-12 transition-transform duration-1000 group-hover:rotate-0">
+          <div className="absolute -top-4 -left-2 md:-top-6 md:-left-6 bg-white text-[#004b4c] p-3 md:p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-28 md:w-40 text-center text-xs md:text-sm font-black leading-tight z-10">Hierarquizar<br/>Atividades</div>
+          <div className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 bg-white text-[#004b4c] p-3 md:p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-28 md:w-40 text-center text-xs md:text-sm font-black leading-tight z-10">Melhor feito<br/>que perfeito</div>
+          <div className="absolute -bottom-6 left-4 md:-bottom-8 md:left-8 bg-white text-[#004b4c] p-3 md:p-4 rounded-xl shadow-xl shadow-[#1ed7a4]/20 border border-white w-32 md:w-44 text-center text-xs md:text-sm font-black leading-tight z-10">Foco individual e<br/>Pacto coletivo</div>
           
-          <div className="w-32 h-32 rounded-full border-4 border-[#1ed7a4] border-b-transparent border-r-transparent opacity-60 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }}></div>
+          <div className="w-20 h-20 md:w-32 md:h-32 rounded-full border-4 border-[#1ed7a4] border-b-transparent border-r-transparent opacity-60 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }}></div>
         </div>
-        <h3 className="text-3xl font-black text-[#004b4c] mb-2">Ciclo Realista</h3>
-        <p className="text-sm font-bold uppercase tracking-widest text-[#1ed7a4] text-center leading-relaxed">Exige abandonar a ilusão do controle e aceitar que o tempo é um recurso fixo, dinâmico e limitado. Em vez de tentar "gerenciar" as horas o foco passa a ser em gerenciar a própria energia e o que é possível dentro do tempo</p>
+        <h3 className="text-2xl md:text-3xl font-black text-[#004b4c] mb-2">Ciclo Realista</h3>
+        <p className="text-xs md:text-sm font-bold uppercase tracking-widest text-[#1ed7a4] text-center leading-relaxed">Exige abandonar a ilusão do controle e aceitar que o tempo é um recurso fixo, dinâmico e limitado. Em vez de tentar "gerenciar" as horas o foco passa a ser em gerenciar a própria energia e o que é possível dentro do tempo</p>
       </div>
 
       </div>
