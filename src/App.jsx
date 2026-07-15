@@ -1,5 +1,6 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { ScrollToTop } from './components/ScrollToTop'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute, AuthRoute } from './components/ProtectedRoute'
 import { AuthLayout } from './pages/AuthLayout'
@@ -22,6 +23,7 @@ import { AdminDashboard } from './pages/AdminDashboard'
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <AuthProvider>
         <Routes>
           {/* Default Route → always land on Autoavaliação */}
