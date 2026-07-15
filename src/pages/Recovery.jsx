@@ -190,45 +190,50 @@ export const Recovery = () => {
 
     try {
       if (currentEvalId) {
-        let beliefsToSave = formData.beliefs
-        if (isAdvancing && step === 'beliefs') {
-          const beliefsDefaults = { sacrificio: 5, utilidade: 5, sozinho: 5, meta_x: 5, pressao: 5, desorganizado: 5, bem_feito: 5, liberdade: 5, improdutivo: 5, tempo_insuficiente: 5, dar_conta: 5 }
-          beliefsToSave = { ...beliefsDefaults, ...beliefsToSave }
-        }
-        if (isAdvancing && step === 'time-tips') {
-          beliefsToSave = { ...beliefsToSave, _card2_completed: true }
-        }
+        // Salva APENAS os campos da etapa atual para não sobrescrever dados de outras etapas
+        const updates = {}
 
-        let satToSave = formData.satisfaction
-        if (isAdvancing && step === 'satisfaction') {
+        if (step === 'satisfaction') {
           const satDefaults = { foco: 5, produtividade: 5, realizacao: 5, ritmo: 5 }
-          satToSave = { ...satDefaults, ...satToSave }
-        }
-
-        let timeToSave = formData.time_relation
-        if (isAdvancing && step === 'time-relation') {
+          updates.solution_satisfaction = isAdvancing 
+            ? { ...satDefaults, ...formData.satisfaction }
+            : formData.satisfaction
+        } else if (step === 'time-relation') {
           const timeDefaults = { equilibrio: 5, importancia: 5, mensagens: 5, tempo_livre: 5, delega_centraliza: 5, limite_corpo: 5, stress: 5, frustracao_agenda: 5 }
-          timeToSave = { ...timeDefaults, ...timeToSave }
-        }
-
-        let speedToSave = formData.internal_speed
-        if (isAdvancing && step === 'internal-speed') {
+          updates.solution_time_relation = isAdvancing
+            ? { ...timeDefaults, ...formData.time_relation }
+            : formData.time_relation
+        } else if (step === 'internal-speed') {
           const speedDefaults = { acelerada_lenta: 5, focada_relaxada: 5, paciente_impaciente: 5, ponderada_impulsiva: 5, decisao_rapida_lenta: 5 }
-          speedToSave = { ...speedDefaults, ...speedToSave }
+          updates.solution_internal_speed = isAdvancing
+            ? { ...speedDefaults, ...formData.internal_speed }
+            : formData.internal_speed
+        } else if (step === 'beliefs') {
+          const beliefsDefaults = { sacrificio: 5, utilidade: 5, sozinho: 5, meta_x: 5, pressao: 5, desorganizado: 5, bem_feito: 5, liberdade: 5, improdutivo: 5, tempo_insuficiente: 5, dar_conta: 5 }
+          updates.solution_beliefs = isAdvancing
+            ? { ...beliefsDefaults, ...formData.beliefs }
+            : formData.beliefs
+        } else if (step === 'cycle') {
+          // cycle não tem campos próprios para salvar, apenas avança
+        } else if (step === 'time-tips') {
+          if (isAdvancing) {
+            updates.solution_beliefs = { ...formData.beliefs, _card2_completed: true }
+          }
+        } else if (step === 'rhythm') {
+          updates.solution_rhythm_impacts = formData.rhythm_impacts.filter(r => (r.aspect || '').trim() || (r.action || '').trim())
+        } else if (step === 'pauses') {
+          updates.solution_rhythm_impacts = formData.rhythm_impacts.filter(r => (r.aspect || '').trim() || (r.action || '').trim())
         }
 
-        const updates = {
-          solution_satisfaction: satToSave,
-          solution_time_relation: timeToSave,
-          solution_internal_speed: speedToSave,
-          solution_beliefs: beliefsToSave,
-          solution_rhythm_impacts: formData.rhythm_impacts.filter(r => (r.aspect || '').trim() || (r.action || '').trim()),
-        }
+        console.log(`[Recovery] Salvando step="${step}" evalId="${currentEvalId}" updates=`, JSON.stringify(updates))
 
-        const { error } = await fetchWithTimeout(
-          supabase.from('evaluations').update(updates).eq('id', currentEvalId)
-        )
-        if (error) throw error
+        if (Object.keys(updates).length > 0) {
+          const { error } = await fetchWithTimeout(
+            supabase.from('evaluations').update(updates).eq('id', currentEvalId)
+          )
+          if (error) throw error
+          console.log(`[Recovery] ✅ Salvo com sucesso!`)
+        }
 
         // SUCESSO — agora sim pode navegar
         setSaving(false)
@@ -248,9 +253,11 @@ export const Recovery = () => {
           alert('Rascunho salvo com sucesso!')
         }
 
+      } else {
+        throw new Error('Nenhuma avaliação encontrada. Recarregue a página.')
       }
     } catch (error) {
-      console.error('Erro ao salvar formulário:', error)
+      console.error('[Recovery] ❌ Erro ao salvar:', error)
       setSaving(false)
       alert('Não foi possível salvar suas respostas: ' + (error?.message || 'Erro desconhecido') + '. Tente novamente.')
     }
