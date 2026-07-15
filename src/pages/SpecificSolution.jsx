@@ -174,9 +174,8 @@ export const SpecificSolution = () => {
         }
       }
 
-      if (isFinal) {
-        updates.solution_status = 'completed_deep'
-      }
+      // Removemos a tentativa de atualizar `solution_status` pois a coluna não existe.
+      // A indicação de conclusão agora é dada por `updatedData.isCompleted = true`.
 
       const { error } = await supabase
         .from('evaluations')

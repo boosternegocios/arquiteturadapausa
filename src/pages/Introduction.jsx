@@ -24,6 +24,7 @@ export const Introduction = () => {
   const [step2Done, setStep2Done] = useState(false)
   const [step3Done, setStep3Done] = useState(false)
   const [assessmentIsComplete, setAssessmentIsComplete] = useState(false)
+  const [mainRecoveryDone, setMainRecoveryDone] = useState(false)
   const [nextStep1Route, setNextStep1Route] = useState('/recovery/satisfaction')
   const [nextStep2Route, setNextStep2Route] = useState('/recovery/beliefs')
   const [nextStep3Route, setNextStep3Route] = useState('/assessment/fisico')
@@ -36,21 +37,20 @@ export const Introduction = () => {
       if (!user) return
       setLoading(true)
       try {
-        console.log('[Introduction] Buscando progresso para user:', user.id);
         const { data, error } = await supabase
           .from('evaluations')
-          .select('status, solution_satisfaction, solution_time_relation, solution_internal_speed, solution_beliefs, top_fatigue_solution, scores, id, created_at')
+          .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
-        
-        if (error) throw error;
-        
-        if (!isMounted) return;
+
+        if (error) {
+          console.error('[Introduction] Supabase error:', error)
+          return
+        }
 
         if (data && data.length > 0) {
           const d = data[0]
-          console.log('[Introduction] Dados encontrados:', d);
           
           const sat = d.solution_satisfaction || {}
           const timeRel = d.solution_time_relation || {}
@@ -62,8 +62,6 @@ export const Introduction = () => {
           const speedDone = INTERNAL_SPEED_KEYS.every(k => intSpeed[k] !== undefined && intSpeed[k] !== null)
           const card1Complete = satDone && timeDone && speedDone
           
-          console.log(`[Introduction] Card 1 status: satDone=${satDone}, timeDone=${timeDone}, speedDone=${speedDone} -> card1Complete=${card1Complete}`);
-          
           setStep1Done(card1Complete)
 
           if (!satDone) setNextStep1Route('/recovery/satisfaction')
@@ -71,7 +69,6 @@ export const Introduction = () => {
           else if (!speedDone) setNextStep1Route('/recovery/internal-speed')
 
           const card2Complete = beliefs._card2_completed === true
-          console.log(`[Introduction] Card 2 status: card2Complete=${card2Complete}`);
           setStep2Done(card2Complete)
 
           const beliefsKeys = ['sacrificio', 'utilidade', 'sozinho', 'meta_x', 'pressao', 'desorganizado', 'bem_feito', 'liberdade', 'improdutivo', 'tempo_insuficiente', 'dar_conta']
@@ -87,7 +84,6 @@ export const Introduction = () => {
             setAssessmentIsComplete(false)
             let nextCat = 'fisico'
             
-            // Se o d.scores não tiver 7 chaves (já foi limpo pelo Assessment.jsx)
             if (d.scores && Object.keys(d.scores).length > 0 && Object.keys(d.scores).length < 7) {
               for (const cat of CATEGORIES) {
                 if (d.scores[cat] === undefined || d.scores[cat] === null) {
@@ -108,6 +104,7 @@ export const Introduction = () => {
               key => d.top_fatigue_solution[key]?.isCompleted === true
             ).length
           }
+          if (completedCount >= 1) setMainRecoveryDone(true)
           if (completedCount >= 7) setStep3Done(true)
         }
       } catch (error) {
@@ -129,8 +126,13 @@ export const Introduction = () => {
     if (cardNum === 1 && !step1Done) navigate(nextStep1Route)
     if (cardNum === 2 && step1Done && !step2Done) navigate(nextStep2Route)
     if (cardNum === 3 && step2Done && !step3Done) {
-      if (assessmentIsComplete) navigate('/continue-healing')
-      else navigate(nextStep3Route)
+      if (mainRecoveryDone) {
+        navigate('/continue-healing')
+      } else if (assessmentIsComplete) {
+        navigate('/resultado')
+      } else {
+        navigate(nextStep3Route)
+      }
     }
     if (cardNum === 4 && step3Done) navigate('/contact')
   }
@@ -166,7 +168,7 @@ export const Introduction = () => {
       title: 'DIAGNÓSTICO DOS 7 CANSAÇOS',
       desc: 'Identifique qual tipo de cansaço predomina e realize os 7 exercícios propostos.',
       done: step3Done,
-      cta: assessmentIsComplete ? 'Ver exercícios' : 'Iniciar diagnóstico',
+      cta: mainRecoveryDone ? 'Ver exercícios' : (assessmentIsComplete ? 'Ver resultado' : 'Iniciar diagnóstico'),
     },
     {
       num: 4,

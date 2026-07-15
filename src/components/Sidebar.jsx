@@ -24,6 +24,9 @@ export const Sidebar = () => {
   const [vitalityScore, setVitalityScore] = useState(0);
   const [timeScore, setTimeScore] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [isDiagnosisStarted, setIsDiagnosisStarted] = useState(false);
+  const [isMainRecoveryDone, setIsMainRecoveryDone] = useState(false);
+  const [lockModal, setLockModal] = useState({ show: false, type: null });
 
   useEffect(() => {
     // Fechar menu ao mudar de rota no mobile
@@ -36,7 +39,7 @@ export const Sidebar = () => {
       try {
         const { data, error } = await supabase
           .from('evaluations')
-          .select('solution_satisfaction, scores, solution_time_relation')
+          .select('solution_satisfaction, scores, solution_time_relation, top_fatigue_solution')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -44,7 +47,16 @@ export const Sidebar = () => {
         if (error) throw error;
         
         if (data && data.length > 0) {
+          setIsDiagnosisStarted(true);
           const evalData = data[0];
+          
+          let completedCount = 0;
+          if (evalData.top_fatigue_solution) {
+            completedCount = Object.keys(evalData.top_fatigue_solution).filter(
+              key => evalData.top_fatigue_solution[key]?.isCompleted === true
+            ).length;
+          }
+          if (completedCount >= 1) setIsMainRecoveryDone(true);
           
           if (evalData.solution_satisfaction) {
             const sat = evalData.solution_satisfaction;
@@ -198,7 +210,10 @@ export const Sidebar = () => {
           </button>
 
           <button 
-            onClick={() => navigate('/dashboard')} 
+            onClick={() => {
+              if (energyScore === 0 && vitalityScore === 0) setLockModal({ show: true, type: 'radar' })
+              else navigate('/dashboard')
+            }} 
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
               isActive('/dashboard') 
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
@@ -209,7 +224,10 @@ export const Sidebar = () => {
           </button>
           
           <button 
-            onClick={() => navigate('/vitality')} 
+            onClick={() => {
+              if (energyScore === 0 && vitalityScore === 0) setLockModal({ show: true, type: 'radar' })
+              else navigate('/vitality')
+            }} 
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
               isActive('/vitality') 
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
@@ -220,7 +238,10 @@ export const Sidebar = () => {
           </button>
           
           <button 
-            onClick={() => navigate('/continue-healing')} 
+            onClick={() => {
+              if (!isMainRecoveryDone) setLockModal({ show: true, type: 'exercises' })
+              else navigate('/continue-healing')
+            }} 
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
               (isActive('/continue-healing') || isActive('/specific-solution'))
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
@@ -298,6 +319,59 @@ export const Sidebar = () => {
           </button>
         </div>
       </aside>
+
+      {/* Lock Modal */}
+      {lockModal.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setLockModal({ show: false, type: null })}></div>
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setLockModal({ show: false, type: null })}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="w-16 h-16 bg-[#eb6496]/10 rounded-2xl flex items-center justify-center text-[#eb6496] mb-6">
+              <CheckCircle size={32} />
+            </div>
+
+            {lockModal.type === 'radar' ? (
+              <>
+                <h3 className="text-2xl font-bold text-slate-800 mb-3 font-display">Conclua a Avaliação</h3>
+                <p className="text-slate-600 mb-8 leading-relaxed">
+                  Os dados do seu radar serão gerados automaticamente assim que você responder às perguntas do diagnóstico.
+                </p>
+                <button
+                  onClick={() => {
+                    setLockModal({ show: false, type: null });
+                    navigate('/intro');
+                  }}
+                  className="w-full bg-[#1ed7a4] hover:bg-[#15b88a] text-white py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-lg shadow-[#1ed7a4]/30 hover:shadow-[#1ed7a4]/50 active:scale-95"
+                >
+                  {isDiagnosisStarted ? "Continuar de onde parei" : "Começar diagnóstico"}
+                </button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-2xl font-bold text-slate-800 mb-3 font-display">Passo a Passo</h3>
+                <p className="text-slate-600 mb-8 leading-relaxed">
+                  Esta área será desbloqueada assim que você finalizar a recuperação do seu cansaço principal.
+                </p>
+                <button
+                  onClick={() => {
+                    setLockModal({ show: false, type: null });
+                    navigate('/intro');
+                  }}
+                  className="w-full bg-[#1ed7a4] hover:bg-[#15b88a] text-white py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-lg shadow-[#1ed7a4]/30 hover:shadow-[#1ed7a4]/50 active:scale-95"
+                >
+                  {isDiagnosisStarted ? "Continuar diagnóstico" : "Começar diagnóstico"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
