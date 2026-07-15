@@ -16,7 +16,7 @@ export const CreativeFatigue = ({ data, onChange }) => {
     const list = data?.act01?.list || ['', '', '', '']
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in">
+      <div className="mb-10 md:mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in">
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. Contemplando a Beleza</h3>
         <p className="text-slate-500 font-medium mb-8">A vida se torna mais agradável pela beleza que encontramos. Registre as belezas e pequenos detalhes do seu ambiente que você normalmente deixaria passar.</p>
         
@@ -50,7 +50,7 @@ export const CreativeFatigue = ({ data, onChange }) => {
     ]
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '100ms'}}>
+      <div className="mb-10 md:mb-16 bg-white p-5 md:p-10 rounded-3xl md:rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '100ms'}}>
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">02. O que você ama fazer?</h3>
         <p className="text-slate-500 font-medium mb-8">Olhe para seu calendário e programe períodos de reabastecimento para os quais você nunca tem tempo.</p>
         
@@ -75,7 +75,7 @@ export const CreativeFatigue = ({ data, onChange }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
-      <div className="mb-12">
+      <div className="mb-8 md:mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO CRIATIVA</h2>
         <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço criativo, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>

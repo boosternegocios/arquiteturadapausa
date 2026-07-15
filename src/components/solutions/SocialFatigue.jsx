@@ -18,12 +18,12 @@ export const SocialFatigue = ({ data, onChange }) => {
     const boosters = data?.act01?.boosters || ['', '', '', '', '']
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in">
+      <div className="mb-10 md:mb-16 bg-white p-5 md:p-10 rounded-3xl md:rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in">
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. Inventário do Convívio</h3>
         <p className="text-slate-500 font-medium mb-10">Faça um inventário das pessoas ao seu redor. Identifique e limite o tempo com relações que geram exaustão, e procure investir tempo nas que abastecem sua energia.</p>
         
         <div className="flex flex-col md:flex-row gap-8 lg:gap-16">
-          <div className="flex-1 bg-slate-50 rounded-3xl p-6 md:p-8 border border-slate-100">
+          <div className="flex-1 bg-slate-50 rounded-3xl p-4 md:p-8 border border-slate-100">
             <h4 className="text-base font-black text-slate-800 mb-6 flex items-center gap-3">
               <span className="w-10 h-10 rounded-full bg-[#eb6496]/20 text-[#eb6496] flex items-center justify-center">↓</span>
               Pessoas que Drenam Energia
@@ -44,7 +44,7 @@ export const SocialFatigue = ({ data, onChange }) => {
             </div>
           </div>
 
-          <div className="flex-1 bg-slate-50 rounded-3xl p-6 md:p-8 border border-slate-100">
+          <div className="flex-1 bg-slate-50 rounded-3xl p-4 md:p-8 border border-slate-100">
             <h4 className="text-base font-black text-slate-800 mb-6 flex items-center gap-3">
               <span className="w-10 h-10 rounded-full bg-[#1ed7a4]/20 text-[#1ed7a4] flex items-center justify-center">↑</span>
               Pessoas que Abastecem Energia
@@ -76,7 +76,7 @@ export const SocialFatigue = ({ data, onChange }) => {
     const online = data?.act02?.online || ['', '', '', '', '']
 
     return (
-      <div className="mb-16 bg-[#004b4c] p-8 md:p-10 rounded-[3rem] shadow-xl animate-in fade-in relative overflow-hidden" style={{animationDelay: '100ms'}}>
+      <div className="mb-10 md:mb-16 bg-[#004b4c] p-5 md:p-10 rounded-3xl md:rounded-[3rem] shadow-xl animate-in fade-in relative overflow-hidden" style={{animationDelay: '100ms'}}>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[300px] bg-[#1ed7a4]/5 blur-[100px] pointer-events-none"></div>
         <div className="relative z-10">
           <h3 className="text-2xl font-black text-white mb-2 font-display">02. Mapa Visual das Interações</h3>
@@ -140,7 +140,7 @@ export const SocialFatigue = ({ data, onChange }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
-      <div className="mb-12">
+      <div className="mb-8 md:mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO SOCIAL</h2>
         <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço social, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>

@@ -25,7 +25,7 @@ export const MentalFatigue = ({ data, onChange }) => {
     const weekData = data?.act01 || {}
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in">
+      <div className="mb-10 md:mb-16 bg-white p-5 md:p-10 rounded-3xl md:rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in">
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. Dimensione o Tempo de Drenagem</h3>
         <p className="text-slate-500 font-medium mb-8">Descreva como vai organizar o tempo das tarefas que você não curte mas precisa fazer, alternando com energizantes ao longo da semana.</p>
         
@@ -49,7 +49,7 @@ export const MentalFatigue = ({ data, onChange }) => {
   // 02: O que está na mente / Paz na Krise
   const renderAct02 = () => {
     return (
-      <div className="mb-16 bg-gradient-to-br from-[#1ed7a4] to-[#004b4c] p-8 md:p-10 rounded-[3rem] shadow-xl text-white animate-in fade-in relative overflow-hidden" style={{animationDelay: '100ms'}}>
+      <div className="mb-10 md:mb-16 bg-gradient-to-br from-[#1ed7a4] to-[#004b4c] p-5 md:p-10 rounded-3xl md:rounded-[3rem] shadow-xl text-white animate-in fade-in relative overflow-hidden" style={{animationDelay: '100ms'}}>
         <div className="absolute top-0 right-0 w-full h-full bg-white opacity-5 mix-blend-overlay"></div>
         <div className="relative z-10">
           <h3 className="text-2xl font-black mb-2 font-display">02. Experienciando Paz no Caos</h3>
@@ -80,7 +80,7 @@ export const MentalFatigue = ({ data, onChange }) => {
     ]
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '200ms'}}>
+      <div className="mb-10 md:mb-16 bg-white p-5 md:p-10 rounded-3xl md:rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '200ms'}}>
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. O que realmente está na sua mente?</h3>
         <p className="text-slate-500 font-medium mb-8">Faça um despejo mental categorizando o barulho interno nos quadrantes abaixo:</p>
         
@@ -109,7 +109,7 @@ export const MentalFatigue = ({ data, onChange }) => {
     const inventario = data?.act04?.list || defaultList
 
     return (
-      <div className="mb-16 bg-[#fcfaf5] border-2 border-dashed border-[#1ed7a4]/30 p-8 md:p-10 rounded-[3rem] shadow-sm animate-in fade-in" style={{animationDelay: '300ms'}}>
+      <div className="mb-10 md:mb-16 bg-[#fcfaf5] border-2 border-dashed border-[#1ed7a4]/30 p-5 md:p-10 rounded-3xl md:rounded-[3rem] shadow-sm animate-in fade-in" style={{animationDelay: '300ms'}}>
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">02. Inventário e Ressignificação</h3>
         <p className="text-slate-500 font-medium mb-8">Para cada pensamento negativo (do despejo acima), reformule-o em um pensamento afirmativo positivo utilizando suas referências éticas, crenças ou citações.</p>
         
@@ -155,7 +155,7 @@ export const MentalFatigue = ({ data, onChange }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
-      <div className="mb-12">
+      <div className="mb-8 md:mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO MENTAL</h2>
         <p className="text-lg text-slate-500 font-medium">
           Se você obteve alto índice de cansaço mental, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.<br /><br />

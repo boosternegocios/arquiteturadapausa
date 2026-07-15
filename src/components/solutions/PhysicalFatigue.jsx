@@ -18,7 +18,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
     const list = data?.act01?.list || [ { category: 'Trabalho', act: '', rest: '' }, { category: 'Casa', act: '', rest: '' }, { category: 'Outras', act: '', rest: '' } ]
     
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in">
+      <div className="mb-10 md:mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in">
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. Atividades diárias mais cansativas</h3>
         <p className="text-slate-500 font-medium mb-8">
           Ficar muitas horas sentado ou de pé, carregar peso ou repetir movimentos muitas vezes ao dia pode estar sobrecarregando o seu corpo. Você já parou para pensar em compensações para essa sobrecarga?<br />
@@ -67,7 +67,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
     const records = data?.act02?.records || muscles.reduce((acc, m) => ({...acc, [m]: { state: '', why: '' }}), {})
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '100ms'}}>
+      <div className="mb-10 md:mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '100ms'}}>
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">02. Mapa de tensão muscular</h3>
         <p className="text-slate-500 font-medium mb-8">Onde o estresse é acumulado no seu corpo devido ao esforço físico diário?</p>
 
@@ -128,7 +128,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
     const resting = data?.act03?.resting || [...defaultList]
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '200ms'}}>
+      <div className="mb-10 md:mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '200ms'}}>
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">03. Cansaço vs Descanso</h3>
         <p className="text-slate-500 font-medium mb-8">Suas horas de descanso são proporcionais ao seu esforço? Liste até 5 atividades para cada.</p>
         
@@ -200,7 +200,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
     const envData = data?.act04 || {}
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '300ms'}}>
+      <div className="mb-10 md:mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '300ms'}}>
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">03. Higiene do sono - Otimização</h3>
         <p className="text-slate-500 font-medium mb-10">Avalie de 1 a 10 como está a otimização do seu ambiente de sono em cada um destes aspectos:</p>
         
@@ -246,7 +246,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
     const daysLog = data?.act05?.days || defaultDays
 
     return (
-      <div className="mb-16 bg-gradient-to-br from-[#004b4c] to-slate-900 p-8 md:p-10 rounded-[3rem] shadow-xl text-white animate-in fade-in relative overflow-hidden" style={{animationDelay: '400ms'}}>
+      <div className="mb-10 md:mb-16 bg-gradient-to-br from-[#004b4c] to-slate-900 p-5 md:p-10 rounded-3xl md:rounded-[3rem] shadow-xl text-white animate-in fade-in relative overflow-hidden" style={{animationDelay: '400ms'}}>
         {/* Glow decoration */}
         <div className="absolute -top-32 -right-32 w-64 h-64 bg-[#eb6496] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
         <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#1ed7a4] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
@@ -302,7 +302,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
-      <div className="mb-12">
+      <div className="mb-8 md:mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Recuperação Física</h2>
         <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço físico, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>

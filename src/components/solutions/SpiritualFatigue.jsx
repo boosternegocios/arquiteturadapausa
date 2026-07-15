@@ -14,7 +14,7 @@ export const SpiritualFatigue = ({ data, onChange }) => {
   // Text Box Comum
   const renderTextBox = (id, title, desc, placeholder) => {
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in">
+      <div className="mb-10 md:mb-16 bg-white p-5 md:p-10 rounded-3xl md:rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in">
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">{title}</h3>
         <p className="text-slate-500 font-medium mb-8">{desc}</p>
         
@@ -34,7 +34,7 @@ export const SpiritualFatigue = ({ data, onChange }) => {
     const daysLog = data?.act04?.days || defaultDays
 
     return (
-      <div className="mb-16 bg-gradient-to-br from-[#1ed7a4] via-[#004b4c] to-slate-900 p-8 md:p-12 rounded-[3rem] shadow-xl text-white animate-in fade-in relative overflow-hidden" style={{animationDelay: '300ms'}}>
+      <div className="mb-10 md:mb-16 bg-gradient-to-br from-[#1ed7a4] via-[#004b4c] to-slate-900 p-8 md:p-12 rounded-[3rem] shadow-xl text-white animate-in fade-in relative overflow-hidden" style={{animationDelay: '300ms'}}>
         {/* Glow decoration */}
         <div className="absolute top-0 right-0 w-full h-full bg-white opacity-5 mix-blend-overlay"></div>
         <div className="absolute top-1/4 -right-10 w-64 h-64 bg-white rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
@@ -66,7 +66,7 @@ export const SpiritualFatigue = ({ data, onChange }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
-      <div className="mb-12">
+      <div className="mb-8 md:mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO ESPIRITUAL</h2>
         <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço espiritual, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>

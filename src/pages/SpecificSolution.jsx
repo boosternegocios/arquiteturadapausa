@@ -235,8 +235,8 @@ export const SpecificSolution = () => {
         <Sidebar />
         
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 w-full relative" onBlur={() => handleSave(false, true)}>
-          <div className="p-8 md:p-14 lg:p-20 pb-40">
+        <main className="flex-1 overflow-y-auto p-0 md:p-8 lg:p-12 w-full relative" onBlur={() => handleSave(false, true)}>
+          <div className="p-4 pt-6 md:p-14 lg:p-20 pb-40 md:pb-40">
             {loading ? (
               <div className="h-full w-full flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-[#1ed7a4]/20 border-t-[#1ed7a4] rounded-full animate-spin"></div>

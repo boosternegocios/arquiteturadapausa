@@ -20,13 +20,13 @@ export const EmotionalFatigue = ({ data, onChange }) => {
     const scaleData = data?.act01 || {}
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in">
+      <div className="mb-10 md:mb-16 bg-white p-5 md:p-10 rounded-3xl md:rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in">
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. Confronte seu EU Inautêntico</h3>
         <p className="text-slate-500 font-medium mb-10">Em uma escala de 1 a 10, quão autêntico você se considera habitualmente?</p>
         
         <div className="space-y-10">
           {scales.map((s, index) => (
-            <div key={s.key} className="bg-[#fcfaf5] border border-slate-100 p-6 md:p-8 rounded-3xl">
+            <div key={s.key} className="bg-[#fcfaf5] border border-slate-100 p-4 md:p-8 rounded-3xl">
               <h4 className="text-sm font-black uppercase tracking-widest text-[#eb6496] mb-6 flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-[#eb6496]"></span>
                 {s.label}
@@ -70,7 +70,7 @@ export const EmotionalFatigue = ({ data, onChange }) => {
     ]
 
     return (
-      <div className="mb-16 bg-[#eb6496] text-white p-8 md:p-10 rounded-[3rem] shadow-[0_20px_40px_-15px_rgba(235,100,150,0.5)] animate-in fade-in relative overflow-hidden" style={{animationDelay: '100ms'}}>
+      <div className="mb-10 md:mb-16 bg-[#eb6496] text-white p-5 md:p-10 rounded-3xl md:rounded-[3rem] shadow-[0_20px_40px_-15px_rgba(235,100,150,0.5)] animate-in fade-in relative overflow-hidden" style={{animationDelay: '100ms'}}>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-[80px] pointer-events-none"></div>
         <div className="relative z-10">
           <h3 className="text-2xl font-black text-white mb-2 font-display">02. Quando você usa máscaras?</h3>
@@ -127,7 +127,7 @@ export const EmotionalFatigue = ({ data, onChange }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
-      <div className="mb-12">
+      <div className="mb-8 md:mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">RECUPERAÇÃO EMOCIONAL</h2>
         <p className="text-lg text-slate-500 font-medium mb-8">Se você obteve alto índice de cansaço emocional, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
 

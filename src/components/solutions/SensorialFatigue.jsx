@@ -17,7 +17,7 @@ export const SensorialFatigue = ({ data, onChange }) => {
     const records = data?.act01?.records || senses.reduce((acc, s) => ({...acc, [s]: { estimulo: '', melhorar: '' }}), {})
 
     return (
-      <div className="mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in">
+      <div className="mb-10 md:mb-16 bg-white p-8 md:p-10 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in">
         <h3 className="text-2xl font-black text-[#004b4c] mb-2 font-display">01. Sobrecarga Sensorial</h3>
         <p className="text-slate-500 font-medium mb-8">Quais dos seus sentidos sofrem mais estímulos diariamente e podem estar sobrecarregados?</p>
 
@@ -80,7 +80,7 @@ export const SensorialFatigue = ({ data, onChange }) => {
     const scaleData = data?.act02 || {}
 
     return (
-      <div className="mb-16 bg-[#004b4c] text-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '100ms'}}>
+      <div className="mb-10 md:mb-16 bg-[#004b4c] text-white p-5 md:p-10 rounded-3xl md:rounded-[3rem] border border-slate-100 shadow-sm animate-in fade-in" style={{animationDelay: '100ms'}}>
         <h3 className="text-2xl font-black text-white mb-2 font-display">02. Recarregue sua Bateria Sensorial</h3>
         <p className="text-[#1ed7a4] font-medium mb-10">Em uma escala de 1 a 10, quanto você priorizaria a implementação dos seguintes aspectos na sua rotina?</p>
         
@@ -122,7 +122,7 @@ export const SensorialFatigue = ({ data, onChange }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto py-4">
-      <div className="mb-12">
+      <div className="mb-8 md:mb-12">
         <h2 className="text-4xl md:text-5xl font-black text-[#1ed7a4] uppercase tracking-tighter mb-4 font-display">Solução de Cansaço Sensorial</h2>
         <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço sensorial, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>
