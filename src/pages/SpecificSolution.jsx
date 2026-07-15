@@ -249,24 +249,24 @@ export const SpecificSolution = () => {
 
         {/* Footer Actions */}
         <div className="fixed bottom-0 right-0 left-0 lg:left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-4 md:pb-8 px-4 md:px-10 lg:px-20 z-30 pointer-events-none">
-          <div className="max-w-5xl mx-auto w-full flex justify-between items-center pointer-events-auto gap-2">
+          <div className="max-w-5xl mx-auto w-full flex flex-col sm:flex-row justify-between sm:justify-between items-center pointer-events-auto gap-4 sm:gap-0 bg-white/90 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none p-4 sm:p-0 rounded-t-3xl sm:rounded-none shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sm:shadow-none">
             <button 
               onClick={() => navigate('/continue-healing')}
-              className="flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
+              className="hidden sm:flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
             >
-              <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">Voltar</span>
+              <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span>Voltar</span>
             </button>
-            <div className="flex gap-3 md:gap-6 items-center">
+            <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
               <button 
                 onClick={() => navigate('/intro')}
-                className="font-bold text-slate-600 uppercase tracking-widest text-[9px] md:text-xs hover:text-slate-900 transition-colors text-center leading-tight"
+                className="px-8 py-3.5 font-bold text-slate-600 bg-white sm:bg-transparent border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase text-center"
               >
-                Voltar ao<br className="sm:hidden"/> Início
+                Voltar ao Início
               </button>
               <button 
                 onClick={() => handleSave(true)}
                 disabled={saving}
-                className="bg-[#1ed7a4] shadow-[0_10px_20px_rgba(30,215,164,0.3)] hover:shadow-[0_15px_30px_rgba(30,215,164,0.4)] text-[#004b4c] px-4 py-3 md:px-8 md:py-4 rounded-xl font-black text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#1bc294] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-3.5 font-bold text-[#004b4c] bg-[#1ed7a4] shadow-[0_10px_20px_rgba(30,215,164,0.3)] hover:shadow-[0_15px_30px_rgba(30,215,164,0.4)] rounded-xl transition-all w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase hover:bg-[#1bc294] hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="sm:hidden">{saving ? 'Salvando...' : 'Concluir'}</span>
                 <span className="hidden sm:inline">{saving ? 'Salvando...' : 'Concluir Exercício'}</span>

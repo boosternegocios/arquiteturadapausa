@@ -661,27 +661,27 @@ export const Recovery = () => {
 
         {/* Footer Actions */}
         <div className="fixed bottom-0 right-0 left-0 lg:left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-4 md:pb-8 px-4 md:px-10 lg:px-20 z-30 pointer-events-none">
-          <div className="max-w-[1000px] mx-auto w-full flex justify-between items-center pointer-events-auto gap-2">
+          <div className="flex flex-col sm:flex-row justify-between sm:justify-between items-center px-4 md:px-8 py-4 md:py-6 bg-white/80 backdrop-blur-md border-t border-slate-200 shrink-0 gap-4 sm:gap-0 pointer-events-auto rounded-t-3xl sm:rounded-none">
             <button 
               onClick={() => {
-                const prevStepIndex = STEPS.findIndex(s => s.id === step) - 1
-                if (prevStepIndex >= 0) {
-                  navigate(`/recovery/${STEPS[prevStepIndex].id}`)
+                if (step === 'pauses' && !isFormValid) {
+                  const confirmBack = window.confirm("Você tem alterações não salvas. Deseja realmente voltar? Você perderá suas respostas desta página.");
+                  if (confirmBack) navigate(-1);
                 } else {
                   navigate(-1)
                 }
               }}
-              className="flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
+              className="hidden sm:flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
             >
-              <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">Voltar</span>
+              <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span>Voltar</span>
             </button>
-            <div className="flex gap-3 md:gap-6 items-center">
+            <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
               <button 
                 onClick={() => handleSave(false)} 
                 disabled={saving}
-                className="font-bold text-slate-600 uppercase tracking-widest text-[9px] md:text-xs hover:text-slate-900 transition-colors text-center leading-tight disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-3.5 font-bold text-slate-600 bg-white sm:bg-transparent border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed text-center"
               >
-                Salvar<br className="sm:hidden"/> Rascunho
+                Salvar Rascunho
               </button>
               
               {(() => {
@@ -696,10 +696,10 @@ export const Recovery = () => {
                   <button 
                     onClick={() => handleSave(isLastStep, true)}
                     disabled={saving || !canAdvance}
-                    className="bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] text-white px-4 py-3 md:px-8 md:py-4 rounded-xl font-bold text-[10px] md:text-sm tracking-widest uppercase hover:bg-[#d84e80] transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-1 md:gap-3 text-center leading-tight shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                    className="px-8 py-3.5 font-bold text-white bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] rounded-xl transition-all w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase hover:bg-[#d84e80] hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                     title={!canAdvance ? "Por favor, responda todas as perguntas antes de avançar." : ""}
                   >
-                    <span className="sm:hidden">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir' : (step === 'pauses' ? 'Plano' : (isLastStep ? 'Concluir' : 'Próxima'))}</span>
+                    <span className="sm:hidden">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir' : (step === 'pauses' ? 'Plano' : (isLastStep ? 'Concluir' : 'Próxima Etapa'))}</span>
                     <span className="hidden sm:inline">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : (step === 'pauses' ? 'Solicitar plano personalizado' : (isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'))}</span>
                     <ArrowRight size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
                   </button>
