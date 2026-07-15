@@ -160,13 +160,10 @@ export const Recovery = () => {
   }, [user])
 
   const handleSave = async (isFinal = false, isAdvancing = false) => {
-    // As validações rígidas de length foram removidas porque os sliders já mostram o valor "5" (meio)
-    // visualmente por padrão, então se o usuário não tocar neles, o sistema deve assumir 5.
-
     setSaving(true)
     let currentEvalId = evaluationId;
 
-    const fetchWithTimeout = (promise, ms = 8000) => {
+    const fetchWithTimeout = (promise, ms = 15000) => {
       return Promise.race([
         promise,
         new Promise((_, reject) => setTimeout(() => reject(new Error('Conexão muito lenta. Tente novamente.')), ms))
@@ -185,11 +182,12 @@ export const Recovery = () => {
         }
       } catch (e) {
         console.error('Insert error:', e)
+        setSaving(false)
+        alert('Erro ao criar avaliação. Verifique sua conexão e tente novamente.')
+        return
       }
     }
 
-    let saveSuccess = false;
-    
     try {
       if (currentEvalId) {
         let beliefsToSave = formData.beliefs
@@ -232,21 +230,14 @@ export const Recovery = () => {
           supabase.from('evaluations').update(updates).eq('id', currentEvalId)
         )
         if (error) throw error
-        saveSuccess = true;
-      }
-    } catch (error) {
-      console.error('Erro ao salvar formulário:', error)
-      if (!isAdvancing) {
-        alert('Aviso: Não foi possível salvar o rascunho. Verifique sua conexão. (' + error.message + ')')
-      }
-    } finally {
-      setSaving(false)
-      
-      if (isAdvancing) {
-        if (isFinal) {
-          navigate('/contact')
-        } else {
-          if (step === 'internal-speed' || step === 'time-tips') {
+
+        // SUCESSO — agora sim pode navegar
+        setSaving(false)
+
+        if (isAdvancing) {
+          if (isFinal) {
+            navigate('/contact')
+          } else if (step === 'internal-speed' || step === 'time-tips') {
             navigate('/intro')
           } else {
             const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
@@ -254,10 +245,15 @@ export const Recovery = () => {
               navigate(`/recovery/${STEPS[nextStepIndex].id}`)
             }
           }
+        } else {
+          alert('Rascunho salvo com sucesso!')
         }
-      } else if (saveSuccess) {
-        alert('Rascunho salvo com sucesso!')
+
       }
+    } catch (error) {
+      console.error('Erro ao salvar formulário:', error)
+      setSaving(false)
+      alert('Não foi possível salvar suas respostas. Verifique sua conexão e tente novamente.')
     }
   }
 
