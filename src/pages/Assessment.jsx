@@ -71,13 +71,15 @@ export const Assessment = () => {
         
         setQuestions(fetchedQData)
         
-        // Buscando rascunho de avaliação
-        const { data: draftData, error: draftErr } = await supabase
+        const { data: draftRows, error: draftErr } = await supabase
           .from('evaluations')
           .select('answers')
           .eq('user_id', user.id)
           .eq('status', 'draft')
-          .single()
+          .order('created_at', { ascending: false })
+          .limit(1)
+          
+        const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
           
         if (draftData && draftData.answers) {
           setAnswers(draftData.answers)
@@ -108,12 +110,16 @@ export const Assessment = () => {
   const handleSaveDraft = async () => {
     setIsSaving(true)
     try {
-      const { data: draftData } = await supabase
+      const { data: draftRows, error: fetchErr } = await supabase
         .from('evaluations')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'draft')
-        .single()
+        .order('created_at', { ascending: false })
+        .limit(1)
+        
+      if (fetchErr) console.error('[Assessment] Erro ao buscar rascunho:', fetchErr)
+      const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
         
       const existingAnswers = draftData?.answers || {}
       const existingScores = draftData?.scores || {}
@@ -170,13 +176,18 @@ export const Assessment = () => {
     setIsSaving(true)
     try {
       // 1. Fetch current draft if any
-      const { data: draftData } = await supabase
+      const { data: draftRows, error: fetchErr } = await supabase
         .from('evaluations')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'draft')
-        .single()
+        .order('created_at', { ascending: false })
+        .limit(1)
         
+      if (fetchErr) console.error('[Assessment] Erro ao buscar rascunho:', fetchErr)
+        
+      const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
+      
       const existingAnswers = draftData?.answers || {}
       const existingScores = draftData?.scores || {}
       
@@ -194,6 +205,7 @@ export const Assessment = () => {
       
       if (draftData) {
         // Update draft
+        console.log('[Assessment] Atualizando rascunho ID:', draftData.id)
         const { error } = await supabase
           .from('evaluations')
           .update({ answers: newAnswers, scores: newScores })
@@ -201,6 +213,7 @@ export const Assessment = () => {
         if (error) throw error
       } else {
         // Create new draft
+        console.log('[Assessment] Criando novo rascunho')
         const { error } = await supabase
           .from('evaluations')
           .insert({ 
