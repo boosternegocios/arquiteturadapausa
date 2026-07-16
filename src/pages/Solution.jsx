@@ -65,13 +65,13 @@ export const Solution = () => {
   }
 
   return (
-    <div className="bg-[#f8f3e9] text-slate-900 min-h-screen font-display">
-      <div className="flex flex-col lg:flex-row lg:lg:h-[100dvh] lg:lg:overflow-hidden">
+    <div className="bg-[#f8f3e9] text-slate-900 min-h-[100dvh] font-display">
+      <div className="flex flex-col lg:flex-row min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden">
         
         {/* Sidebar */}
         <Sidebar />
         
-        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#fcfbf8] via-[#f7f3ec] to-[#faebed] flex items-center justify-center p-4 md:p-8 lg:p-12 w-full relative h-[100dvh]">
+        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#fcfbf8] via-[#f7f3ec] to-[#faebed] flex flex-col items-center justify-center p-6 py-12 md:p-8 lg:p-12 w-full relative">
           
           <div className="max-w-[850px] w-full z-10 flex flex-col items-center justify-center text-center">
             
