@@ -14,7 +14,7 @@ const STEPS = [
   { id: 'internal-speed', number: 3, title: '3 Reflita sobre sua velocidade interna', subtitle: 'Em uma escala de 1 a 10, onde 1 indica um ritmo interno mais lento e 10 indica um ritmo interno mais acelerado, como você se considera? Posicione o controle conforme você se identifica' },
   { id: 'beliefs', number: 4, title: '1 Você possui alguma dessas crenças?', subtitle: 'Em uma escala de 1 a 10, quanto você concorda com as afirmações, considerando 1 (mais baixo) a 10 (mais alto)' },
   { id: 'cycle', number: 5, title: '2 Entenda seus Ciclos', subtitle: 'A reflexão sobre os ciclos nos ajuda a quebrar a inércia do desgaste.' },
-  { id: 'time-tips', number: 6, title: '3 Reflita sobre sua relação com o tempo', subtitle: 'Mude a perspectiva sobre como você gasta a sua vida.' },
+  { id: 'time-tips', number: 6, title: '3 Reflita sobre sua relação com o tempo', subtitle: 'Mude a perspectiva sobre como você passa a sua vida.' },
   { id: 'pauses', number: 7, title: 'Estratégias para pausas intencionais', subtitle: 'Passos fundamentais para recuperar energia vital.' }
 ]
 
