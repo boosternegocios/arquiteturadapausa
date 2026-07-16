@@ -144,7 +144,7 @@ export const Result = () => {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8 flex-1">
               
               {/* Radar Chart Panel */}
-              <div className="md:col-span-12 lg:col-span-7 bg-white rounded-3xl p-10 flex flex-col relative shadow-sm border border-slate-100/50">
+              <div className="md:col-span-12 lg:col-span-7 bg-white rounded-3xl p-4 md:p-10 flex flex-col relative shadow-sm border border-slate-100/50">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-1.5 h-6 bg-brand-pink rounded-r-md -ml-10"></div>
                   <h2 className="text-xl font-bold text-slate-800">Mapeamento das 7 Dimensões</h2>
@@ -152,11 +152,33 @@ export const Result = () => {
                 
                 <div className="flex-1 flex items-center justify-center min-h-[350px]">
                   <ResponsiveContainer width="100%" height={450}>
-                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
+                    <RadarChart cx="50%" cy="50%" outerRadius={window.innerWidth < 768 ? "45%" : "65%"} data={radarData}>
                       <PolarGrid stroke="#f1f5f9" strokeWidth={2} />
                       <PolarAngleAxis 
                         dataKey="radarLabel" 
-                        tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }} 
+                        tick={(props) => {
+                          const { payload, x, y, textAnchor } = props;
+                          const words = payload.value.split(' ');
+                          const lines = [];
+                          let currentLine = '';
+                          words.forEach(word => {
+                            if ((currentLine + word).length > 12) {
+                              if (currentLine) lines.push(currentLine.trim());
+                              currentLine = word + ' ';
+                            } else {
+                              currentLine += word + ' ';
+                            }
+                          });
+                          if (currentLine) lines.push(currentLine.trim());
+                          
+                          return (
+                            <text x={x} y={y} textAnchor={textAnchor} fill="#64748b" fontSize={9} fontWeight={700}>
+                              {lines.map((line, index) => (
+                                <tspan x={x} dy={index === 0 ? 0 : 12} key={index}>{line}</tspan>
+                              ))}
+                            </text>
+                          )
+                        }} 
                       />
                       <Radar 
                         name="Cansaço" 
