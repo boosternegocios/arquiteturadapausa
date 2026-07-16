@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, isSupabaseResponsive } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
@@ -61,7 +61,10 @@ export const AuthProvider = ({ children }) => {
     })
 
     // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // IMPORTANTE: este callback NÃO pode conter `await` de chamadas ao Supabase.
+    // O Supabase espera o callback terminar antes de liberar o auth interno,
+    // e a query espera o auth — deadlock que travava o app ao trocar de aba.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return
       setSession(session)
       // Only update user state if the user ID actually changed.
@@ -73,7 +76,10 @@ export const AuthProvider = ({ children }) => {
         return newUser
       })
       if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT' || _event === 'USER_UPDATED') {
-        await checkAdmin(session?.user ?? null)
+        // Deferido para fora do callback (exigência do Supabase para evitar deadlock)
+        setTimeout(() => {
+          if (isMounted) checkAdmin(session?.user ?? null)
+        }, 0)
       }
       setLoading(false)
       clearTimeout(timeoutId)
@@ -86,22 +92,32 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  // Heartbeat para manter a conexão TCP viva e impedir que roteadores cortem a conexão ociosa
+  // Watchdog global: quando a aba volta a ficar visível, verifica se o
+  // cliente Supabase ainda responde. Se estiver travado (deadlock interno
+  // após longo período em segundo plano), recarrega a página automaticamente.
+  // As respostas em andamento são preservadas no localStorage pelas páginas,
+  // então o usuário continua exatamente de onde parou — sem F5 manual.
   useEffect(() => {
-    if (!user) return;
-    
-    const pingSupabase = async () => {
-      try {
-        await supabase.from('evaluations').select('id').limit(1);
-      } catch (err) {
-        console.warn('Falha no heartbeat silencioso:', err);
+    let wasHidden = false;
+
+    const onVisibility = async () => {
+      if (document.hidden) {
+        wasHidden = true;
+        return;
+      }
+      if (!wasHidden) return;
+      wasHidden = false;
+
+      const responsive = await isSupabaseResponsive(5000);
+      if (!responsive) {
+        console.warn('[Watchdog] Cliente Supabase travado — recuperando automaticamente...');
+        window.location.reload();
       }
     };
 
-    const interval = setInterval(pingSupabase, 45000); // 45 segundos
-    
-    return () => clearInterval(interval);
-  }, [user]);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   // Expose easy-to-use methods
   const signUp = (email, password, metadata) => supabase.auth.signUp({ 

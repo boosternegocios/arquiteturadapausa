@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import { supabase, withTimeout } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { Home, FileText, BarChart2, Activity, Settings, LogOut, LayoutDashboard } from 'lucide-react'
 
@@ -22,6 +22,29 @@ export const Assessment = () => {
   const [answers, setAnswers] = useState({}) // { questionId: value (0-10) }
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+
+  // Backup local das respostas: garante que nada se perde se a página
+  // precisar ser recarregada (queda de conexão, recuperação automática, etc.)
+  const backupKey = user ? `arqpausa-answers-${user.id}` : null
+
+  const readLocalBackup = () => {
+    if (!backupKey) return {}
+    try {
+      const raw = localStorage.getItem(backupKey)
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  useEffect(() => {
+    if (!backupKey || Object.keys(answers).length === 0) return
+    try {
+      localStorage.setItem(backupKey, JSON.stringify(answers))
+    } catch (e) {
+      console.warn('Falha ao salvar backup local:', e)
+    }
+  }, [answers, backupKey])
   
   const categoryNames = {
     fisico: 'FÍSICO',
@@ -82,16 +105,16 @@ export const Assessment = () => {
           
         const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
           
-        if (draftData && draftData.answers) {
-          setAnswers(draftData.answers)
-        } else {
-          setAnswers({})
-        }
+        // Mescla o rascunho do banco com o backup local — o backup local
+        // tem prioridade porque contém os cliques mais recentes do usuário
+        // (inclusive os feitos logo antes de uma recuperação automática).
+        setAnswers({ ...(draftData?.answers || {}), ...readLocalBackup() })
       } catch (err) {
         if (err.code !== 'PGRST116') { // ignora erro de nenhum rascunho encontrado
           console.error('Erro ao buscar dados:', err)
+          setAnswers(readLocalBackup())
         } else {
-          setAnswers({})
+          setAnswers(readLocalBackup())
         }
       } finally {
         setLoading(false)
@@ -118,16 +141,24 @@ export const Assessment = () => {
     }))
   }
 
+  // Se uma operação estourar o timeout, o cliente Supabase provavelmente
+  // travou (deadlock após aba em segundo plano). As respostas já estão no
+  // backup local, então recarregar recupera tudo automaticamente.
+  const recoverFromTimeout = () => {
+    alert('A conexão ficou instável. A página será recarregada automaticamente — suas respostas foram preservadas.')
+    window.location.reload()
+  }
+
   const handleSaveDraft = async () => {
     setIsSaving(true)
     try {
-      const { data: draftRows, error: fetchErr } = await supabase
+      const { data: draftRows, error: fetchErr } = await withTimeout(supabase
         .from('evaluations')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'draft')
         .order('created_at', { ascending: false })
-        .limit(1)
+        .limit(1))
         
       if (fetchErr) console.error('[Assessment] Erro ao buscar rascunho:', fetchErr)
       const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
@@ -155,26 +186,30 @@ export const Assessment = () => {
       }
       
       if (draftData) {
-        const { error } = await supabase
+        const { error } = await withTimeout(supabase
           .from('evaluations')
           .update({ answers: newAnswers, scores: newScores })
-          .eq('id', draftData.id)
+          .eq('id', draftData.id))
         if (error) throw error
       } else {
-        const { error } = await supabase
+        const { error } = await withTimeout(supabase
           .from('evaluations')
-          .insert({ 
-            user_id: user.id, 
-            status: 'draft', 
+          .insert({
+            user_id: user.id,
+            status: 'draft',
             answers: newAnswers,
             scores: newScores
-          })
+          }))
         if (error) throw error
       }
-      
+
       alert('Progresso salvo com sucesso! Você pode fechar ou retornar depois sem perder suas respostas.')
     } catch (err) {
       console.error('Erro ao salvar rascunho:', err)
+      if (err.message === 'SUPABASE_TIMEOUT') {
+        recoverFromTimeout()
+        return
+      }
       alert('Houve um erro ao salvar suas respostas. Tente novamente.')
     } finally {
       setIsSaving(false)
@@ -187,13 +222,13 @@ export const Assessment = () => {
     setIsSaving(true)
     try {
       // 1. Fetch current draft if any
-      const { data: draftRows, error: fetchErr } = await supabase
+      const { data: draftRows, error: fetchErr } = await withTimeout(supabase
         .from('evaluations')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'draft')
         .order('created_at', { ascending: false })
-        .limit(1)
+        .limit(1))
         
       if (fetchErr) console.error('[Assessment] Erro ao buscar rascunho:', fetchErr)
         
@@ -217,46 +252,55 @@ export const Assessment = () => {
       if (draftData) {
         // Update draft
         console.log('[Assessment] Atualizando rascunho ID:', draftData.id)
-        const { error } = await supabase
+        const { error } = await withTimeout(supabase
           .from('evaluations')
           .update({ answers: newAnswers, scores: newScores })
-          .eq('id', draftData.id)
+          .eq('id', draftData.id))
         if (error) throw error
       } else {
         // Create new draft
         console.log('[Assessment] Criando novo rascunho')
-        const { error } = await supabase
+        const { error } = await withTimeout(supabase
           .from('evaluations')
-          .insert({ 
-            user_id: user.id, 
-            status: 'draft', 
+          .insert({
+            user_id: user.id,
+            status: 'draft',
             answers: newAnswers,
             scores: newScores
-          })
+          }))
         if (error) throw error
       }
-      
+
       // Navigating logic
       const CATEGORIES = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
       const currentIndex = CATEGORIES.indexOf(category.toLowerCase())
-      
+
       if (currentIndex >= 0 && currentIndex < CATEGORIES.length - 1) {
         // Próximo
         const nextCategory = CATEGORIES[currentIndex + 1]
         navigate(`/assessment/${nextCategory}`)
       } else {
         // Final
-        await supabase
+        await withTimeout(supabase
           .from('evaluations')
           .update({ status: 'completed' })
           .eq('user_id', user.id)
-          .eq('status', 'draft')
-          
+          .eq('status', 'draft'))
+
+        // Avaliação concluída — o backup local já cumpriu seu papel
+        if (backupKey) {
+          try { localStorage.removeItem(backupKey) } catch { /* ignora */ }
+        }
+
         navigate('/resultado')
       }
-      
+
     } catch (err) {
       console.error('Erro ao salvar:', err)
+      if (err.message === 'SUPABASE_TIMEOUT') {
+        recoverFromTimeout()
+        return
+      }
       alert('Houve um erro ao salvar suas respostas. Tente novamente.')
     } finally {
       setIsSaving(false)
