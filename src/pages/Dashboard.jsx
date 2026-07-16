@@ -326,7 +326,7 @@ export const Dashboard = () => {
                 
                 <div className="relative aspect-square max-h-[300px] md:max-h-[400px] mx-auto flex items-center justify-center w-full -mt-2 md:-mt-4 overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius={window.innerWidth < 768 ? "45%" : "65%"} data={radarData}>
+                    <RadarChart cx="50%" cy="50%" outerRadius={window.innerWidth < 768 ? "60%" : "65%"} data={radarData}>
                       <PolarGrid stroke="#f1f5f9" strokeWidth={2} />
                       <PolarAngleAxis 
                         dataKey="radarLabel" 
