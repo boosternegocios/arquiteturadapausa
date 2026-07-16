@@ -175,18 +175,13 @@ export const Recovery = () => {
     setSaving(true)
     let currentEvalId = evaluationId;
 
-    const fetchWithTimeout = (promise, ms = 15000) => {
-      return Promise.race([
-        promise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Conexão muito lenta. Tente novamente.')), ms))
-      ])
-    }
-
     if (!currentEvalId) {
       try {
-        const { data: newEval, error: insertError } = await fetchWithTimeout(
-          supabase.from('evaluations').insert([{ user_id: user.id, status: 'draft' }]).select()
-        )
+        const { data: newEval, error: insertError } = await supabase
+          .from('evaluations')
+          .insert([{ user_id: user.id, status: 'draft' }])
+          .select()
+
         if (insertError) throw insertError
         if (newEval && newEval.length > 0) {
           currentEvalId = newEval[0].id
@@ -240,9 +235,7 @@ export const Recovery = () => {
         console.log(`[Recovery] Salvando step="${step}" evalId="${currentEvalId}" updates=`, JSON.stringify(updates))
 
         if (Object.keys(updates).length > 0) {
-          const { error } = await fetchWithTimeout(
-            supabase.from('evaluations').update(updates).eq('id', currentEvalId)
-          )
+          const { error } = await supabase.from('evaluations').update(updates).eq('id', currentEvalId)
           if (error) throw error
           console.log(`[Recovery] ✅ Salvo com sucesso!`)
         }

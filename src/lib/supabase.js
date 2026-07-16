@@ -8,18 +8,31 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const customFetch = async (url, options) => {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 seconds timeout
+  const maxRetries = 3;
+  let attempt = 0;
+  
+  while (attempt < maxRetries) {
+    const controller = new AbortController()
+    // Timeout curto na 1ª tentativa para detectar conexão morta rapidamente, timeouts maiores nas tentativas de recuperação
+    const timeout = attempt === 0 ? 5000 : 15000; 
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-  try {
-    return await fetch(url, { ...options, signal: controller.signal })
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Conexão instável ou inativa. Por favor, tente novamente.')
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal })
+      clearTimeout(timeoutId)
+      return response
+    } catch (error) {
+      clearTimeout(timeoutId)
+      
+      // Se for a última tentativa, lança o erro para o usuário
+      if (attempt === maxRetries - 1) {
+        throw new Error('Falha de conexão. Verifique sua internet e tente novamente.')
+      }
+      
+      // Espera um pouco antes de tentar de novo
+      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
+      attempt++
     }
-    throw error
-  } finally {
-    clearTimeout(timeoutId)
   }
 }
 
