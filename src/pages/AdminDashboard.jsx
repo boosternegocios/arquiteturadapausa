@@ -13,7 +13,8 @@ import {
   FileText,
   Clock,
   ArrowRight,
-  Phone
+  Phone,
+  ArrowLeft
 } from 'lucide-react'
 import { 
   Radar as RechartsRadar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer 
@@ -266,7 +267,7 @@ export const AdminDashboard = () => {
 
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel: User List */}
-          <div className="w-1/3 min-w-[300px] max-w-[400px] border-r border-slate-200 bg-white flex flex-col">
+          <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 md:min-w-[300px] md:max-w-[400px] border-r border-slate-200 bg-white flex-col shrink-0`}>
             <div className="p-6 border-b border-slate-100 shrink-0">
               <div className="relative">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -313,23 +314,29 @@ export const AdminDashboard = () => {
           </div>
           
           {/* Right Panel: User Details */}
-          <div className="flex-1 bg-slate-50/50 flex flex-col overflow-hidden">
+          <div className={`${!selectedUser ? 'hidden md:flex' : 'flex'} flex-1 bg-slate-50/50 flex-col overflow-hidden`}>
             {selectedUser ? (
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* User Header */}
-                <div className="p-8 bg-white border-b border-slate-200 shrink-0">
+                <div className="p-4 md:p-8 bg-white border-b border-slate-200 shrink-0">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-2xl">
+                    <button 
+                      onClick={() => setSelectedUser(null)} 
+                      className="md:hidden p-2 -ml-2 text-slate-500 hover:text-brand-pink"
+                    >
+                      <ArrowLeft size={24} />
+                    </button>
+                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-2xl shrink-0">
                       {selectedUser.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-slate-800">{selectedUser.name}</h3>
-                      <div className="flex items-center gap-4 mt-1">
-                        <p className="text-slate-500 flex items-center gap-2">
+                      <h3 className="text-xl md:text-2xl font-black text-slate-800">{selectedUser.name}</h3>
+                      <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 mt-1">
+                        <p className="text-slate-500 flex items-center gap-2 text-sm md:text-base">
                           <Mail size={14} /> {selectedUser.email}
                         </p>
                         {selectedUser.phone && (
-                          <p className="text-slate-500 flex items-center gap-2">
+                          <p className="text-slate-500 flex items-center gap-2 text-sm md:text-base">
                             <Phone size={14} /> {selectedUser.phone}
                           </p>
                         )}
@@ -338,7 +345,7 @@ export const AdminDashboard = () => {
                   </div>
                   
                   {/* Tabs */}
-                  <div className="flex gap-6 mt-8 border-b border-slate-200">
+                  <div className="flex gap-4 md:gap-6 mt-6 md:mt-8 border-b border-slate-200 overflow-x-auto no-scrollbar whitespace-nowrap">
                     <button 
                       onClick={() => setActiveTab('habits')}
                       className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'habits' ? 'text-brand-pink' : 'text-slate-500 hover:text-slate-800'}`}
