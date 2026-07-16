@@ -113,8 +113,8 @@ export const Result = () => {
       <Sidebar />
 
       {/* Main Content View */}
-      <main className="flex-1 h-[100dvh] w-full overflow-y-auto px-6 pt-8 pb-32 md:px-10 md:py-12 lg:px-16 flex flex-col items-center">
-        <div className="w-full max-w-[1100px] flex flex-col min-h-full pb-12 md:pb-0 gap-8">
+      <main className="flex-1 h-[100dvh] w-full overflow-y-auto px-6 pt-8 pb-[30px] md:px-10 md:py-12 lg:px-16 flex flex-col items-center">
+        <div className="w-full max-w-[1100px] flex flex-col min-h-full pb-[30px] md:pb-0 gap-8">
           
           {/* Header */}
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -154,8 +154,8 @@ export const Result = () => {
                   <h2 className="text-xl font-bold text-slate-800">Mapeamento das 7 Dimensões</h2>
                 </div>
                 
-                <div className="flex-1 flex items-center justify-center min-h-[350px]">
-                  <ResponsiveContainer width="100%" height={450}>
+                <div className="flex items-center justify-center min-h-[280px]">
+                  <ResponsiveContainer width="100%" height={320}>
                     <RadarChart cx="50%" cy="50%" outerRadius={window.innerWidth < 768 ? "60%" : "65%"} data={radarData}>
                       <PolarGrid stroke="#f1f5f9" strokeWidth={2} />
                       <PolarAngleAxis 
