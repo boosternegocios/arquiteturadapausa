@@ -660,8 +660,8 @@ export const Recovery = () => {
         </main>
 
         {/* Footer Actions */}
-        <div className="fixed bottom-0 right-0 left-0 lg:left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-4 md:pb-8 px-4 md:px-10 lg:px-20 z-30 pointer-events-none">
-          <div className="flex flex-col sm:flex-row justify-between sm:justify-between items-center px-4 md:px-8 py-4 md:py-6 bg-white/80 backdrop-blur-md border-t border-slate-200 shrink-0 gap-4 sm:gap-0 pointer-events-auto rounded-t-3xl sm:rounded-none">
+        <div className="mt-10 pb-4 md:pb-8 z-30">
+          <div className="flex flex-col sm:flex-row justify-between sm:justify-between items-center px-4 md:px-8 py-4 md:py-6 bg-white border border-slate-200 shrink-0 gap-4 sm:gap-0 rounded-3xl">
             <button 
               onClick={() => {
                 if (step === 'pauses' && !isFormValid) {

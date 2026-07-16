@@ -248,8 +248,8 @@ export const SpecificSolution = () => {
         </main>
 
         {/* Footer Actions */}
-        <div className="fixed bottom-0 right-0 left-0 lg:left-80 bg-gradient-to-t from-[#fcfaf5] via-[#fcfaf5] to-transparent pt-20 pb-4 md:pb-8 px-4 md:px-10 lg:px-20 z-30 pointer-events-none">
-          <div className="max-w-5xl mx-auto w-full flex flex-col sm:flex-row justify-between sm:justify-between items-center pointer-events-auto gap-4 sm:gap-0 bg-white/90 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none p-4 sm:p-0 rounded-t-3xl sm:rounded-none shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sm:shadow-none">
+        <div className="mt-10 pb-4 md:pb-8 z-30">
+          <div className="max-w-5xl mx-auto w-full flex flex-col sm:flex-row justify-between sm:justify-between items-center gap-4 sm:gap-0 bg-white border border-slate-200 p-4 rounded-3xl">
             <button 
               onClick={() => navigate('/continue-healing')}
               className="hidden sm:flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
