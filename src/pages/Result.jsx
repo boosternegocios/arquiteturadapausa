@@ -109,7 +109,7 @@ export const Result = () => {
       <Sidebar />
 
       {/* Main Content View */}
-      <main className="flex-1 h-[100dvh] w-full overflow-y-auto px-6 py-8 md:px-10 md:py-12 lg:px-16 flex flex-col items-center">
+      <main className="flex-1 h-[100dvh] w-full overflow-y-auto px-6 pt-8 pb-28 md:px-10 md:py-12 lg:px-16 flex flex-col items-center">
         <div className="w-full max-w-[1100px] flex flex-col h-full gap-8">
           
           {/* Header */}
