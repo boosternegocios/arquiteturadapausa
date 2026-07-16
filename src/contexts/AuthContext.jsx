@@ -86,6 +86,23 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
+  // Heartbeat para manter a conexão TCP viva e impedir que roteadores cortem a conexão ociosa
+  useEffect(() => {
+    if (!user) return;
+    
+    const pingSupabase = async () => {
+      try {
+        await supabase.from('evaluations').select('id').limit(1);
+      } catch (err) {
+        console.warn('Falha no heartbeat silencioso:', err);
+      }
+    };
+
+    const interval = setInterval(pingSupabase, 45000); // 45 segundos
+    
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Expose easy-to-use methods
   const signUp = (email, password, metadata) => supabase.auth.signUp({ 
     email, 
