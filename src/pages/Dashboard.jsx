@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { 
   LayoutDashboard, 
   Activity, 
@@ -65,144 +66,129 @@ export const Dashboard = () => {
   const [assessmentStatus, setAssessmentStatus] = useState(null)
   const [topFatigue, setTopFatigue] = useState(null)
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchEvaluations = useCallback(async () => {
+    if (!user) return
     
-    const fetchEvaluations = async () => {
-      if (!user) return
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('evaluations')
+        .select('solution_time_relation, solution_satisfaction, solution_internal_speed, scores, top_fatigue_solution, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
       
-      // Safety timeout
-      const timeoutId = setTimeout(() => {
-        if (isMounted) {
-          console.warn("Dashboard fetchEvaluations timeout! Forcing loading to false.");
-          setLoading(false);
-          setHasRecord(false);
+      if (error) throw error
+      
+      if (data && data.length > 0) {
+        const evalData = data[0]
+        const fetchedTimeRel = evalData.solution_time_relation || {}
+        const fetchedSat = evalData.solution_satisfaction || {}
+        const status = evalData.status
+        
+        let progress = 0
+        if (Object.keys(fetchedSat).length > 0) progress += 10
+        if (Object.keys(fetchedTimeRel).length > 0) progress += 10
+        if (Object.keys(evalData.solution_internal_speed || {}).length > 0) progress += 10
+        
+        const scores = evalData.scores || {}
+        const answeredScores = Object.values(scores).filter(v => v !== undefined && v !== null).length
+        progress += Math.round((answeredScores / 7) * 49)
+        
+        const plans = evalData.top_fatigue_solution || {}
+        const hasActionPlan = Object.values(plans).some(p => p.isCompleted)
+        const completedOasis = Object.keys(plans).filter(k => plans[k]?.isCompleted).length
+        if (hasActionPlan) progress += 21
+        
+        setJourneyProgress(Math.min(100, progress))
+        
+        let nextRoute = '/intro';
+        if (!fetchedSat || Object.keys(fetchedSat).length === 0) {
+          nextRoute = '/recovery/satisfaction';
+        } else if (!fetchedTimeRel || Object.keys(fetchedTimeRel).length === 0) {
+          nextRoute = '/recovery/time-relation';
+        } else if (!evalData.solution_internal_speed || Object.keys(evalData.solution_internal_speed).length === 0) {
+          nextRoute = '/recovery/internal-speed';
+        } else if (!evalData.solution_beliefs || !evalData.solution_beliefs._card2_completed) {
+          nextRoute = '/recovery/beliefs';
+        } else if (!scores || Object.keys(scores).length < 7) {
+          nextRoute = '/assessment/fisico';
+        } else if (completedOasis < 7) {
+          nextRoute = '/continue-healing';
+        } else {
+          nextRoute = '/contact';
         }
-      }, 5000);
+        setNextCategory(nextRoute);
 
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from('evaluations')
-          .select('solution_time_relation, solution_satisfaction, solution_internal_speed, scores, top_fatigue_solution, status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-        
-        clearTimeout(timeoutId);
-        if (!isMounted) return;
+        // Only show radar if Card 1 is FULLY completed (all 8 time_relation + all 4 satisfaction)
+        const TIME_RELATION_KEYS = ['equilibrio', 'importancia', 'mensagens', 'tempo_livre', 'delega_centraliza', 'limite_corpo', 'stress', 'frustracao_agenda']
+        const SATISFACTION_KEYS = ['foco', 'produtividade', 'realizacao', 'ritmo']
+        const timeRelComplete = TIME_RELATION_KEYS.every(k => fetchedTimeRel[k] !== undefined && fetchedTimeRel[k] !== null)
+        const satComplete = SATISFACTION_KEYS.every(k => fetchedSat[k] !== undefined && fetchedSat[k] !== null)
 
-        if (error) throw error
-        
-        if (data && data.length > 0) {
-          const evalData = data[0]
-          const fetchedTimeRel = evalData.solution_time_relation || {}
-          const fetchedSat = evalData.solution_satisfaction || {}
-          const status = evalData.status
-          
-          let progress = 0
-          if (Object.keys(fetchedSat).length > 0) progress += 10
-          if (Object.keys(fetchedTimeRel).length > 0) progress += 10
-          if (Object.keys(evalData.solution_internal_speed || {}).length > 0) progress += 10
-          
-          const scores = evalData.scores || {}
-          const answeredScores = Object.values(scores).filter(v => v !== undefined && v !== null).length
-          progress += Math.round((answeredScores / 7) * 49)
-          
-          const plans = evalData.top_fatigue_solution || {}
-          const hasActionPlan = Object.values(plans).some(p => p.isCompleted)
-          const completedOasis = Object.keys(plans).filter(k => plans[k]?.isCompleted).length
-          if (hasActionPlan) progress += 21
-          
-          setJourneyProgress(Math.min(100, progress))
-          
-          let nextRoute = '/intro';
-          if (!fetchedSat || Object.keys(fetchedSat).length === 0) {
-            nextRoute = '/recovery/satisfaction';
-          } else if (!fetchedTimeRel || Object.keys(fetchedTimeRel).length === 0) {
-            nextRoute = '/recovery/time-relation';
-          } else if (!evalData.solution_internal_speed || Object.keys(evalData.solution_internal_speed).length === 0) {
-            nextRoute = '/recovery/internal-speed';
-          } else if (!evalData.solution_beliefs || !evalData.solution_beliefs._card2_completed) {
-            nextRoute = '/recovery/beliefs';
-          } else if (!scores || Object.keys(scores).length < 7) {
-            nextRoute = '/assessment/fisico';
-          } else if (completedOasis < 7) {
-            nextRoute = '/continue-healing';
-          } else {
-            nextRoute = '/contact';
-          }
-          setNextCategory(nextRoute);
+        if (timeRelComplete && satComplete) {
+          setHasRecord(true)
+          setAssessmentStatus(status)
 
-          // Only show radar if Card 1 is FULLY completed (all 8 time_relation + all 4 satisfaction)
-          const TIME_RELATION_KEYS = ['equilibrio', 'importancia', 'mensagens', 'tempo_livre', 'delega_centraliza', 'limite_corpo', 'stress', 'frustracao_agenda']
-          const SATISFACTION_KEYS = ['foco', 'produtividade', 'realizacao', 'ritmo']
-          const timeRelComplete = TIME_RELATION_KEYS.every(k => fetchedTimeRel[k] !== undefined && fetchedTimeRel[k] !== null)
-          const satComplete = SATISFACTION_KEYS.every(k => fetchedSat[k] !== undefined && fetchedSat[k] !== null)
-
-          if (timeRelComplete && satComplete) {
-            setHasRecord(true)
-            setAssessmentStatus(status)
-
-            // Radar scores
-            const normRadar = {}
-            let timeSum = 0;
-            let timeCount = 0;
-            Object.keys(TIME_RELATION_DATA).forEach(key => {
-              const rawVal = fetchedTimeRel[key]
-              if (rawVal !== undefined && rawVal !== null) {
-                const perc = Math.min(100, rawVal * 10)
-                normRadar[key] = perc
-                timeSum += perc;
-                timeCount++;
-              } else {
-                normRadar[key] = 0;
-              }
-            })
-            setRadarScores(normRadar)
-            if (timeCount > 0) setTimeScore(Math.round(timeSum / timeCount))
-
-            // Satisfaction scores for Index
-            const normSat = {}
-            let highestScore = -1
-            let highestCat = null
-
-            Object.keys(SATISFACTION_DATA).forEach(key => {
-              const rawVal = fetchedSat[key] || 0
+          // Radar scores
+          const normRadar = {}
+          let timeSum = 0;
+          let timeCount = 0;
+          Object.keys(TIME_RELATION_DATA).forEach(key => {
+            const rawVal = fetchedTimeRel[key]
+            if (rawVal !== undefined && rawVal !== null) {
               const perc = Math.min(100, rawVal * 10)
-              normSat[key] = perc
-
-              if (perc > highestScore) {
-                highestScore = perc
-                highestCat = key
-              }
-            })
-            setSatisfactionScores(normSat)
-            if (highestCat) {
-              setTopFatigue({ key: highestCat, label: SATISFACTION_DATA[highestCat].label, percentage: Math.round(highestScore) })
+              normRadar[key] = perc
+              timeSum += perc;
+              timeCount++;
+            } else {
+              normRadar[key] = 0;
             }
-          } else {
-            setHasRecord(false) 
+          })
+          setRadarScores(normRadar)
+          if (timeCount > 0) setTimeScore(Math.round(timeSum / timeCount))
+
+          // Satisfaction scores for Index
+          const normSat = {}
+          let highestScore = -1
+          let highestCat = null
+
+          Object.keys(SATISFACTION_DATA).forEach(key => {
+            const rawVal = fetchedSat[key] || 0
+            const perc = Math.min(100, rawVal * 10)
+            normSat[key] = perc
+
+            if (perc > highestScore) {
+              highestScore = perc
+              highestCat = key
+            }
+          })
+          setSatisfactionScores(normSat)
+          if (highestCat) {
+            setTopFatigue({ key: highestCat, label: SATISFACTION_DATA[highestCat].label, percentage: Math.round(highestScore) })
           }
         } else {
-          setHasRecord(false)
-          setJourneyProgress(0)
-          setNextCategory('/intro')
-          setTimeScore(0)
+          setHasRecord(false) 
         }
-      } catch (err) {
-        console.error('Erro ao buscar dados:', err)
-      } finally {
-        if (isMounted) setLoading(false)
+      } else {
+        setHasRecord(false)
+        setJourneyProgress(0)
+        setNextCategory('/intro')
+        setTimeScore(0)
       }
-    }
-
-    fetchEvaluations()
-    
-    return () => {
-      isMounted = false;
+    } catch (err) {
+      console.error('Erro ao buscar dados:', err)
+    } finally {
+      setLoading(false)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    fetchEvaluations()
+  }, [fetchEvaluations])
+
+  // Re-fetch data when user returns to the tab after switching away
+  useVisibilityRefresh(fetchEvaluations)
 
   // Get Route for button
   const getRoute = () => {

@@ -64,8 +64,17 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return
       setSession(session)
-      setUser(session?.user ?? null)
-      await checkAdmin(session?.user ?? null)
+      // Only update user state if the user ID actually changed.
+      // This prevents TOKEN_REFRESHED events from creating a new user object
+      // reference, which would cause all pages to re-fetch data unnecessarily.
+      setUser(prev => {
+        const newUser = session?.user ?? null
+        if (prev?.id === newUser?.id) return prev  // same user, keep stable reference
+        return newUser
+      })
+      if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT' || _event === 'USER_UPDATED') {
+        await checkAdmin(session?.user ?? null)
+      }
       setLoading(false)
       clearTimeout(timeoutId)
     })

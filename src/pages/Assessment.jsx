@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { Home, FileText, BarChart2, Activity, Settings, LogOut, LayoutDashboard } from 'lucide-react'
 
 export const Assessment = () => {
@@ -99,6 +100,16 @@ export const Assessment = () => {
     
     fetchQuestionsAndDraft()
   }, [category, user?.id])
+
+  // Silent re-validation when returning to tab (keeps form data, just re-validates connection)
+  useVisibilityRefresh(async () => {
+    if (!user) return
+    try {
+      await supabase.from('questions').select('id').limit(1)
+    } catch (e) {
+      console.warn('Visibility refresh ping failed:', e)
+    }
+  })
 
   const handleSliderChange = (questionId, value) => {
     setAnswers(prev => ({

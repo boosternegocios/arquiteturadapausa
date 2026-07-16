@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { 
   ArrowLeft, Save, LayoutDashboard, Settings, LogOut, CheckCircle, FileText, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart, Lock
 } from 'lucide-react'
@@ -25,40 +26,44 @@ export const ContinueHealing = () => {
   const [completedTracks, setCompletedTracks] = useState([])
   const [isAssessmentCompleted, setIsAssessmentCompleted] = useState(false)
 
-  useEffect(() => {
-    const fetchEvaluation = async () => {
-      if (!user) return
-      setLoading(true)
-      try {
-        const { data, error } = await supabase
-          .from('evaluations')
-          .select('top_fatigue_solution, status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
+  const fetchEvaluation = useCallback(async () => {
+    if (!user) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('evaluations')
+        .select('top_fatigue_solution, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
 
-        if (error) throw error
-        
-          if (data && data.length > 0) {
-            setIsAssessmentCompleted(data[0].status === 'completed')
-            if (data[0].top_fatigue_solution) {
-              // Conta apenas como concluído os que tem a flag isCompleted
-              const tracks = Object.keys(data[0].top_fatigue_solution).filter(
-                key => data[0].top_fatigue_solution[key]?.isCompleted === true
-              )
-              setCompletedTracks(tracks)
-            }
-          } else {
-            setIsAssessmentCompleted(false)
+      if (error) throw error
+      
+        if (data && data.length > 0) {
+          setIsAssessmentCompleted(data[0].status === 'completed')
+          if (data[0].top_fatigue_solution) {
+            // Conta apenas como concluído os que tem a flag isCompleted
+            const tracks = Object.keys(data[0].top_fatigue_solution).filter(
+              key => data[0].top_fatigue_solution[key]?.isCompleted === true
+            )
+            setCompletedTracks(tracks)
           }
-        } catch (error) {
-          console.error('Erro ao carregar dados:', error)
-        } finally {
-          setLoading(false)
+        } else {
+          setIsAssessmentCompleted(false)
         }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+      } finally {
+        setLoading(false)
       }
-      fetchEvaluation()
     }, [user?.id])
+
+  useEffect(() => {
+    fetchEvaluation()
+  }, [fetchEvaluation])
+
+  // Re-fetch data when user returns to the tab after switching away
+  useVisibilityRefresh(fetchEvaluation)
   
     const handleLogout = async () => {
       await signOut()

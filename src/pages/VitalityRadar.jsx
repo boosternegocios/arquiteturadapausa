@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { 
   LayoutDashboard, 
   Activity, 
@@ -51,103 +52,106 @@ export const VitalityRadar = () => {
   const [assessmentStatus, setAssessmentStatus] = useState(null)
   const [topFatigue, setTopFatigue] = useState(null)
 
-  useEffect(() => {
-    const fetchEvaluations = async () => {
-      if (!user) return
+  const fetchEvaluations = useCallback(async () => {
+    if (!user) return
+    
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('evaluations')
+        .select('solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
       
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from('evaluations')
-          .select('solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution, status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
+      if (error) throw error
+      
+      if (data && data.length > 0) {
+        const evalData = data[0]
         
-        if (error) throw error
+        let nextRoute = '/intro';
+        if (!evalData.solution_satisfaction || Object.keys(evalData.solution_satisfaction).length === 0) {
+          nextRoute = '/recovery/satisfaction';
+        } else if (!evalData.solution_time_relation || Object.keys(evalData.solution_time_relation).length === 0) {
+          nextRoute = '/recovery/time-relation';
+        } else if (!evalData.solution_internal_speed || Object.keys(evalData.solution_internal_speed).length === 0) {
+          nextRoute = '/recovery/internal-speed';
+        } else if (!evalData.solution_beliefs || !evalData.solution_beliefs._card2_completed) {
+          nextRoute = '/recovery/beliefs';
+        } else if (!evalData.scores || Object.keys(evalData.scores).length < 7) {
+          nextRoute = '/assessment/fisico';
+        } else if (Object.keys(evalData.top_fatigue_solution || {}).filter(k => evalData.top_fatigue_solution[k]?.isCompleted).length < 7) {
+          nextRoute = '/continue-healing';
+        } else {
+          nextRoute = '/contact';
+        }
+        setNextCategory(nextRoute);
+
+        const validCategories = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
+        const allScoresComplete = evalData.scores && validCategories.every(cat => evalData.scores[cat] !== undefined && evalData.scores[cat] !== null)
         
-        if (data && data.length > 0) {
-          const evalData = data[0]
+        if (allScoresComplete) {
+          const fetchedScores = evalData.scores
+          const status = evalData.status
           
-          let nextRoute = '/intro';
-          if (!evalData.solution_satisfaction || Object.keys(evalData.solution_satisfaction).length === 0) {
-            nextRoute = '/recovery/satisfaction';
-          } else if (!evalData.solution_time_relation || Object.keys(evalData.solution_time_relation).length === 0) {
-            nextRoute = '/recovery/time-relation';
-          } else if (!evalData.solution_internal_speed || Object.keys(evalData.solution_internal_speed).length === 0) {
-            nextRoute = '/recovery/internal-speed';
-          } else if (!evalData.solution_beliefs || !evalData.solution_beliefs._card2_completed) {
-            nextRoute = '/recovery/beliefs';
-          } else if (!evalData.scores || Object.keys(evalData.scores).length < 7) {
-            nextRoute = '/assessment/fisico';
-          } else if (Object.keys(evalData.top_fatigue_solution || {}).filter(k => evalData.top_fatigue_solution[k]?.isCompleted).length < 7) {
-            nextRoute = '/continue-healing';
-          } else {
-            nextRoute = '/contact';
-          }
-          setNextCategory(nextRoute);
+          setHasRecord(true)
+          setAssessmentStatus(status)
 
-          const validCategories = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
-          const allScoresComplete = evalData.scores && validCategories.every(cat => evalData.scores[cat] !== undefined && evalData.scores[cat] !== null)
-          
-          if (allScoresComplete) {
-            const fetchedScores = evalData.scores
-            const status = evalData.status
-            
-            setHasRecord(true)
-            setAssessmentStatus(status)
+          const normalized = {}
+          let highestScore = -1
+          let highestCat = null
+          let vitSum = 0;
+          let vitCount = 0;
 
-            const normalized = {}
-            let highestScore = -1
-            let highestCat = null
-            let vitSum = 0;
-            let vitCount = 0;
+          Object.keys(CATEGORY_DATA).forEach(key => {
+            const rawVal = fetchedScores[key]
+            if (rawVal !== undefined && rawVal !== null) {
+              const maxVal = CATEGORY_DATA[key].max
+              const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
+              normalized[key] = perc
+              vitSum += perc;
+              vitCount++;
 
-            Object.keys(CATEGORY_DATA).forEach(key => {
-              const rawVal = fetchedScores[key]
-              if (rawVal !== undefined && rawVal !== null) {
-                const maxVal = CATEGORY_DATA[key].max
-                const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
-                normalized[key] = perc
-                vitSum += perc;
-                vitCount++;
-
-                // Find top fatigue category accurately
-                if (perc > highestScore) {
-                  highestScore = perc
-                  highestCat = { key, label: CATEGORY_DATA[key].label, percentage: perc }
-                }
-              } else {
-                normalized[key] = 0;
+              // Find top fatigue category accurately
+              if (perc > highestScore) {
+                highestScore = perc
+                highestCat = { key, label: CATEGORY_DATA[key].label, percentage: perc }
               }
-            })
+            } else {
+              normalized[key] = 0;
+            }
+          })
 
-            setScores(normalized)
-            setTopFatigue(highestCat)
-            if (vitCount > 0) setVitalityScore(Math.round(vitSum / vitCount))
-            
-            const answeredCount = validCategories.filter(cat => fetchedScores[cat] !== undefined && fetchedScores[cat] !== null).length
-            setJourneyProgress(Math.round((answeredCount / 7) * 100))
-          } else {
-            setHasRecord(false)
-            setJourneyProgress(0)
-            setVitalityScore(0)
-          }
+          setScores(normalized)
+          setTopFatigue(highestCat)
+          if (vitCount > 0) setVitalityScore(Math.round(vitSum / vitCount))
+          
+          const answeredCount = validCategories.filter(cat => fetchedScores[cat] !== undefined && fetchedScores[cat] !== null).length
+          setJourneyProgress(Math.round((answeredCount / 7) * 100))
         } else {
           setHasRecord(false)
           setJourneyProgress(0)
-          setNextCategory('/recovery/satisfaction')
           setVitalityScore(0)
         }
-      } catch (err) {
-        console.error('Erro ao buscar avaliações:', err)
-      } finally {
-        setLoading(false)
+      } else {
+        setHasRecord(false)
+        setJourneyProgress(0)
+        setNextCategory('/recovery/satisfaction')
+        setVitalityScore(0)
       }
+    } catch (err) {
+      console.error('Erro ao buscar avaliações:', err)
+    } finally {
+      setLoading(false)
     }
-
-    fetchEvaluations()
   }, [user?.id])
+
+  useEffect(() => {
+    fetchEvaluations()
+  }, [fetchEvaluations])
+
+  // Re-fetch data when user returns to the tab after switching away
+  useVisibilityRefresh(fetchEvaluations)
 
   const handleLogout = async () => {
     try {

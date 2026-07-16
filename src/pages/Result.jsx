@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip 
 } from 'recharts'
@@ -41,54 +42,57 @@ export const Result = () => {
   const [scores, setScores] = useState([])
   const [topCategory, setTopCategory] = useState(null)
   
-  useEffect(() => {
-    const fetchResults = async () => {
-      if (!user) return
+  const fetchResults = useCallback(async () => {
+    if (!user) return
+    
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('evaluations')
+        .select('scores')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
       
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from('evaluations')
-          .select('scores')
-          .eq('user_id', user.id)
-          .eq('status', 'completed')
-          .order('created_at', { ascending: false })
-          .limit(1)
+      if (error) throw error
+      
+      if (data && data.length > 0 && data[0].scores) {
+        const rawScores = data[0].scores
         
-        if (error) throw error
+        // Normalize to 0-10 based on maximums
+        const normalizedScores = Object.entries(CATEGORY_DATA).map(([key, config]) => {
+          const rawVal = rawScores[key] || 0
+          const normalized = (rawVal / config.max) * 10
+          return {
+            key,
+            label: config.label,
+            Icon: config.icon,
+            score: parseFloat(normalized.toFixed(1)),
+            radarLabel: `${config.label.toUpperCase()} (${normalized.toFixed(1)})`,
+            fullMark: 10
+          }
+        })
         
-        if (data && data.length > 0 && data[0].scores) {
-          const rawScores = data[0].scores
-          
-          // Normalize to 0-10 based on maximums
-          const normalizedScores = Object.entries(CATEGORY_DATA).map(([key, config]) => {
-            const rawVal = rawScores[key] || 0
-            const normalized = (rawVal / config.max) * 10
-            return {
-              key,
-              label: config.label,
-              Icon: config.icon,
-              score: parseFloat(normalized.toFixed(1)),
-              radarLabel: `${config.label.toUpperCase()} (${normalized.toFixed(1)})`,
-              fullMark: 10
-            }
-          })
-          
-          // Sort descending to find the highest fatigue
-          const sorted = [...normalizedScores].sort((a, b) => b.score - a.score)
-          
-          setScores(normalizedScores)
-          setTopCategory(sorted[0])
-        }
-      } catch (err) {
-        console.error('Erro ao buscar resultados:', err)
-      } finally {
-        setLoading(false)
+        // Sort descending to find the highest fatigue
+        const sorted = [...normalizedScores].sort((a, b) => b.score - a.score)
+        
+        setScores(normalizedScores)
+        setTopCategory(sorted[0])
       }
+    } catch (err) {
+      console.error('Erro ao buscar resultados:', err)
+    } finally {
+      setLoading(false)
     }
-
-    fetchResults()
   }, [user?.id])
+
+  useEffect(() => {
+    fetchResults()
+  }, [fetchResults])
+
+  // Re-fetch data when user returns to the tab after switching away
+  useVisibilityRefresh(fetchResults)
 
   const handleLogout = async () => {
     await signOut()

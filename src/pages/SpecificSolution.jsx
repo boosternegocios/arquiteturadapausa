@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { 
   ArrowLeft, Save, LayoutDashboard, Settings, LogOut, CheckCircle, FileText, ArrowRight
 } from 'lucide-react'
@@ -85,6 +86,16 @@ export const SpecificSolution = () => {
     }
     fetchEvaluation()
   }, [user?.id, category])
+
+  // Silent re-validation when returning to tab (keeps form data, just re-validates connection)
+  useVisibilityRefresh(async () => {
+    if (!user || !evaluationId) return
+    try {
+      await supabase.from('evaluations').select('id').eq('id', evaluationId).limit(1)
+    } catch (e) {
+      console.warn('Visibility refresh ping failed:', e)
+    }
+  })
 
   const validateFatigue = (category, data) => {
     if (!data) return false;

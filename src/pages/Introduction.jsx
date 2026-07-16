@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { 
   BarChart2, 
   Zap, 
@@ -30,95 +31,93 @@ export const Introduction = () => {
   const [nextStep3Route, setNextStep3Route] = useState('/assessment/fisico')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    const fetchProgress = async () => {
-      if (!user) return
-      setLoading(true)
-      try {
-        const { data, error } = await supabase
-          .from('evaluations')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
+  const fetchProgress = useCallback(async () => {
+    if (!user) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('evaluations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
 
-        if (error) {
-          console.error('[Introduction] Supabase error:', error)
-          return
-        }
-
-        if (data && data.length > 0) {
-          const d = data[0]
-          
-          const sat = d.solution_satisfaction || {}
-          const timeRel = d.solution_time_relation || {}
-          const intSpeed = d.solution_internal_speed || {}
-          const beliefs = d.solution_beliefs || {}
-
-          const satDone = SATISFACTION_KEYS.every(k => sat[k] !== undefined && sat[k] !== null)
-          const timeDone = TIME_RELATION_KEYS.every(k => timeRel[k] !== undefined && timeRel[k] !== null)
-          const speedDone = INTERNAL_SPEED_KEYS.every(k => intSpeed[k] !== undefined && intSpeed[k] !== null)
-          const card1Complete = satDone && timeDone && speedDone
-          
-          setStep1Done(card1Complete)
-
-          if (!satDone) setNextStep1Route('/recovery/satisfaction')
-          else if (!timeDone) setNextStep1Route('/recovery/time-relation')
-          else if (!speedDone) setNextStep1Route('/recovery/internal-speed')
-
-          const card2Complete = beliefs._card2_completed === true
-          setStep2Done(card2Complete)
-
-          const beliefsKeys = ['sacrificio', 'utilidade', 'sozinho', 'meta_x', 'pressao', 'desorganizado', 'bem_feito', 'liberdade', 'improdutivo', 'tempo_insuficiente', 'dar_conta']
-          const beliefsDone = beliefsKeys.every(k => beliefs[k] !== undefined && beliefs[k] !== null)
-          if (!beliefsDone) setNextStep2Route('/recovery/beliefs')
-          else if (!card2Complete) setNextStep2Route('/recovery/cycle')
-
-          const CATEGORIES = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
-          
-          if (d.status === 'completed') {
-            setAssessmentIsComplete(true)
-          } else {
-            setAssessmentIsComplete(false)
-            let nextCat = 'fisico'
-            
-            if (d.scores && Object.keys(d.scores).length > 0 && Object.keys(d.scores).length < 7) {
-              for (const cat of CATEGORIES) {
-                if (d.scores[cat] === undefined || d.scores[cat] === null) {
-                  nextCat = cat
-                  break
-                }
-              }
-            } else if (d.scores && Object.keys(d.scores).length >= 7 && d.status === 'draft') {
-              nextCat = 'fisico'
-            }
-            
-            setNextStep3Route(`/assessment/${nextCat}`)
-          }
-
-          let completedCount = 0
-          if (d.top_fatigue_solution) {
-            completedCount = Object.keys(d.top_fatigue_solution).filter(
-              key => d.top_fatigue_solution[key]?.isCompleted === true
-            ).length
-          }
-          if (completedCount >= 1) setMainRecoveryDone(true)
-          if (completedCount >= 7) setStep3Done(true)
-        }
-      } catch (error) {
-        console.error('[Introduction] Erro ao buscar:', error)
-      } finally {
-        if (isMounted) setLoading(false)
+      if (error) {
+        console.error('[Introduction] Supabase error:', error)
+        return
       }
-    }
-    fetchProgress()
-    
-    return () => {
-      isMounted = false;
+
+      if (data && data.length > 0) {
+        const d = data[0]
+        
+        const sat = d.solution_satisfaction || {}
+        const timeRel = d.solution_time_relation || {}
+        const intSpeed = d.solution_internal_speed || {}
+        const beliefs = d.solution_beliefs || {}
+
+        const satDone = SATISFACTION_KEYS.every(k => sat[k] !== undefined && sat[k] !== null)
+        const timeDone = TIME_RELATION_KEYS.every(k => timeRel[k] !== undefined && timeRel[k] !== null)
+        const speedDone = INTERNAL_SPEED_KEYS.every(k => intSpeed[k] !== undefined && intSpeed[k] !== null)
+        const card1Complete = satDone && timeDone && speedDone
+        
+        setStep1Done(card1Complete)
+
+        if (!satDone) setNextStep1Route('/recovery/satisfaction')
+        else if (!timeDone) setNextStep1Route('/recovery/time-relation')
+        else if (!speedDone) setNextStep1Route('/recovery/internal-speed')
+
+        const card2Complete = beliefs._card2_completed === true
+        setStep2Done(card2Complete)
+
+        const beliefsKeys = ['sacrificio', 'utilidade', 'sozinho', 'meta_x', 'pressao', 'desorganizado', 'bem_feito', 'liberdade', 'improdutivo', 'tempo_insuficiente', 'dar_conta']
+        const beliefsDone = beliefsKeys.every(k => beliefs[k] !== undefined && beliefs[k] !== null)
+        if (!beliefsDone) setNextStep2Route('/recovery/beliefs')
+        else if (!card2Complete) setNextStep2Route('/recovery/cycle')
+
+        const CATEGORIES = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
+        
+        if (d.status === 'completed') {
+          setAssessmentIsComplete(true)
+        } else {
+          setAssessmentIsComplete(false)
+          let nextCat = 'fisico'
+          
+          if (d.scores && Object.keys(d.scores).length > 0 && Object.keys(d.scores).length < 7) {
+            for (const cat of CATEGORIES) {
+              if (d.scores[cat] === undefined || d.scores[cat] === null) {
+                nextCat = cat
+                break
+              }
+            }
+          } else if (d.scores && Object.keys(d.scores).length >= 7 && d.status === 'draft') {
+            nextCat = 'fisico'
+          }
+          
+          setNextStep3Route(`/assessment/${nextCat}`)
+        }
+
+        let completedCount = 0
+        if (d.top_fatigue_solution) {
+          completedCount = Object.keys(d.top_fatigue_solution).filter(
+            key => d.top_fatigue_solution[key]?.isCompleted === true
+          ).length
+        }
+        if (completedCount >= 1) setMainRecoveryDone(true)
+        if (completedCount >= 7) setStep3Done(true)
+      }
+    } catch (error) {
+      console.error('[Introduction] Erro ao buscar:', error)
+    } finally {
+      setLoading(false)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    fetchProgress()
+  }, [fetchProgress])
+
+  // Re-fetch data when user returns to the tab after switching away
+  useVisibilityRefresh(fetchProgress)
 
   const activeCard = step3Done ? null : step2Done ? 3 : step1Done ? 2 : 1
 
