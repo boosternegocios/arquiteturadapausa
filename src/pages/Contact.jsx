@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import { Send, CheckCircle } from 'lucide-react'
 
 export const Contact = () => {
@@ -15,16 +16,30 @@ export const Contact = () => {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
-    // Simula o envio
-    setTimeout(() => {
-      setIsSubmitting(false)
+    setErrorMsg('')
+
+    try {
+      const { error } = await supabase.functions.invoke('send-plan-request', {
+        body: {
+          nome: formData.nome,
+          email: formData.email,
+          telefone: formData.telefone,
+          mensagem: formData.mensagem,
+        },
+      })
+      if (error) throw error
       setIsSuccess(true)
-    }, 1500)
+    } catch (err) {
+      console.error('Erro ao enviar solicitação:', err)
+      setErrorMsg('Não foi possível enviar sua solicitação agora. Tente novamente em instantes.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -105,6 +120,12 @@ export const Contact = () => {
                   placeholder="Conte-nos um pouco sobre seu principal desafio hoje..."
                 />
               </div>
+
+              {errorMsg && (
+                <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-6 py-4 text-sm font-bold">
+                  {errorMsg}
+                </div>
+              )}
 
               <button
                 type="submit"

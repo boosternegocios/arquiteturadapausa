@@ -7,6 +7,7 @@ import { AuthLayout } from './pages/AuthLayout'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { ResetPassword } from './pages/ResetPassword'
+import { UpdatePassword } from './pages/UpdatePassword'
 import { Dashboard } from './pages/Dashboard'
 import { Assessment } from './pages/Assessment'
 import { Result } from './pages/Result'
@@ -157,6 +158,13 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+          </Route>
+
+          {/* Redefinição de senha — usa o AuthLayout mas SEM AuthRoute, pois o
+              link de recuperação cria uma sessão temporária (usuário fica logado)
+              e o AuthRoute redirecionaria para /intro antes de trocar a senha. */}
+          <Route element={<AuthLayout />}>
+            <Route path="/update-password" element={<UpdatePassword />} />
           </Route>
         </Routes>
       </AuthProvider>
