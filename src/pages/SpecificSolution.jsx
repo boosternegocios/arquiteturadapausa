@@ -240,7 +240,7 @@ export const SpecificSolution = () => {
 
   return (
     <div className="bg-[#f8f3e9] min-h-screen text-slate-900 font-display">
-      <div className="flex flex-col lg:flex-row lg:lg:h-[100dvh] lg:lg:overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:h-[100dvh] lg:overflow-hidden">
         
         {/* Sidebar */}
         <Sidebar />

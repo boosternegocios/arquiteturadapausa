@@ -191,7 +191,7 @@ export const Profile = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 min-h-screen font-display">
-      <div className="flex flex-col lg:flex-row lg:lg:h-[100dvh] lg:lg:overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:h-[100dvh] lg:overflow-hidden">
         {/* Sidebar */}
         <Sidebar />
 

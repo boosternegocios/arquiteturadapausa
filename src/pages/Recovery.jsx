@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import { supabase, withTimeout } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { 
   ArrowLeft, ArrowRight, Save, LayoutDashboard, Settings, LogOut, CheckCircle, Plus, Trash2, FileText
@@ -96,6 +96,30 @@ export const Recovery = () => {
     rhythm_impacts: [{ id: 1, aspect: '', action: '' }, { id: 2, aspect: '', action: '' }, { id: 3, aspect: '', action: '' }, { id: 4, aspect: '', action: '' }, { id: 5, aspect: '', action: '' }]
   })
 
+  // Backup local: preserva as respostas caso a página precise ser recarregada
+  // (queda de conexão / recuperação automática) — mesmo padrão do Assessment.
+  const backupKey = user ? `arqpausa-recovery-${user.id}` : null
+
+  const readLocalBackup = () => {
+    if (!backupKey) return null
+    try {
+      const raw = localStorage.getItem(backupKey)
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  }
+
+  // Persiste o formulário localmente sempre que ele muda (após o carregamento)
+  useEffect(() => {
+    if (!backupKey || loading) return
+    try {
+      localStorage.setItem(backupKey, JSON.stringify(formData))
+    } catch (e) {
+      console.warn('Falha ao salvar backup local (Recovery):', e)
+    }
+  }, [formData, backupKey, loading])
+
   useEffect(() => {
     let isMounted = true;
     
@@ -125,15 +149,19 @@ export const Recovery = () => {
         
         if (data && data.length > 0) {
           setEvaluationId(data[0].id)
+          const local = readLocalBackup() || {}
           setFormData(prev => ({
             ...prev,
-            satisfaction: data[0].solution_satisfaction || {},
-            time_relation: data[0].solution_time_relation || {},
-            internal_speed: data[0].solution_internal_speed || {},
-            beliefs: data[0].solution_beliefs || {},
-            rhythm_impacts: (data[0].solution_rhythm_impacts && data[0].solution_rhythm_impacts.length > 0) 
-              ? data[0].solution_rhythm_impacts 
-              : prev.rhythm_impacts
+            satisfaction: { ...(data[0].solution_satisfaction || {}), ...(local.satisfaction || {}) },
+            time_relation: { ...(data[0].solution_time_relation || {}), ...(local.time_relation || {}) },
+            internal_speed: { ...(data[0].solution_internal_speed || {}), ...(local.internal_speed || {}) },
+            beliefs: { ...(data[0].solution_beliefs || {}), ...(local.beliefs || {}) },
+            cycle_relation: local.cycle_relation ?? prev.cycle_relation,
+            rhythm_impacts: (local.rhythm_impacts && local.rhythm_impacts.length > 0)
+              ? local.rhythm_impacts
+              : ((data[0].solution_rhythm_impacts && data[0].solution_rhythm_impacts.length > 0)
+                  ? data[0].solution_rhythm_impacts
+                  : prev.rhythm_impacts)
           }))
         } else {
           // Create new evaluation if none exists
@@ -141,11 +169,14 @@ export const Recovery = () => {
             .from('evaluations')
             .insert([{ user_id: user.id, status: 'draft' }])
             .select()
-          
+
           if (insertError) throw insertError
           if (newEval && newEval.length > 0) {
             setEvaluationId(newEval[0].id)
           }
+          // Restaura respostas do backup local, se houver
+          const local = readLocalBackup()
+          if (local) setFormData(prev => ({ ...prev, ...local }))
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
@@ -171,16 +202,24 @@ export const Recovery = () => {
     }
   })
 
+  // Se uma operação estourar o timeout, o cliente Supabase provavelmente
+  // travou (deadlock após aba em segundo plano). As respostas já estão no
+  // backup local, então recarregar recupera tudo automaticamente.
+  const recoverFromTimeout = () => {
+    alert('A conexão ficou instável. A página será recarregada automaticamente — suas respostas foram preservadas.')
+    window.location.reload()
+  }
+
   const handleSave = async (isFinal = false, isAdvancing = false) => {
     setSaving(true)
     let currentEvalId = evaluationId;
 
     if (!currentEvalId) {
       try {
-        const { data: newEval, error: insertError } = await supabase
+        const { data: newEval, error: insertError } = await withTimeout(supabase
           .from('evaluations')
           .insert([{ user_id: user.id, status: 'draft' }])
-          .select()
+          .select())
 
         if (insertError) throw insertError
         if (newEval && newEval.length > 0) {
@@ -190,6 +229,7 @@ export const Recovery = () => {
       } catch (e) {
         console.error('Insert error:', e)
         setSaving(false)
+        if (e?.message === 'SUPABASE_TIMEOUT') { recoverFromTimeout(); return }
         alert('Erro ao criar avaliação. Verifique sua conexão e tente novamente.')
         return
       }
@@ -235,7 +275,7 @@ export const Recovery = () => {
         console.log(`[Recovery] Salvando step="${step}" evalId="${currentEvalId}" updates=`, JSON.stringify(updates))
 
         if (Object.keys(updates).length > 0) {
-          const { error } = await supabase.from('evaluations').update(updates).eq('id', currentEvalId)
+          const { error } = await withTimeout(supabase.from('evaluations').update(updates).eq('id', currentEvalId))
           if (error) throw error
           console.log(`[Recovery] ✅ Salvo com sucesso!`)
         }
@@ -264,6 +304,7 @@ export const Recovery = () => {
     } catch (error) {
       console.error('[Recovery] ❌ Erro ao salvar:', error)
       setSaving(false)
+      if (error?.message === 'SUPABASE_TIMEOUT') { recoverFromTimeout(); return }
       alert('Não foi possível salvar suas respostas: ' + (error?.message || 'Erro desconhecido') + '. Tente novamente.')
     }
   }
@@ -606,7 +647,7 @@ export const Recovery = () => {
 
   return (
     <div className="bg-[#f8f3e9] text-slate-900 min-h-screen font-display">
-      <div className="flex flex-col lg:flex-row lg:lg:h-[100dvh] lg:lg:overflow-hidden">
+      <div className="flex flex-col lg:flex-row min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden">
         
         {/* Sidebar */}
         <Sidebar />
@@ -657,62 +698,57 @@ export const Recovery = () => {
             </div>
 
             {/* Questions Container */}
-            <div className="pb-32">
+            <div className="pb-10">
               {renderCurrentStep()}
             </div>
 
+            {/* Footer Actions — ao final do conteúdo; aparecem ao rolar até o fim da página */}
+            {!loading && (
+              <div className="mt-4 z-30">
+                <div className="flex flex-col sm:flex-row justify-between items-center px-4 md:px-8 py-4 md:py-6 bg-white border border-slate-200 shrink-0 gap-4 sm:gap-0 rounded-3xl">
+                  <button
+                    onClick={() => navigate(-1)}
+                    className="hidden sm:flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
+                  >
+                    <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span>Voltar</span>
+                  </button>
+                  <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
+                    <button
+                      onClick={() => handleSave(false)}
+                      disabled={saving}
+                      className="px-8 py-3.5 font-bold text-slate-600 bg-white sm:bg-transparent border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed text-center"
+                    >
+                      Salvar Rascunho
+                    </button>
+
+                    {(() => {
+                      // Validação para impedir avanço sem responder
+                      let canAdvance = true;
+                      if (step === 'satisfaction') canAdvance = Object.keys(formData.satisfaction).length === QUESTIONS.satisfaction.length;
+                      if (step === 'time-relation') canAdvance = Object.keys(formData.time_relation).length === QUESTIONS.time_relation.length;
+                      if (step === 'internal-speed') canAdvance = Object.keys(formData.internal_speed).length === QUESTIONS.internal_speed.length;
+                      if (step === 'beliefs') canAdvance = Object.keys(formData.beliefs).length === QUESTIONS.beliefs.length;
+
+                      return (
+                        <button
+                          onClick={() => handleSave(isLastStep, true)}
+                          disabled={saving || !canAdvance}
+                          className="px-8 py-3.5 font-bold text-white bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] rounded-xl transition-all w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase hover:bg-[#d84e80] hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                          title={!canAdvance ? "Por favor, responda todas as perguntas antes de avançar." : ""}
+                        >
+                          <span className="sm:hidden">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir' : (step === 'pauses' ? 'Plano' : (isLastStep ? 'Concluir' : 'Próxima Etapa'))}</span>
+                          <span className="hidden sm:inline">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : (step === 'pauses' ? 'Solicitar plano personalizado' : (isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'))}</span>
+                          <ArrowRight size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
+                        </button>
+                      )
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </main>
-
-        {/* Footer Actions */}
-        <div className="mt-10 pb-4 md:pb-8 z-30">
-          <div className="flex flex-col sm:flex-row justify-between sm:justify-between items-center px-4 md:px-8 py-4 md:py-6 bg-white border border-slate-200 shrink-0 gap-4 sm:gap-0 rounded-3xl">
-            <button 
-              onClick={() => {
-                if (step === 'pauses' && !isFormValid) {
-                  const confirmBack = window.confirm("Você tem alterações não salvas. Deseja realmente voltar? Você perderá suas respostas desta página.");
-                  if (confirmBack) navigate(-1);
-                } else {
-                  navigate(-1)
-                }
-              }}
-              className="hidden sm:flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
-            >
-              <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span>Voltar</span>
-            </button>
-            <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
-              <button 
-                onClick={() => handleSave(false)} 
-                disabled={saving}
-                className="px-8 py-3.5 font-bold text-slate-600 bg-white sm:bg-transparent border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed text-center"
-              >
-                Salvar Rascunho
-              </button>
-              
-              {(() => {
-                // Validação para impedir avanço sem responder
-                let canAdvance = true;
-                if (step === 'satisfaction') canAdvance = Object.keys(formData.satisfaction).length === QUESTIONS.satisfaction.length;
-                if (step === 'time-relation') canAdvance = Object.keys(formData.time_relation).length === QUESTIONS.time_relation.length;
-                if (step === 'internal-speed') canAdvance = Object.keys(formData.internal_speed).length === QUESTIONS.internal_speed.length;
-                if (step === 'beliefs') canAdvance = Object.keys(formData.beliefs).length === QUESTIONS.beliefs.length;
-                
-                return (
-                  <button 
-                    onClick={() => handleSave(isLastStep, true)}
-                    disabled={saving || !canAdvance}
-                    className="px-8 py-3.5 font-bold text-white bg-[#eb6496] shadow-[0_10px_20px_rgba(235,100,150,0.3)] hover:shadow-[0_15px_30px_rgba(235,100,150,0.4)] rounded-xl transition-all w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase hover:bg-[#d84e80] hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                    title={!canAdvance ? "Por favor, responda todas as perguntas antes de avançar." : ""}
-                  >
-                    <span className="sm:hidden">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir' : (step === 'pauses' ? 'Plano' : (isLastStep ? 'Concluir' : 'Próxima Etapa'))}</span>
-                    <span className="hidden sm:inline">{['internal-speed', 'time-tips'].includes(step) ? 'Concluir Análise' : (step === 'pauses' ? 'Solicitar plano personalizado' : (isLastStep ? 'Concluir Reflexão' : 'Próxima pergunta'))}</span>
-                    <ArrowRight size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
-                  </button>
-                )
-              })()}
-            </div>
-          </div>
-        </div>
 
       </div>
     </div>

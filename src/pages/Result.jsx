@@ -107,7 +107,7 @@ export const Result = () => {
   const otherCategories = [...scores].sort((a, b) => b.score - a.score).slice(1)
 
   return (
-    <div className="bg-[#f8f3e9] flex flex-col lg:flex-row lg:lg:h-[100dvh] lg:lg:overflow-hidden font-display text-slate-800">
+    <div className="bg-[#f8f3e9] flex flex-col lg:flex-row lg:h-[100dvh] lg:overflow-hidden font-display text-slate-800">
       
       {/* Sidebar - Similar to Dashboard */}
       <Sidebar />

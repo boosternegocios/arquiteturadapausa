@@ -237,7 +237,7 @@ export const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col lg:flex-row lg:lg:h-[100dvh] lg:lg:overflow-hidden bg-background-light items-center justify-center w-full">
+      <div className="flex flex-col lg:flex-row lg:h-[100dvh] lg:overflow-hidden bg-background-light items-center justify-center w-full">
         <Sidebar />
         <div className="flex-1 flex justify-center items-center">
           <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -247,10 +247,10 @@ export const AdminDashboard = () => {
   }
 
   return (
-    <div className="bg-background-light text-slate-900 min-h-screen font-display flex flex-col lg:flex-row lg:lg:h-[100dvh] lg:lg:overflow-hidden">
+    <div className="bg-background-light text-slate-900 min-h-screen font-display flex flex-col lg:flex-row lg:h-[100dvh] lg:overflow-hidden">
       <Sidebar />
       
-      <main className="flex-1 flex flex-col overflow-y-auto lg:overflow-y-auto lg:h-[100dvh] w-full lg:lg:overflow-hidden relative">
+      <main className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden lg:h-[100dvh] w-full relative">
         {/* Header */}
         <header className="flex justify-between items-center p-8 lg:p-12 pb-6 border-b border-slate-200 bg-white shrink-0">
           <div>
