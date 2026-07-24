@@ -46,6 +46,7 @@ export const VitalityRadar = () => {
   })
   const [hasRecord, setHasRecord] = useState(false)
   const [vitalityScore, setVitalityScore] = useState(0)
+  const [desgasteScore, setDesgasteScore] = useState(0)
   const [loading, setLoading] = useState(true)
   const [journeyProgress, setJourneyProgress] = useState(0)
   const [nextCategory, setNextCategory] = useState('fisico')
@@ -124,7 +125,15 @@ export const VitalityRadar = () => {
 
           setScores(normalized)
           setTopFatigue(highestCat)
-          if (vitCount > 0) setVitalityScore(Math.round(vitSum / vitCount))
+          // vitSum/vitCount é a média de CANSAÇO (desgaste). A vitalidade é o
+          // oposto: quanto menos cansaço, mais vitalidade. Mostramos a vitalidade
+          // como número principal (quanto maior, melhor) e guardamos o desgaste
+          // para a frase explicativa.
+          if (vitCount > 0) {
+            const desgaste = Math.round(vitSum / vitCount)
+            setDesgasteScore(desgaste)
+            setVitalityScore(100 - desgaste)
+          }
           
           const answeredCount = validCategories.filter(cat => fetchedScores[cat] !== undefined && fetchedScores[cat] !== null).length
           setJourneyProgress(Math.round((answeredCount / 7) * 100))
@@ -324,8 +333,13 @@ export const VitalityRadar = () => {
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
+                {hasRecord && (
+                  <p className="text-center text-xs md:text-sm text-slate-500 font-medium mt-2 px-2 leading-relaxed">
+                    Considerando os 7 tipos de cansaço, sua vitalidade está em <span className="font-bold text-primary">{vitalityScore}%</span> — nível de desgaste: <span className="font-bold">{desgasteScore}%</span>.
+                  </p>
+                )}
               </div>
-              
+
               {/* Progresso da Jornada Card */}
               <div className="bg-primary relative overflow-hidden text-white rounded-[2rem] p-10 shadow-lg shadow-primary/20 flex flex-col justify-between shrink-0">
                 <div className="relative z-10 mb-8">
