@@ -28,7 +28,7 @@ const QUESTIONS = {
   time_relation: [
     { key: 'equilibrio', label: 'Equilibra o tempo para: trabalho, outros e si mesmo' },
     { key: 'importancia', label: 'Define bem a importância e a urgência das atividades' },
-    { key: 'mensagens', label: 'Evita enviar msgs fora do horário de trabalho' },
+    { key: 'mensagens', label: 'Evita enviar mensagens fora do horário de trabalho' },
     { key: 'tempo_livre', label: 'Considera seu tempo livre semanal satisfatório' },
     { key: 'limite_corpo', label: 'Não desrespeita o limite do seu corpo por excesso de atividades' },
     { key: 'stress', label: 'Não sente stress crônico' },
@@ -516,8 +516,8 @@ export const Recovery = () => {
       { id: '03', title: 'Excesso de trabalho não é status', desc: 'Stress contínuo não significa produtividade e pode ser a causa de algum problema grave.' },
       { id: '04', title: 'Dinheiro não compra saúde', desc: 'Quando desconsideramos constantemente os limites do corpo as consequências chegam' },
       { id: '05', title: 'Desacelerar não é deixar de fazer', desc: 'Respeite o ritmo do seu corpo e dos outros, incluindo momentos de descanso para aumentar a produtividade' },
-      { id: '06', title: 'Estabeleça limites', desc: 'Produtividade também precisa de tempo livre. Comece com o seu exemplo, evite enviar msgs fora do horário de trabalho.' },
-      { id: '07', title: 'Disciplina é liberdade', desc: 'Pensamos antes de gastar 1h em uma tarefa mas não antes de olhar o celular 1 min. Sera que foi so 1 min?' },
+      { id: '06', title: 'Estabeleça limites', desc: 'Produtividade também precisa de tempo livre. Comece com o seu exemplo, evite enviar mensagens fora do horário de trabalho.' },
+      { id: '07', title: 'Disciplina é liberdade', desc: 'Pensamos antes de passar 1 hora em uma tarefa mas não antes de olhar o celular por 1 minuto. Será que foi só 1 minuto?' },
     ]
     return (
       <div className="flex flex-col rounded-3xl overflow-hidden bg-white border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-4">
