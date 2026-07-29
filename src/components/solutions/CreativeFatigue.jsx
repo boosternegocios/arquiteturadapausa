@@ -26,7 +26,7 @@ export const CreativeFatigue = ({ data, onChange }) => {
               <div className="w-10 h-10 shrink-0 bg-[#eb6496]/10 text-[#eb6496] font-bold flex items-center justify-center rounded-xl">{i+1}</div>
               <input 
                 type="text" 
-                placeholder="Exaustão à inspiração: Descreva a beleza..."
+                placeholder="Da exaustão à inspiração"
                 value={item}
                 onChange={(e) => {
                   const n = [...list]; n[i] = e.target.value; updateData('act01', 'list', n)
