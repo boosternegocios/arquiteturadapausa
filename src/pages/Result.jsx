@@ -13,13 +13,14 @@ import {
 } from 'lucide-react'
 
 // Map of icons and max possible values for each category
+// A maioria tem 8 perguntas de 0 a 10 = max 80.
+// Espiritual tem 5 perguntas de 0 a 10 = max 50.
 const CATEGORY_DATA = {
   fisico: { label: 'Físico', max: 80, icon: ActivitySquare },
-  mental: { label: 'Mental', max: 70, icon: Brain },
+  mental: { label: 'Mental', max: 80, icon: Brain },
   sensorial: { label: 'Sensorial', max: 80, icon: Fingerprint },
-  criativo: { label: 'Criativo', max: 90, icon: Lightbulb },
+  criativo: { label: 'Criativo', max: 80, icon: Lightbulb },
   emocional: { label: 'Emocional', max: 80, icon: Heart },
-  social: { label: 'Social', max: 80, icon: Users },
   social: { label: 'Social', max: 80, icon: Users },
   espiritual: { label: 'Espiritual', max: 50, icon: Sun }
 }
