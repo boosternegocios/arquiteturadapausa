@@ -119,7 +119,7 @@ export const Introduction = () => {
   // Re-fetch data when user returns to the tab after switching away
   useVisibilityRefresh(fetchProgress)
 
-  const activeCard = step3Done ? null : step2Done ? 3 : step1Done ? 2 : 1
+  const activeCard = step3Done ? 4 : step2Done ? 3 : step1Done ? 2 : 1
 
   const handleCardClick = (cardNum) => {
     if (cardNum === 1 && !step1Done) navigate(nextStep1Route)
@@ -204,7 +204,7 @@ export const Introduction = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 h-auto lg:h-full rounded-2xl overflow-hidden border border-white/10">
             {cards.map((card, i) => {
               const isActive = activeCard === card.num
-              const isDone = card.done || (card.num === 4 && step3Done)
+              const isDone = card.done
               const isLocked = !isDone && !isActive
 
               // Border classes between cards
