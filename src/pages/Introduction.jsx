@@ -133,7 +133,7 @@ export const Introduction = () => {
         navigate(nextStep3Route)
       }
     }
-    if (cardNum === 4 && step3Done) navigate('/contact')
+    if (cardNum === 4) navigate('/contact')
   }
 
   if (loading) {
@@ -205,7 +205,8 @@ export const Introduction = () => {
             {cards.map((card, i) => {
               const isActive = activeCard === card.num
               const isDone = card.done
-              const isLocked = !isDone && !isActive
+              const isLocked = !isDone && !isActive && card.num !== 4
+              const isAvailable = card.num === 4 && !isActive
 
               // Border classes between cards
               const borderR = i % 2 === 0 ? 'md:border-r border-white/15' : ''
@@ -222,6 +223,10 @@ export const Introduction = () => {
               } else if (isActive) {
                 bg = 'bg-[#1ed7a4]'
                 cursor = 'cursor-pointer hover:bg-[#19c898] active:scale-[0.99]'
+              } else if (isAvailable) {
+                bg = 'bg-[#005f5e]'
+                cursor = 'cursor-pointer hover:bg-[#005554] active:scale-[0.99]'
+                contentOpacity = ''
               } else {
                 // locked — solid dark teal, fully visible, just not clickable
                 bg = 'bg-[#005f5e]'
@@ -277,9 +282,14 @@ export const Introduction = () => {
                         {card.cta} <ArrowRight size={16} />
                       </span>
                     )}
+                    {isAvailable && (
+                      <span className="inline-flex items-center gap-2 text-[#1ed7a4] hover:text-[#19c898] transition-colors font-bold text-sm uppercase tracking-widest">
+                        {card.cta} <ArrowRight size={16} />
+                      </span>
+                    )}
                     {isLocked && (
-                      <span className="inline-flex items-center gap-2 text-white/30 text-xs font-bold uppercase tracking-widest">
-                        <Lock size={12} /> Bloqueado
+                      <span className="inline-flex items-center gap-2 text-white/20 font-bold text-sm uppercase tracking-widest">
+                        <Lock size={14} /> Bloqueado
                       </span>
                     )}
                   </div>
