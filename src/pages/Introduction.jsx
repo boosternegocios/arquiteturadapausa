@@ -175,7 +175,7 @@ export const Introduction = () => {
       title: 'PLANO DE AÇÃO PERSONALIZADO',
       desc: 'Estratégias práticas, construindo sua rotina ideal e sua arquitetura de pausa.',
       done: false,
-      cta: 'Acessar plano',
+      cta: 'Solicitar plano personalizado',
     },
   ]
 
