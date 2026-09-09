@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
+import { PATHS } from '../lib/journey'
 
 export const ResetPassword = () => {
   const [email, setEmail] = useState('')
@@ -22,7 +23,7 @@ export const ResetPassword = () => {
       const { error } = await resetPassword(email)
       if (error) throw error
       setMessage('Instruções de recuperação foram enviadas para o seu e-mail.')
-    } catch (err) {
+    } catch {
       setError('Falha ao redefinir a senha. Verifique o seu e-mail.')
     } finally {
       setIsLoading(false)
@@ -49,7 +50,7 @@ export const ResetPassword = () => {
         </Button>
         
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          Lembrou a senha? <Link to="/login">Voltar ao Login</Link>
+          Lembrou a senha? <Link to={PATHS.login}>Voltar ao Login</Link>
         </div>
       </form>
     </Card>

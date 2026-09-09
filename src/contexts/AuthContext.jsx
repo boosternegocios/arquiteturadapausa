@@ -1,5 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, isSupabaseResponsive } from '../lib/supabase'
+import { PATHS } from '../lib/journey'
 
 const AuthContext = createContext({})
 
@@ -131,7 +133,7 @@ export const AuthProvider = ({ children }) => {
   const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password })
   const signOut = () => supabase.auth.signOut()
   const resetPassword = (email) => supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/update-password`,
+    redirectTo: `${window.location.origin}${PATHS.updatePassword}`,
   })
   const updatePassword = (new_password) => supabase.auth.updateUser({ password: new_password })
 

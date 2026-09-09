@@ -4,9 +4,8 @@ import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
-import { 
-  ArrowLeft, Save, LayoutDashboard, Settings, LogOut, CheckCircle, FileText, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart, Lock
-} from 'lucide-react'
+import { CheckCircle, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart, Lock } from 'lucide-react'
+import { PATHS, getSpecificSolutionPath } from '../lib/journey'
 
 // Informações estendidas para os cards do Oásis
 const CATEGORY_OASIS = {
@@ -21,7 +20,7 @@ const CATEGORY_OASIS = {
 
 export const ContinueHealing = () => {
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [completedTracks, setCompletedTracks] = useState([])
   const [isAssessmentCompleted, setIsAssessmentCompleted] = useState(false)
@@ -38,7 +37,7 @@ export const ContinueHealing = () => {
         .limit(1)
 
       if (error) throw error
-      
+
         if (data && data.length > 0) {
           setIsAssessmentCompleted(data[0].status === 'completed')
           if (data[0].top_fatigue_solution) {
@@ -56,7 +55,7 @@ export const ContinueHealing = () => {
       } finally {
         setLoading(false)
       }
-    }, [user?.id])
+    }, [user])
 
   useEffect(() => {
     fetchEvaluation()
@@ -64,21 +63,16 @@ export const ContinueHealing = () => {
 
   // Re-fetch data when user returns to the tab after switching away
   useVisibilityRefresh(fetchEvaluation)
-  
-    const handleLogout = async () => {
-      await signOut()
-      navigate('/login')
-    }
-  
+
     return (
       <div className="bg-[#fcfaf5] text-slate-900 lg:h-[100dvh] font-display flex flex-col lg:flex-row lg:overflow-hidden overflow-x-hidden">
-        
+
         {/* Sidebar - Copiado perfeitamente de SpecificSolution */}
         <Sidebar />
-  
+
         {/* Main Área Oásis */}
         <main className="flex-1 overflow-y-auto relative bg-[#004b4c]">
-          
+
           {/* Overlay Bloqueador */}
           {!loading && !isAssessmentCompleted && (
             <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-[#004b4c]/80 backdrop-blur-md">
@@ -91,7 +85,7 @@ export const ContinueHealing = () => {
                   Você ainda não preencheu todas as questões necessárias do diagnóstico para acessar os Exercícios Práticos. Por favor, retorne e continue exatamente de onde parou.
                 </p>
                 <button
-                  onClick={() => navigate('/intro')}
+                  onClick={() => navigate(PATHS.home)}
                   className="w-full py-4 bg-[#1ed7a4] hover:bg-[#19c898] text-[#004b4c] font-black uppercase tracking-widest text-sm rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-1"
                 >
                   Continuar Diagnóstico
@@ -102,14 +96,14 @@ export const ContinueHealing = () => {
 
           {/* Glow de fundo */}
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[min(800px,100vw)] h-[800px] bg-[#1ed7a4]/10 rounded-full blur-[120px] pointer-events-none"></div>
-  
+
           <div className={`max-w-7xl mx-auto w-full p-4 md:p-6 lg:p-8 xl:px-12 relative z-10 ${!isAssessmentCompleted ? 'opacity-20 pointer-events-none blur-sm transition-all duration-500' : ''}`}>
-            
+
             <div className="text-center mb-8 animate-in fade-in slide-in-from-top-10">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-[#eb6496] rounded-2xl shadow-xl text-white mb-4 transform rotate-3 hover:rotate-6 transition-transform">
                 <CheckCircle size={24} strokeWidth={2.5} />
               </div>
-              
+
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tighter mb-4 font-display leading-tight" style={{ transform: 'scaleY(1.05)' }}>
                 Exercícios Práticos
               </h2>
@@ -122,48 +116,48 @@ export const ContinueHealing = () => {
                 Hoje mesmo, adote um micro hábito que atue no que você acabou de aprender com essa reflexão.
               </p>
             </div>
-  
+
             {loading ? (
               <div className="flex justify-center p-10">
                 <div className="w-8 h-8 border-4 border-[#1ed7a4]/20 border-t-[#1ed7a4] rounded-full animate-spin"></div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-10" style={{animationDelay: '100ms'}}>
-                {Object.values(CATEGORY_OASIS).map((cat, index) => {
+                {Object.values(CATEGORY_OASIS).map((cat) => {
                   const Icon = cat.icon
                   const isCompleted = completedTracks.includes(cat.id)
-  
+
                   return (
                     <button
                       key={cat.id}
-                      onClick={() => navigate(`/specific-solution/${cat.id}`)}
+                      onClick={() => navigate(getSpecificSolutionPath(cat.id))}
                       disabled={isCompleted}
                       className={`relative group text-left rounded-3xl p-5 border shadow-lg transition-all overflow-hidden flex flex-col min-h-[170px] ${
-                        isCompleted 
-                          ? 'bg-slate-200 border-slate-300 opacity-60 cursor-not-allowed' 
+                        isCompleted
+                          ? 'bg-slate-200 border-slate-300 opacity-60 cursor-not-allowed'
                           : 'bg-white border-slate-100 hover:shadow-xl hover:-translate-y-1 hover:border-[#1ed7a4]/30'
                       }`}
                     >
                       {/* Faixa decorativa topo card */}
                       <div className={`absolute top-0 left-0 w-full h-1.5 ${isCompleted ? 'bg-slate-400' : cat.color}`}></div>
-                      
+
                       <div className="flex justify-between items-start mb-3 mt-1">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md transition-transform ${
                           isCompleted ? 'bg-slate-400' : `${cat.color} group-hover:scale-110`
                         }`}>
                           <Icon size={20} />
                         </div>
-                        
+
                         {isCompleted && (
                           <span className="bg-slate-300 text-slate-600 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm border border-slate-400/50">
                             <CheckCircle size={8} /> Concluído
                           </span>
                         )}
                       </div>
-                      
+
                       <h3 className="text-lg font-black text-[#004b4c] mb-1 leading-tight">{cat.label}</h3>
                       <p className={`text-slate-500 font-medium text-[13px] leading-snug mb-3 ${isCompleted ? 'opacity-70' : ''}`}>{cat.desc}</p>
-  
+
                       {!isCompleted && (
                         <div className="mt-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all w-max border text-[#eb6496] bg-[#eb6496]/5 border-[#eb6496]/20 hover:bg-[#eb6496] hover:text-white group-hover:scale-105">
                            Iniciar reflexão <ArrowRight size={12} strokeWidth={3} />
@@ -176,8 +170,8 @@ export const ContinueHealing = () => {
             )}
 
           <div className="mt-12 mb-10 pb-20 text-center animate-in fade-in" style={{animationDelay: '300ms'}}>
-             <button 
-              onClick={() => navigate('/intro')} 
+             <button
+              onClick={() => navigate(PATHS.home)}
               className="px-10 py-5 rounded-2xl bg-white/5 text-white font-bold tracking-widest uppercase text-sm border border-white/10 hover:bg-white/10 transition-colors shadow-lg"
             >
               Voltar ao Início
@@ -186,7 +180,7 @@ export const ContinueHealing = () => {
 
         </div>
       </main>
-      
+
     </div>
   )
 }

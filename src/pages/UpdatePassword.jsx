@@ -4,6 +4,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
+import { PATHS } from '../lib/journey'
 
 export const UpdatePassword = () => {
   const [password, setPassword] = useState('')
@@ -45,7 +46,7 @@ export const UpdatePassword = () => {
       // Encerra a sessão de recuperação e leva ao login para entrar com a nova senha
       setTimeout(async () => {
         try { await signOut() } catch { /* ignora */ }
-        navigate('/login')
+        navigate(PATHS.login)
       }, 2000)
     } catch (err) {
       console.error('Erro ao atualizar senha:', err)
@@ -67,7 +68,7 @@ export const UpdatePassword = () => {
           Validando o link de recuperação...
           <div style={{ marginTop: '1rem', fontSize: '0.8rem' }}>
             Se esta mensagem não sumir, o link pode ter expirado.{' '}
-            <span onClick={() => navigate('/reset-password')} style={{ color: 'var(--secondary)', fontWeight: 600, cursor: 'pointer' }}>
+            <span onClick={() => navigate(PATHS.resetPassword)} style={{ color: 'var(--secondary)', fontWeight: 600, cursor: 'pointer' }}>
               Solicitar um novo link
             </span>.
           </div>

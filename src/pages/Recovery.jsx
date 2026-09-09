@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, withTimeout } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
-import { 
-  ArrowLeft, ArrowRight, Save, LayoutDashboard, Settings, LogOut, CheckCircle, Plus, Trash2, FileText
-} from 'lucide-react'
+import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
+import { BELIEF_KEYS, PATHS, getRecoveryPath, normalizeRecoveryStep } from '../lib/journey'
 
 const STEPS = [
   { id: 'satisfaction', number: 1, title: '1 Quão satisfeito você está com seu nível de...', subtitle: 'Usando uma escala de 1 (mais baixo) a 10 (mais alto)' },
@@ -58,9 +57,10 @@ const QUESTIONS = {
 }
 
 export const Recovery = () => {
-  const { step } = useParams()
+  const { step: stepSlug } = useParams()
+  const step = normalizeRecoveryStep(stepSlug)
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [evaluationId, setEvaluationId] = useState(null)
@@ -100,7 +100,7 @@ export const Recovery = () => {
   // (queda de conexão / recuperação automática) — mesmo padrão do Assessment.
   const backupKey = user ? `arqpausa-recovery-${user.id}` : null
 
-  const readLocalBackup = () => {
+  const readLocalBackup = useCallback(() => {
     if (!backupKey) return null
     try {
       const raw = localStorage.getItem(backupKey)
@@ -108,7 +108,7 @@ export const Recovery = () => {
     } catch {
       return null
     }
-  }
+  }, [backupKey])
 
   // Persiste o formulário localmente sempre que ele muda (após o carregamento)
   useEffect(() => {
@@ -189,7 +189,7 @@ export const Recovery = () => {
     return () => {
       isMounted = false;
     }
-  }, [user?.id])
+  }, [user, readLocalBackup])
 
   // Silent re-validation when returning to tab (keeps form data, just re-validates connection)
   useVisibilityRefresh(async () => {
@@ -285,13 +285,13 @@ export const Recovery = () => {
 
         if (isAdvancing) {
           if (isFinal) {
-            navigate('/contact')
+            navigate(PATHS.contact)
           } else if (step === 'internal-speed' || step === 'time-tips') {
-            navigate('/intro')
+            navigate(PATHS.home)
           } else {
             const nextStepIndex = STEPS.findIndex(s => s.id === step) + 1
             if (nextStepIndex < STEPS.length) {
-              navigate(`/recovery/${STEPS[nextStepIndex].id}`)
+              navigate(getRecoveryPath(STEPS[nextStepIndex].id))
             }
           }
         } else {
@@ -307,11 +307,6 @@ export const Recovery = () => {
       if (error?.message === 'SUPABASE_TIMEOUT') { recoverFromTimeout(); return }
       alert('Não foi possível salvar suas respostas: ' + (error?.message || 'Erro desconhecido') + '. Tente novamente.')
     }
-  }
-
-  const handleLogout = async () => {
-    await signOut()
-    navigate('/login')
   }
 
   const renderScale1to10 = (section, questions) => (
@@ -558,7 +553,7 @@ export const Recovery = () => {
         </div>
 
         <div className="grid gap-6 md:gap-8">
-          {list.map((item, index) => (
+          {list.map((item) => (
           <div key={item.id} className="flex gap-6 md:gap-8 items-start group">
             <div className="text-4xl md:text-5xl font-black text-[#eb6496]/20 group-hover:text-[#eb6496] transition-colors shrink-0 tracking-tighter w-16">{item.id}</div>
             <div className="bg-white p-6 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm flex-1 transform transition-all group-hover:-translate-y-1 group-hover:shadow-md">
@@ -727,7 +722,7 @@ export const Recovery = () => {
                       if (step === 'satisfaction') canAdvance = Object.keys(formData.satisfaction).length === QUESTIONS.satisfaction.length;
                       if (step === 'time-relation') canAdvance = Object.keys(formData.time_relation).length === QUESTIONS.time_relation.length;
                       if (step === 'internal-speed') canAdvance = Object.keys(formData.internal_speed).length === QUESTIONS.internal_speed.length;
-                      if (step === 'beliefs') canAdvance = Object.keys(formData.beliefs).length === QUESTIONS.beliefs.length;
+                      if (step === 'beliefs') canAdvance = BELIEF_KEYS.every(key => formData.beliefs[key] !== undefined && formData.beliefs[key] !== null);
 
                       return (
                         <button

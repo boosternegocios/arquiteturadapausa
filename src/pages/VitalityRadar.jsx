@@ -4,15 +4,11 @@ import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
+import { FATIGUE_CATEGORY_CONFIG, FATIGUE_CATEGORY_KEYS, PATHS, getAssessmentPath, getFatiguePercent, getRecoveryPath } from '../lib/journey'
 import { 
   LayoutDashboard, 
   Activity, 
-  CheckCircle, 
   BarChart2, 
-  Brain, 
-  Settings, 
-  LogOut, 
-  Bell, 
   HeartCrack,
   FileText,
   ArrowRight
@@ -22,18 +18,10 @@ import {
 } from 'recharts'
 
 // Map of categories and max possible values
-const CATEGORY_DATA = {
-  fisico: { label: 'Físico', max: 80 },
-  mental: { label: 'Mental', max: 80 },
-  sensorial: { label: 'Sensorial', max: 80 },
-  criativo: { label: 'Criativo', max: 90 },
-  emocional: { label: 'Emocional', max: 80 },
-  social: { label: 'Social', max: 80 },
-  espiritual: { label: 'Espiritual', max: 50 }
-}
+const CATEGORY_DATA = FATIGUE_CATEGORY_CONFIG
 
 export const VitalityRadar = () => {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [scores, setScores] = useState({
     fisico: 0,
@@ -70,25 +58,25 @@ export const VitalityRadar = () => {
       if (data && data.length > 0) {
         const evalData = data[0]
         
-        let nextRoute = '/intro';
+        let nextRoute = PATHS.home;
         if (!evalData.solution_satisfaction || Object.keys(evalData.solution_satisfaction).length === 0) {
-          nextRoute = '/recovery/satisfaction';
+          nextRoute = getRecoveryPath('satisfaction');
         } else if (!evalData.solution_time_relation || Object.keys(evalData.solution_time_relation).length === 0) {
-          nextRoute = '/recovery/time-relation';
+          nextRoute = getRecoveryPath('time-relation');
         } else if (!evalData.solution_internal_speed || Object.keys(evalData.solution_internal_speed).length === 0) {
-          nextRoute = '/recovery/internal-speed';
+          nextRoute = getRecoveryPath('internal-speed');
         } else if (!evalData.solution_beliefs || !evalData.solution_beliefs._card2_completed) {
-          nextRoute = '/recovery/beliefs';
+          nextRoute = getRecoveryPath('beliefs');
         } else if (!evalData.scores || Object.keys(evalData.scores).length < 7) {
-          nextRoute = '/assessment/fisico';
+          nextRoute = getAssessmentPath('fisico');
         } else if (Object.keys(evalData.top_fatigue_solution || {}).filter(k => evalData.top_fatigue_solution[k]?.isCompleted).length < 7) {
-          nextRoute = '/continue-healing';
+          nextRoute = PATHS.continueHealing;
         } else {
-          nextRoute = '/contact';
+          nextRoute = PATHS.contact;
         }
         setNextCategory(nextRoute);
 
-        const validCategories = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
+        const validCategories = FATIGUE_CATEGORY_KEYS
         const allScoresComplete = evalData.scores && validCategories.every(cat => evalData.scores[cat] !== undefined && evalData.scores[cat] !== null)
         
         if (allScoresComplete) {
@@ -104,11 +92,10 @@ export const VitalityRadar = () => {
           let vitSum = 0;
           let vitCount = 0;
 
-          Object.keys(CATEGORY_DATA).forEach(key => {
+          FATIGUE_CATEGORY_KEYS.forEach(key => {
             const rawVal = fetchedScores[key]
             if (rawVal !== undefined && rawVal !== null) {
-              const maxVal = CATEGORY_DATA[key].max
-              const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
+              const perc = getFatiguePercent(key, rawVal)
               normalized[key] = perc
               vitSum += perc;
               vitCount++;
@@ -145,7 +132,7 @@ export const VitalityRadar = () => {
       } else {
         setHasRecord(false)
         setJourneyProgress(0)
-        setNextCategory('/recovery/satisfaction')
+        setNextCategory(getRecoveryPath('satisfaction'))
         setVitalityScore(0)
       }
     } catch (err) {
@@ -153,7 +140,7 @@ export const VitalityRadar = () => {
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user])
 
   useEffect(() => {
     fetchEvaluations()
@@ -161,14 +148,6 @@ export const VitalityRadar = () => {
 
   // Re-fetch data when user returns to the tab after switching away
   useVisibilityRefresh(fetchEvaluations)
-
-  const handleLogout = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      console.error('Falha ao sair', error)
-    }
-  }
 
   const fatigueLevels = [
     { label: 'Físico', key: 'fisico', value: scores.fisico, colorClass: 'bg-amber-400' },
@@ -180,7 +159,7 @@ export const VitalityRadar = () => {
     { label: 'Espiritual', key: 'espiritual', value: scores.espiritual, colorClass: 'bg-mint' },
   ]
 
-  const radarData = Object.keys(CATEGORY_DATA).map(key => ({
+  const radarData = FATIGUE_CATEGORY_KEYS.map(key => ({
     radarLabel: CATEGORY_DATA[key].label.toUpperCase(),
     score: hasRecord ? scores[key] : 0, 
     fullMark: 100
@@ -227,7 +206,7 @@ export const VitalityRadar = () => {
                   <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 max-w-[600px] w-full flex flex-col items-center text-center shadow-2xl relative overflow-y-auto max-h-[90vh] my-auto">
                     
                     <button 
-                      onClick={() => navigate('/intro')}
+                      onClick={() => navigate(PATHS.home)}
                       className="absolute top-4 right-4 md:top-6 md:right-6 w-10 h-10 bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors z-20 shrink-0"
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -256,7 +235,7 @@ export const VitalityRadar = () => {
                     </button>
                     
                     <button 
-                      onClick={() => navigate('/intro')}
+                      onClick={() => navigate(PATHS.home)}
                       className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10 shrink-0 mb-2"
                       style={{ marginTop: '24px' }}
                     >
@@ -352,7 +331,7 @@ export const VitalityRadar = () => {
                     <div className="h-full bg-accent rounded-full transition-all duration-1000 ease-out" style={{ width: `${journeyProgress}%` }}></div>
                   </div>
                 </div>
-                <button onClick={() => navigate(assessmentStatus === 'completed' ? '/solution' : '/intro')} className="relative z-10 w-full bg-white text-primary py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition-colors shadow-sm">
+                <button onClick={() => navigate(assessmentStatus === 'completed' ? PATHS.solution : PATHS.home)} className="relative z-10 w-full bg-white text-primary py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition-colors shadow-sm">
                   {assessmentStatus === 'completed' ? 'Continuar para a Solução' : (journeyProgress === 100 || !hasRecord ? 'Iniciar nova avaliação' : 'Continuar de onde parei')}
                 </button>
               </div>

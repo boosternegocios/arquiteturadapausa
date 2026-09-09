@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  LayoutDashboard, 
-  Settings, 
-  LogOut, 
+import { FATIGUE_CATEGORY_KEYS, PATHS, SATISFACTION_KEYS, getFatiguePercent } from '../lib/journey';
+import {
+  LayoutDashboard,
+  Settings,
+  LogOut,
   CheckCircle,
   FileText,
   Target,
@@ -45,11 +46,11 @@ export const Sidebar = () => {
           .limit(1);
 
         if (error) throw error;
-        
+
         if (data && data.length > 0) {
           setIsDiagnosisStarted(true);
           const evalData = data[0];
-          
+
           let completedCount = 0;
           if (evalData.top_fatigue_solution) {
             completedCount = Object.keys(evalData.top_fatigue_solution).filter(
@@ -57,32 +58,30 @@ export const Sidebar = () => {
             ).length;
           }
           if (completedCount >= 1) setIsMainRecoveryDone(true);
-          
+
           if (evalData.solution_satisfaction) {
             const sat = evalData.solution_satisfaction;
-            const keys = ['foco', 'produtividade', 'felicidade', 'realizacao'];
             let sum = 0;
             let count = 0;
-            keys.forEach(k => {
-              if (sat[k]) {
+            SATISFACTION_KEYS.forEach(k => {
+              if (sat[k] !== undefined && sat[k] !== null) {
                 sum += sat[k];
                 count++;
               }
             });
             if (count > 0) {
               const avg = sum / count;
-              setEnergyScore(Math.round(avg * 10)); 
+              setEnergyScore(Math.round(avg * 10));
             }
           }
 
           if (evalData.scores) {
             const scores = evalData.scores;
-            const CATEGORY_DATA = { fisico: 80, mental: 80, sensorial: 80, criativo: 90, emocional: 80, social: 80, espiritual: 50 };
             let vitSum = 0;
             let vitCount = 0;
-            Object.keys(CATEGORY_DATA).forEach(key => {
+            FATIGUE_CATEGORY_KEYS.forEach(key => {
               if (scores[key] !== undefined && scores[key] !== null) {
-                vitSum += Math.min(100, Math.round((scores[key] / CATEGORY_DATA[key]) * 100));
+                vitSum += getFatiguePercent(key, scores[key]);
                 vitCount++;
               }
             });
@@ -111,10 +110,12 @@ export const Sidebar = () => {
       }
     };
     fetchEnergy();
-  }, [user?.id]);
+  }, [user]);
 
   const handleLogout = async () => {
-    localStorage.clear();
+    Object.keys(localStorage)
+      .filter(key => key.startsWith('arqpausa-') || key.startsWith('lock:sb-'))
+      .forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
     try {
       await Promise.race([
@@ -124,19 +125,7 @@ export const Sidebar = () => {
     } catch (e) {
       console.warn("Logout timeout or error", e);
     }
-    window.location.href = '/login';
-  };
-
-  const handleReset = async () => {
-    if (window.confirm("Isso vai apagar TODO o seu progresso. Tem certeza?")) {
-      try {
-        await supabase.from('evaluations').delete().eq('user_id', user.id);
-        alert("Progresso apagado com sucesso!");
-        window.location.href = '/intro';
-      } catch (err) {
-        alert("Erro ao apagar: " + err.message);
-      }
-    }
+    window.location.href = PATHS.login;
   };
 
   const isActive = (path) => {
@@ -149,12 +138,12 @@ export const Sidebar = () => {
     <>
       {/* Mobile Header */}
       <div className="lg:hidden w-full bg-mint shrink-0 p-4 px-6 flex items-center justify-between border-b border-primary/10 z-30 relative shadow-sm">
-        <img 
-          src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png" 
-          alt="Logo Carol Rocha Mentoria E Negócios" 
+        <img
+          src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png"
+          alt="Logo Carol Rocha Mentoria E Negócios"
           className="h-8 object-contain"
         />
-        <button 
+        <button
           onClick={() => setIsOpen(true)}
           className="p-2 bg-white/20 text-white rounded-xl active:scale-95 transition-transform"
         >
@@ -163,45 +152,45 @@ export const Sidebar = () => {
       </div>
 
       {/* Mobile Overlay */}
-      <div 
-        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity duration-300 lg:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
-        onClick={() => setIsOpen(false)} 
+      <div
+        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity duration-300 lg:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setIsOpen(false)}
       />
 
       {/* Sidebar Content */}
       <aside className={`fixed lg:relative top-0 left-0 z-50 w-80 bg-mint flex flex-col shrink-0 h-[100dvh] overflow-y-auto border-r border-primary/10 transition-transform duration-300 shadow-2xl lg:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        
+
         <div className="p-8 pb-4 items-center flex justify-between gap-3">
-          <img 
-            src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png" 
-            alt="Logo Carol Rocha Mentoria E Negócios" 
+          <img
+            src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png"
+            alt="Logo Carol Rocha Mentoria E Negócios"
             className="w-48 h-auto object-contain hidden lg:block"
           />
-          <img 
-            src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png" 
-            alt="Logo Carol Rocha" 
+          <img
+            src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png"
+            alt="Logo Carol Rocha"
             className="w-32 h-auto object-contain lg:hidden"
           />
-          <button 
+          <button
             onClick={() => setIsOpen(false)}
             className="lg:hidden p-2 text-white bg-white/20 rounded-full active:scale-95"
           >
             <X size={20} />
           </button>
         </div>
-        
+
         <nav className="flex-1 px-4 py-2 space-y-1.5 mt-2">
-          <button 
-            onClick={() => window.open('https://arquiteturadapausa.com/', '_blank')} 
+          <button
+            onClick={() => window.open('https://arquiteturadapausa.com/', '_blank')}
             className="w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 text-primary hover:bg-primary/10"
           >
             <Globe size={20} /> O Método
           </button>
 
-          <button 
-            onClick={() => navigate('/intro')} 
+          <button
+            onClick={() => navigate(PATHS.home)}
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-              (isActive('/intro') || isActive('/assessment') || isActive('/recovery') || isActive('/result') || isActive('/solution'))
+              (isActive(PATHS.home) || isActive('/avaliacao') || isActive('/recuperacao') || isActive(PATHS.result) || isActive(PATHS.solution))
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
             }`}
@@ -209,41 +198,41 @@ export const Sidebar = () => {
             <FileText size={20} /> Autoavaliação
           </button>
 
-          <button 
+          <button
             onClick={() => {
               if (energyScore === 0 && vitalityScore === 0) setLockModal({ show: true, type: 'radar' })
-              else navigate('/dashboard')
-            }} 
+              else navigate(PATHS.dashboard)
+            }}
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-              isActive('/dashboard') 
+              isActive(PATHS.dashboard)
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
             }`}
           >
             <LayoutDashboard size={20} /> Radar de Velocidade
           </button>
-          
-          <button 
+
+          <button
             onClick={() => {
               if (energyScore === 0 && vitalityScore === 0) setLockModal({ show: true, type: 'radar' })
-              else navigate('/vitality')
-            }} 
+              else navigate(PATHS.vitality)
+            }}
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-              isActive('/vitality') 
+              isActive(PATHS.vitality)
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
             }`}
           >
             <Target size={20} /> Radar de Vitalidade
           </button>
-          
-          <button 
+
+          <button
             onClick={() => {
               if (!isMainRecoveryDone) setLockModal({ show: true, type: 'exercises' })
-              else navigate('/continue-healing')
-            }} 
+              else navigate(PATHS.continueHealing)
+            }}
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-              (isActive('/continue-healing') || isActive('/specific-solution'))
+              (isActive(PATHS.continueHealing) || isActive('/exercicio'))
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
             }`}
@@ -251,10 +240,10 @@ export const Sidebar = () => {
             <CheckCircle size={20} /> Exercícios Práticos
           </button>
 
-          <button 
-            onClick={() => navigate('/contact')} 
+          <button
+            onClick={() => navigate(PATHS.contact)}
             className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-              isActive('/contact') 
+              isActive(PATHS.contact)
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
             }`}
@@ -263,10 +252,10 @@ export const Sidebar = () => {
           </button>
 
           {isAdmin && (
-            <button 
-              onClick={() => navigate('/admin')} 
+            <button
+              onClick={() => navigate(PATHS.admin)}
               className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
-                isActive('/admin') 
+                isActive(PATHS.admin)
                   ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                   : 'text-primary hover:bg-primary/10'
               }`}
@@ -275,7 +264,7 @@ export const Sidebar = () => {
             </button>
           )}
         </nav>
-        
+
         <div className="p-6 space-y-4">
           <div className="bg-white/30 p-5 rounded-2xl shadow-sm">
             <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-3">Sua Energia</p>
@@ -292,14 +281,14 @@ export const Sidebar = () => {
             </div>
             <p className="text-sm mt-3 font-bold text-primary">{timeScore}% Satisfação</p>
           </div>
-          
-          <div 
-            onClick={() => navigate('/profile')}
+
+          <div
+            onClick={() => navigate(PATHS.profile)}
             className="flex items-center gap-4 px-5 py-4 bg-white/30 rounded-2xl cursor-pointer shadow-sm hover:bg-white/40 transition-colors"
           >
-            <img 
-              alt="Avatar" 
-              className="w-12 h-12 rounded-full object-cover border-2 border-white/50" 
+            <img
+              alt="Avatar"
+              className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
               src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.user_metadata?.full_name ? user.user_metadata.full_name : (user?.email ? user.email.split('@')[0] : 'U')}&background=eb6496&color=fff`}
             />
             <div className="flex flex-col overflow-hidden">
@@ -310,8 +299,8 @@ export const Sidebar = () => {
             </div>
             <Settings size={20} className="ml-auto text-primary" />
           </div>
-          
-          <button 
+
+          <button
             onClick={handleLogout}
             className="w-full bg-primary text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-md hover:bg-primary/90 transition-all active:scale-95 text-base mt-2"
           >
@@ -325,7 +314,7 @@ export const Sidebar = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setLockModal({ show: false, type: null })}></div>
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setLockModal({ show: false, type: null })}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors"
             >
@@ -345,7 +334,7 @@ export const Sidebar = () => {
                 <button
                   onClick={() => {
                     setLockModal({ show: false, type: null });
-                    navigate('/intro');
+                    navigate(PATHS.home);
                   }}
                   className="w-full bg-[#1ed7a4] hover:bg-[#15b88a] text-white py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-lg shadow-[#1ed7a4]/30 hover:shadow-[#1ed7a4]/50 active:scale-95"
                 >
@@ -361,7 +350,7 @@ export const Sidebar = () => {
                 <button
                   onClick={() => {
                     setLockModal({ show: false, type: null });
-                    navigate('/intro');
+                    navigate(PATHS.home);
                   }}
                   className="w-full bg-[#1ed7a4] hover:bg-[#15b88a] text-white py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-lg shadow-[#1ed7a4]/30 hover:shadow-[#1ed7a4]/50 active:scale-95"
                 >

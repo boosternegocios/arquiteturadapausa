@@ -1,8 +1,9 @@
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { ScrollToTop } from './components/ScrollToTop'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute, AuthRoute } from './components/ProtectedRoute'
+import { PATHS, getAssessmentPath, getRecoveryPath, getSpecificSolutionPath } from './lib/journey'
 import { AuthLayout } from './pages/AuthLayout'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
@@ -21,6 +22,21 @@ import { VitalityRadar } from './pages/VitalityRadar'
 import { Profile } from './pages/Profile'
 import { AdminDashboard } from './pages/AdminDashboard'
 
+const RedirectAssessment = () => {
+  const { category } = useParams()
+  return <Navigate to={getAssessmentPath(category)} replace />
+}
+
+const RedirectRecovery = () => {
+  const { step } = useParams()
+  return <Navigate to={getRecoveryPath(step)} replace />
+}
+
+const RedirectSpecificSolution = () => {
+  const { category } = useParams()
+  return <Navigate to={category ? getSpecificSolutionPath(category) : PATHS.continueHealing} replace />
+}
+
 function App() {
   return (
     <Router>
@@ -32,13 +48,13 @@ function App() {
             path="/" 
             element={
               <ProtectedRoute>
-                <Introduction />
+                <Navigate to={PATHS.home} replace />
               </ProtectedRoute>
             } 
           />
 
           <Route 
-            path="/dashboard" 
+            path={PATHS.dashboard}
             element={
               <ProtectedRoute>
                 <Dashboard />
@@ -47,7 +63,7 @@ function App() {
           />
           
           <Route 
-            path="/intro" 
+            path={PATHS.home}
             element={
               <ProtectedRoute>
                 <Introduction />
@@ -56,7 +72,7 @@ function App() {
           />
 
           <Route 
-            path="/profile" 
+            path={PATHS.profile}
             element={
               <ProtectedRoute>
                 <Profile />
@@ -65,7 +81,7 @@ function App() {
           />
 
           <Route 
-            path="/assessment/:category" 
+            path="/avaliacao/:category"
             element={
               <ProtectedRoute>
                 <Assessment />
@@ -74,7 +90,7 @@ function App() {
           />
           
           <Route 
-            path="/resultado" 
+            path={PATHS.result}
             element={
               <ProtectedRoute>
                 <Result />
@@ -83,7 +99,7 @@ function App() {
           />
 
           <Route 
-            path="/solution" 
+            path={PATHS.solution}
             element={
               <ProtectedRoute>
                 <Solution />
@@ -92,7 +108,7 @@ function App() {
           />
 
           <Route 
-            path="/recovery/:step" 
+            path="/recuperacao/:step"
             element={
               <ProtectedRoute>
                 <Recovery />
@@ -101,15 +117,15 @@ function App() {
           />
 
           <Route 
-            path="/specific-solution" 
+            path={PATHS.continueHealing}
             element={
               <ProtectedRoute>
-                <SpecificSolution />
+                <ContinueHealing />
               </ProtectedRoute>
             } 
           />
           <Route 
-            path="/specific-solution/:category" 
+            path="/exercicio/:category"
             element={
               <ProtectedRoute>
                 <SpecificSolution />
@@ -118,16 +134,7 @@ function App() {
           />
           
           <Route 
-            path="/continue-healing" 
-            element={
-              <ProtectedRoute>
-                <ContinueHealing />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/contact" 
+            path={PATHS.contact}
             element={
               <ProtectedRoute>
                 <Contact />
@@ -136,7 +143,7 @@ function App() {
           />
 
           <Route 
-            path="/vitality" 
+            path={PATHS.vitality}
             element={
               <ProtectedRoute>
                 <VitalityRadar />
@@ -145,7 +152,7 @@ function App() {
           />
 
           <Route 
-            path="/admin" 
+            path={PATHS.admin}
             element={
               <ProtectedRoute>
                 <AdminDashboard />
@@ -155,17 +162,34 @@ function App() {
 
           {/* Auth Routes */}
           <Route element={<AuthRoute><AuthLayout /></AuthRoute>}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path={PATHS.login} element={<Login />} />
+            <Route path={PATHS.register} element={<Register />} />
+            <Route path={PATHS.resetPassword} element={<ResetPassword />} />
           </Route>
 
           {/* Redefinição de senha — usa o AuthLayout mas SEM AuthRoute, pois o
               link de recuperação cria uma sessão temporária (usuário fica logado)
-              e o AuthRoute redirecionaria para /intro antes de trocar a senha. */}
+              e o AuthRoute redirecionaria para a autoavaliação antes de trocar a senha. */}
           <Route element={<AuthLayout />}>
-            <Route path="/update-password" element={<UpdatePassword />} />
+            <Route path={PATHS.updatePassword} element={<UpdatePassword />} />
           </Route>
+
+          {/* Legacy English routes kept as local compatibility redirects. */}
+          <Route path="/intro" element={<Navigate to={PATHS.home} replace />} />
+          <Route path="/dashboard" element={<Navigate to={PATHS.dashboard} replace />} />
+          <Route path="/profile" element={<Navigate to={PATHS.profile} replace />} />
+          <Route path="/assessment/:category" element={<RedirectAssessment />} />
+          <Route path="/solution" element={<Navigate to={PATHS.solution} replace />} />
+          <Route path="/recovery/:step" element={<RedirectRecovery />} />
+          <Route path="/specific-solution" element={<Navigate to={PATHS.continueHealing} replace />} />
+          <Route path="/specific-solution/:category" element={<RedirectSpecificSolution />} />
+          <Route path="/continue-healing" element={<Navigate to={PATHS.continueHealing} replace />} />
+          <Route path="/contact" element={<Navigate to={PATHS.contact} replace />} />
+          <Route path="/vitality" element={<Navigate to={PATHS.vitality} replace />} />
+          <Route path="/login" element={<Navigate to={PATHS.login} replace />} />
+          <Route path="/register" element={<Navigate to={PATHS.register} replace />} />
+          <Route path="/reset-password" element={<Navigate to={PATHS.resetPassword} replace />} />
+          <Route path="/update-password" element={<Navigate to={PATHS.updatePassword} replace />} />
         </Routes>
       </AuthProvider>
     </Router>

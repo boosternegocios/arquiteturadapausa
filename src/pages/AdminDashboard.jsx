@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { PATHS } from '../lib/journey'
 import { 
   Users, 
   Search, 
@@ -10,18 +11,12 @@ import {
   Mail, 
   Activity, 
   CheckCircle,
-  FileText,
-  Clock,
-  ArrowRight,
   Phone,
   ArrowLeft
 } from 'lucide-react'
-import { 
-  Radar as RechartsRadar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer 
-} from 'recharts'
 
 export const AdminDashboard = () => {
-  const { user, isAdmin } = useAuth()
+  const { isAdmin } = useAuth()
   const navigate = useNavigate()
   
   const [usersList, setUsersList] = useState([])
@@ -33,7 +28,7 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     if (isAdmin === false) {
-      navigate('/')
+      navigate(PATHS.home)
     }
   }, [isAdmin, navigate])
 

@@ -12,7 +12,7 @@ export const MentalFatigue = ({ data, onChange }) => {
   }
 
   // 01: Dias da Semana
-  const renderAct01 = () => {
+  const _renderAct01 = () => {
     const days = [
       { key: 'seg', label: 'Segunda-feira' },
       { key: 'ter', label: 'Terça-feira' },
@@ -47,7 +47,7 @@ export const MentalFatigue = ({ data, onChange }) => {
   }
 
   // 02: O que está na mente / Paz na Krise
-  const renderAct02 = () => {
+  const _renderAct02 = () => {
     return (
       <div className="mb-10 md:mb-16 bg-gradient-to-br from-[#1ed7a4] to-[#004b4c] p-5 md:p-10 rounded-3xl md:rounded-[3rem] shadow-xl text-white animate-in fade-in relative overflow-hidden" style={{animationDelay: '100ms'}}>
         <div className="absolute top-0 right-0 w-full h-full bg-white opacity-5 mix-blend-overlay"></div>
@@ -164,8 +164,8 @@ export const MentalFatigue = ({ data, onChange }) => {
         </p>
       </div>
 
-      {/* Ocultado temporariamente a pedido: renderAct01() */}
-      {/* Ocultado temporariamente a pedido: renderAct02() */}
+      {/* Ocultado temporariamente a pedido: _renderAct01() */}
+      {/* Ocultado temporariamente a pedido: _renderAct02() */}
       {renderAct03()}
       {renderAct04()}
     </div>

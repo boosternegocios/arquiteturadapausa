@@ -4,6 +4,16 @@ import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
+import {
+  ASSESSMENT_CATEGORY_ORDER,
+  BELIEF_KEYS,
+  INTERNAL_SPEED_KEYS,
+  PATHS,
+  SATISFACTION_KEYS,
+  TIME_RELATION_KEYS,
+  getAssessmentPath,
+  getRecoveryPath,
+} from '../lib/journey'
 import { 
   BarChart2, 
   Zap, 
@@ -14,10 +24,6 @@ import {
   ArrowRight
 } from 'lucide-react'
 
-const SATISFACTION_KEYS = ['foco', 'produtividade', 'realizacao', 'ritmo']
-const TIME_RELATION_KEYS = ['equilibrio', 'importancia', 'mensagens', 'tempo_livre', 'delega_centraliza', 'limite_corpo', 'stress', 'frustracao_agenda']
-const INTERNAL_SPEED_KEYS = ['acelerada_lenta', 'focada_relaxada', 'paciente_impaciente', 'ponderada_impulsiva', 'decisao_rapida_lenta']
-
 export const Introduction = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -26,9 +32,9 @@ export const Introduction = () => {
   const [step3Done, setStep3Done] = useState(false)
   const [assessmentIsComplete, setAssessmentIsComplete] = useState(false)
   const [mainRecoveryDone, setMainRecoveryDone] = useState(false)
-  const [nextStep1Route, setNextStep1Route] = useState('/recovery/satisfaction')
-  const [nextStep2Route, setNextStep2Route] = useState('/recovery/beliefs')
-  const [nextStep3Route, setNextStep3Route] = useState('/assessment/fisico')
+  const [nextStep1Route, setNextStep1Route] = useState(getRecoveryPath('satisfaction'))
+  const [nextStep2Route, setNextStep2Route] = useState(getRecoveryPath('beliefs'))
+  const [nextStep3Route, setNextStep3Route] = useState(getAssessmentPath('fisico'))
   const [loading, setLoading] = useState(true)
 
   const fetchProgress = useCallback(async () => {
@@ -62,28 +68,25 @@ export const Introduction = () => {
         
         setStep1Done(card1Complete)
 
-        if (!satDone) setNextStep1Route('/recovery/satisfaction')
-        else if (!timeDone) setNextStep1Route('/recovery/time-relation')
-        else if (!speedDone) setNextStep1Route('/recovery/internal-speed')
+        if (!satDone) setNextStep1Route(getRecoveryPath('satisfaction'))
+        else if (!timeDone) setNextStep1Route(getRecoveryPath('time-relation'))
+        else if (!speedDone) setNextStep1Route(getRecoveryPath('internal-speed'))
 
         const card2Complete = beliefs._card2_completed === true
         setStep2Done(card2Complete)
 
-        const beliefsKeys = ['sacrificio', 'utilidade', 'sozinho', 'meta_x', 'pressao', 'desorganizado', 'bem_feito', 'liberdade', 'improdutivo', 'tempo_insuficiente', 'dar_conta']
-        const beliefsDone = beliefsKeys.every(k => beliefs[k] !== undefined && beliefs[k] !== null)
-        if (!beliefsDone) setNextStep2Route('/recovery/beliefs')
-        else if (!card2Complete) setNextStep2Route('/recovery/cycle')
-
-        const CATEGORIES = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
+        const beliefsDone = BELIEF_KEYS.every(k => beliefs[k] !== undefined && beliefs[k] !== null)
+        if (!beliefsDone) setNextStep2Route(getRecoveryPath('beliefs'))
+        else if (!card2Complete) setNextStep2Route(getRecoveryPath('cycle'))
         
         if (d.status === 'completed') {
           setAssessmentIsComplete(true)
         } else {
           setAssessmentIsComplete(false)
-          let nextCat = 'fisico'
+          let nextCat = ASSESSMENT_CATEGORY_ORDER[0]
           
           if (d.scores && Object.keys(d.scores).length > 0 && Object.keys(d.scores).length < 7) {
-            for (const cat of CATEGORIES) {
+            for (const cat of ASSESSMENT_CATEGORY_ORDER) {
               if (d.scores[cat] === undefined || d.scores[cat] === null) {
                 nextCat = cat
                 break
@@ -93,7 +96,7 @@ export const Introduction = () => {
             nextCat = 'fisico'
           }
           
-          setNextStep3Route(`/assessment/${nextCat}`)
+          setNextStep3Route(getAssessmentPath(nextCat))
         }
 
         let completedCount = 0
@@ -110,7 +113,7 @@ export const Introduction = () => {
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user])
 
   useEffect(() => {
     fetchProgress()
@@ -126,14 +129,14 @@ export const Introduction = () => {
     if (cardNum === 2 && step1Done && !step2Done) navigate(nextStep2Route)
     if (cardNum === 3 && step2Done && !step3Done) {
       if (mainRecoveryDone) {
-        navigate('/continue-healing')
+        navigate(PATHS.continueHealing)
       } else if (assessmentIsComplete) {
-        navigate('/resultado')
+        navigate(PATHS.result)
       } else {
         navigate(nextStep3Route)
       }
     }
-    if (cardNum === 4) navigate('/contact')
+    if (cardNum === 4) navigate(PATHS.contact)
   }
 
   if (loading) {

@@ -4,9 +4,8 @@ import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
-import { 
-  ArrowLeft, Save, LayoutDashboard, Settings, LogOut, CheckCircle, FileText, ArrowRight
-} from 'lucide-react'
+import { ArrowLeft, Settings, CheckCircle } from 'lucide-react'
+import { FATIGUE_CATEGORY_CONFIG, PATHS, getFatiguePercent } from '../lib/journey'
 import { PhysicalFatigue } from '../components/solutions/PhysicalFatigue'
 import { CreativeFatigue } from '../components/solutions/CreativeFatigue'
 import { MentalFatigue } from '../components/solutions/MentalFatigue'
@@ -15,24 +14,16 @@ import { EmotionalFatigue } from '../components/solutions/EmotionalFatigue'
 import { SocialFatigue } from '../components/solutions/SocialFatigue'
 import { SpiritualFatigue } from '../components/solutions/SpiritualFatigue'
 
-const CATEGORY_DATA = {
-  fisico: { label: 'Físico', max: 80 },
-  mental: { label: 'Mental', max: 70 },
-  sensorial: { label: 'Sensorial', max: 80 },
-  criativo: { label: 'Criativo', max: 90 },
-  emocional: { label: 'Emocional', max: 80 },
-  social: { label: 'Social', max: 80 },
-  espiritual: { label: 'Espiritual', max: 50 }
-}
+const CATEGORY_DATA = FATIGUE_CATEGORY_CONFIG
 
 export const SpecificSolution = () => {
   const navigate = useNavigate()
   const { category } = useParams()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [evaluationId, setEvaluationId] = useState(null)
-  
+
   const [topFatigue, setTopFatigue] = useState(null)
   const [solutionData, setSolutionData] = useState({})
 
@@ -49,24 +40,23 @@ export const SpecificSolution = () => {
           .limit(1)
 
         if (error) throw error
-        
+
         if (data && data.length > 0) {
           setEvaluationId(data[0].id)
-          
+
           let highestCat = 'fisico' // fallback
           if (data[0].scores && Object.keys(data[0].scores).length > 0) {
             let highestScore = -1
             Object.keys(CATEGORY_DATA).forEach(key => {
               const rawVal = data[0].scores[key] || 0
-              const maxVal = CATEGORY_DATA[key].max
-              const perc = Math.min(100, Math.round((rawVal / maxVal) * 100))
+              const perc = getFatiguePercent(key, rawVal)
               if (perc > highestScore) {
                 highestScore = perc
                 highestCat = key
               }
             })
           }
-          
+
           // Se recebemos um parâmetro via URL, ele vira o novo foco
           const focusCat = category && CATEGORY_DATA[category] ? category : highestCat
           setTopFatigue(focusCat)
@@ -85,7 +75,7 @@ export const SpecificSolution = () => {
       }
     }
     fetchEvaluation()
-  }, [user?.id, category])
+  }, [user, category])
 
   // Silent re-validation when returning to tab (keeps form data, just re-validates connection)
   useVisibilityRefresh(async () => {
@@ -99,11 +89,11 @@ export const SpecificSolution = () => {
 
   const validateFatigue = (category, data) => {
     if (!data) return false;
-    
+
     const allFilled = (arr) => arr && arr.length > 0 && arr.every(item => item && String(item).trim() !== '');
 
     switch(category) {
-      case 'fisico':
+      case 'fisico': {
         if (!data.act01?.list || !data.act01.list.every(i => i.act?.trim() && i.rest?.trim())) return false;
         if (!data.act02?.records) return false;
         const records = Object.values(data.act02.records);
@@ -111,6 +101,7 @@ export const SpecificSolution = () => {
         // act03 and act05 ocultados temporariamente
         if (!data.act04 || ['temp','dark','cafeina','silencio','sons','aromas','cama'].some(k => typeof data.act04[k] !== 'number')) return false;
         return true;
+      }
 
       case 'criativo':
         if (!allFilled(data.act01?.list)) return false;
@@ -123,11 +114,12 @@ export const SpecificSolution = () => {
         if (!data.act04?.list || !data.act04.list.every(i => i.negative?.trim() && i.positive?.trim())) return false;
         return true;
 
-      case 'sensorial':
+      case 'sensorial': {
         // act01 ocultado temporariamente
         const act02Keys = ['desconectar','brilho','silenciar','silencio','frutas','olhos','tampaos'];
         if (!data.act02 || act02Keys.some(k => typeof data.act02[k] !== 'number')) return false;
         return true;
+      }
 
       case 'emocional':
         if (!data.act01 || ['outros','consigo'].some(k => typeof data.act01[k] !== 'number')) return false;
@@ -151,7 +143,7 @@ export const SpecificSolution = () => {
 
   const handleSave = async (isFinal = false, isSilent = false) => {
     if (!evaluationId || !topFatigue) return
-    
+
     if (isFinal) {
       const isValid = validateFatigue(topFatigue, solutionData);
       if (!isValid) {
@@ -162,15 +154,15 @@ export const SpecificSolution = () => {
 
     if (!isSilent) setSaving(true)
     try {
-      
+
       const { data } = await supabase
         .from('evaluations')
         .select('top_fatigue_solution')
         .eq('id', evaluationId)
         .single()
-        
+
       const currentSolutions = data?.top_fatigue_solution || {}
-      
+
       // Preserva status de conclusão se já estiver concluído anteriormente
       const prevData = currentSolutions[topFatigue] || {};
       const updatedData = { ...solutionData };
@@ -200,7 +192,7 @@ export const SpecificSolution = () => {
       }
 
       if (isFinal) {
-        navigate('/continue-healing')
+        navigate(PATHS.continueHealing)
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)
@@ -208,11 +200,6 @@ export const SpecificSolution = () => {
     } finally {
       if (!isSilent) setSaving(false)
     }
-  }
-
-  const handleLogout = async () => {
-    await signOut()
-    navigate('/login')
   }
 
   const renderFatigueSolution = () => {
@@ -223,7 +210,7 @@ export const SpecificSolution = () => {
     if (topFatigue === 'emocional') return <EmotionalFatigue data={solutionData} onChange={setSolutionData} />
     if (topFatigue === 'social') return <SocialFatigue data={solutionData} onChange={setSolutionData} />
     if (topFatigue === 'espiritual') return <SpiritualFatigue data={solutionData} onChange={setSolutionData} />
-    
+
     // Placeholder para os que ainda vamos construir:
     const ComponentPholder = () => (
       <div className="flex flex-col items-center justify-center p-20 text-center animate-in fade-in slide-in-from-bottom-4">
@@ -241,13 +228,14 @@ export const SpecificSolution = () => {
   return (
     <div className="bg-[#f8f3e9] min-h-screen text-slate-900 font-display">
       <div className="flex flex-col lg:flex-row lg:h-[100dvh] lg:overflow-hidden">
-        
+
         {/* Sidebar */}
         <Sidebar />
-        
+
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-0 md:p-8 lg:p-12 w-full relative" onBlur={() => handleSave(false, true)}>
-          <div className="p-4 pt-6 md:p-14 lg:p-20 pb-40 md:pb-40">
+          <div className="max-w-5xl mx-auto w-full min-h-full flex flex-col">
+            <div className="p-4 pt-6 md:p-14 lg:p-20 pb-10 flex-1">
             {loading ? (
               <div className="h-full w-full flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-[#1ed7a4]/20 border-t-[#1ed7a4] rounded-full animate-spin"></div>
@@ -255,37 +243,41 @@ export const SpecificSolution = () => {
             ) : (
               renderFatigueSolution()
             )}
+
+            </div>
+
+            {/* Footer Actions */}
+            {!loading && (
+              <div className="px-4 md:px-14 lg:px-20 pb-6 md:pb-10 z-30">
+                <div className="flex flex-col sm:flex-row justify-between items-center px-4 md:px-8 py-4 md:py-6 bg-white border border-slate-200 shrink-0 gap-4 sm:gap-0 rounded-3xl">
+                  <button
+                    onClick={() => navigate(PATHS.continueHealing)}
+                    className="hidden sm:flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
+                  >
+                    <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span>Voltar</span>
+                  </button>
+                  <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
+                    <button
+                      onClick={() => navigate(PATHS.home)}
+                      className="px-8 py-3.5 font-bold text-slate-600 bg-white sm:bg-transparent border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase text-center"
+                    >
+                      Voltar ao Início
+                    </button>
+                    <button
+                      onClick={() => handleSave(true)}
+                      disabled={saving}
+                      className="px-8 py-3.5 font-bold text-[#004b4c] bg-[#1ed7a4] shadow-[0_10px_20px_rgba(30,215,164,0.3)] hover:shadow-[0_15px_30px_rgba(30,215,164,0.4)] rounded-xl transition-all w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase hover:bg-[#1bc294] hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sm:hidden">{saving ? 'Salvando...' : 'Concluir'}</span>
+                      <span className="hidden sm:inline">{saving ? 'Salvando...' : 'Concluir Exercício'}</span>
+                      {!saving && <CheckCircle size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </main>
-
-        {/* Footer Actions */}
-        <div className="mt-10 pb-4 md:pb-8 z-30">
-          <div className="max-w-5xl mx-auto w-full flex flex-col sm:flex-row justify-between sm:justify-between items-center gap-4 sm:gap-0 bg-white border border-slate-200 p-4 rounded-3xl">
-            <button 
-              onClick={() => navigate('/continue-healing')}
-              className="hidden sm:flex items-center gap-1 md:gap-2 font-bold text-slate-500 uppercase tracking-widest text-[10px] md:text-sm hover:text-slate-800 transition-colors shrink-0"
-            >
-              <ArrowLeft size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" /> <span>Voltar</span>
-            </button>
-            <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
-              <button 
-                onClick={() => navigate('/intro')}
-                className="px-8 py-3.5 font-bold text-slate-600 bg-white sm:bg-transparent border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase text-center"
-              >
-                Voltar ao Início
-              </button>
-              <button 
-                onClick={() => handleSave(true)}
-                disabled={saving}
-                className="px-8 py-3.5 font-bold text-[#004b4c] bg-[#1ed7a4] shadow-[0_10px_20px_rgba(30,215,164,0.3)] hover:shadow-[0_15px_30px_rgba(30,215,164,0.4)] rounded-xl transition-all w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase hover:bg-[#1bc294] hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="sm:hidden">{saving ? 'Salvando...' : 'Concluir'}</span>
-                <span className="hidden sm:inline">{saving ? 'Salvando...' : 'Concluir Exercício'}</span>
-                {!saving && <CheckCircle size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />}
-              </button>
-            </div>
-          </div>
-        </div>
 
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Plus } from 'lucide-react'
 
 export const PhysicalFatigue = ({ data, onChange }) => {
@@ -81,7 +81,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
               </tr>
             </thead>
             <tbody>
-              {muscles.map((m, idx) => (
+              {muscles.map((m) => (
                 <tr key={m} className="hover:bg-slate-50/50 transition-colors border-b border-slate-50 group">
                   <td className="p-4 font-bold text-slate-700">{m}</td>
                   {states.map(s => (
@@ -122,7 +122,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
   }
 
   // 03: Equilíbrio entre Cansaço e Descanso
-  const renderAct03 = () => {
+  const _renderAct03 = () => {
     const defaultList = ['', '', '', '', '']
     const tiresome = data?.act03?.tiresome || [...defaultList]
     const resting = data?.act03?.resting || [...defaultList]
@@ -241,7 +241,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
   }
 
   // 05: Diário de Sono (5 dias)
-  const renderAct05 = () => {
+  const _renderAct05 = () => {
     const defaultDays = Array(5).fill({ hours: '', events: '', dreams: '' }).map((_, i) => ({ day: i+1, hours: '', events: '', dreams: '' }))
     const daysLog = data?.act05?.days || defaultDays
 
@@ -309,7 +309,7 @@ export const PhysicalFatigue = ({ data, onChange }) => {
 
       {renderAct01()}
       {renderAct02()}
-      {/* Ocultado temporariamente a pedido: renderAct03() */}
+      {/* Ocultado temporariamente a pedido: _renderAct03() */}
       {renderAct04()}
     </div>
   )

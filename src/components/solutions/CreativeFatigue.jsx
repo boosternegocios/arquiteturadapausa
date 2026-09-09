@@ -55,7 +55,7 @@ export const CreativeFatigue = ({ data, onChange }) => {
         <p className="text-slate-500 font-medium mb-8">Olhe para seu calendário e programe períodos de reabastecimento para os quais você nunca tem tempo.</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {periods.map((p, index) => (
+          {periods.map((p) => (
             <div key={p.key} className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col group hover:bg-[#1ed7a4]/5 transition-colors">
               <span className="text-[10px] font-black uppercase tracking-widest text-[#1ed7a4] mb-2 border-b-2 border-[#1ed7a4] inline-block pb-1 w-max">{p.header}</span>
               <h4 className="font-bold text-slate-800 text-lg mb-1">{p.label}</h4>

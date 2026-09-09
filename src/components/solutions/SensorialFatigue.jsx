@@ -12,7 +12,7 @@ export const SensorialFatigue = ({ data, onChange }) => {
   }
 
   // 01: Sobrecarga Sensorial
-  const renderAct01 = () => {
+  const _renderAct01 = () => {
     const senses = ['Visão', 'Audição', 'Tato', 'Paladar', 'Olfato']
     const records = data?.act01?.records || senses.reduce((acc, s) => ({...acc, [s]: { estimulo: '', melhorar: '' }}), {})
 
@@ -127,7 +127,7 @@ export const SensorialFatigue = ({ data, onChange }) => {
         <p className="text-lg text-slate-500 font-medium">Se você obteve alto índice de cansaço sensorial, essa auto reflexão pode ajudá-lo a melhorar esse aspecto.</p>
       </div>
 
-      {/* Ocultado temporariamente a pedido: renderAct01() */}
+      {/* Ocultado temporariamente a pedido: _renderAct01() */}
       {renderAct02()}
     </div>
   )

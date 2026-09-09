@@ -1,5 +1,22 @@
--- Habilita extensão pgcrypto se ainda não existir
+-- Habilita extensões usadas pelos UUIDs
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 0. TABELA DE ADMINS -------------------------------------------------
+-- O app consulta esta tabela para liberar o painel administrativo no front.
+-- A segurança real precisa continuar no RLS/RPC abaixo; esconder botão no
+-- front é apenas conveniência visual.
+CREATE TABLE IF NOT EXISTS public.admins (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins podem ver seu próprio registro"
+    ON public.admins FOR SELECT
+    USING ((auth.jwt() ->> 'email') = email);
 
 -- 1. TABELA DE PERGUNTAS DINÂMICAS ----------------------------------
 CREATE TABLE public.questions (
@@ -21,8 +38,22 @@ CREATE TABLE public.evaluations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     status TEXT NOT NULL DEFAULT 'draft', -- 'draft' ou 'completed'
     answers JSONB DEFAULT '{}'::jsonb,
-    scores JSONB DEFAULT '{}'::jsonb
+    scores JSONB DEFAULT '{}'::jsonb,
+    solution_satisfaction JSONB DEFAULT '{}'::jsonb,
+    solution_time_relation JSONB DEFAULT '{}'::jsonb,
+    solution_internal_speed JSONB DEFAULT '{}'::jsonb,
+    solution_beliefs JSONB DEFAULT '{}'::jsonb,
+    solution_rhythm_impacts JSONB DEFAULT '[]'::jsonb,
+    top_fatigue_solution JSONB DEFAULT '{}'::jsonb
 );
+
+-- Migração idempotente para bancos que já foram criados com a versão antiga.
+ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS solution_satisfaction JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS solution_time_relation JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS solution_internal_speed JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS solution_beliefs JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS solution_rhythm_impacts JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS top_fatigue_solution JSONB DEFAULT '{}'::jsonb;
 
 -- RLS para avaliações: o próprio usuário só vê e edita as dele
 ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
@@ -42,6 +73,50 @@ CREATE POLICY "Usuários podem atualizar suas próprias avaliações"
 CREATE POLICY "Usuários podem deletar suas próprias avaliações"
     ON public.evaluations FOR DELETE
     USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins podem ver todas as avaliações"
+    ON public.evaluations FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM public.admins
+            WHERE admins.email = (auth.jwt() ->> 'email')
+        )
+    );
+
+-- RPC usada pelo painel admin para juntar respostas com dados do usuário.
+-- Retorna dados apenas quando o usuário logado está em public.admins.
+CREATE OR REPLACE FUNCTION public.get_all_users()
+RETURNS TABLE (
+    user_id UUID,
+    email TEXT,
+    name TEXT,
+    phone TEXT
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT
+        users.id AS user_id,
+        users.email::text AS email,
+        COALESCE(
+            users.raw_user_meta_data ->> 'full_name',
+            users.raw_user_meta_data ->> 'name',
+            split_part(users.email, '@', 1)
+        ) AS name,
+        users.raw_user_meta_data ->> 'phone' AS phone
+    FROM auth.users AS users
+    WHERE EXISTS (
+        SELECT 1
+        FROM public.admins
+        WHERE admins.email = (auth.jwt() ->> 'email')
+    )
+    ORDER BY users.created_at DESC;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_all_users() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_all_users() TO authenticated;
 
 
 -- 3. INSERINDO AS PERGUNTAS (POPULANDO BANCO INICIALMENTE) -----------

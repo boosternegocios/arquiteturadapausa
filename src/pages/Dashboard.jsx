@@ -4,15 +4,11 @@ import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
+import { PATHS, SATISFACTION_KEYS, TIME_RELATION_KEYS, getAssessmentPath, getRecoveryPath } from '../lib/journey'
 import { 
   LayoutDashboard, 
   Activity, 
-  CheckCircle, 
   BarChart2, 
-  Brain, 
-  Settings, 
-  LogOut, 
-  Bell, 
   HeartCrack,
   FileText,
   ArrowRight
@@ -41,7 +37,7 @@ const TIME_RELATION_DATA = {
 }
 
 export const Dashboard = () => {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [radarScores, setRadarScores] = useState({
     equilibrio: 0,
@@ -61,9 +57,7 @@ export const Dashboard = () => {
   const [hasRecord, setHasRecord] = useState(false)
   const [timeScore, setTimeScore] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [journeyProgress, setJourneyProgress] = useState(0)
   const [nextCategory, setNextCategory] = useState('equilibrio')
-  const [assessmentStatus, setAssessmentStatus] = useState(null)
   const [topFatigue, setTopFatigue] = useState(null)
 
   const fetchEvaluations = useCallback(async () => {
@@ -73,7 +67,7 @@ export const Dashboard = () => {
       setLoading(true)
       const { data, error } = await supabase
         .from('evaluations')
-        .select('solution_time_relation, solution_satisfaction, solution_internal_speed, scores, top_fatigue_solution, status')
+        .select('solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -84,51 +78,34 @@ export const Dashboard = () => {
         const evalData = data[0]
         const fetchedTimeRel = evalData.solution_time_relation || {}
         const fetchedSat = evalData.solution_satisfaction || {}
-        const status = evalData.status
-        
-        let progress = 0
-        if (Object.keys(fetchedSat).length > 0) progress += 10
-        if (Object.keys(fetchedTimeRel).length > 0) progress += 10
-        if (Object.keys(evalData.solution_internal_speed || {}).length > 0) progress += 10
-        
         const scores = evalData.scores || {}
-        const answeredScores = Object.values(scores).filter(v => v !== undefined && v !== null).length
-        progress += Math.round((answeredScores / 7) * 49)
-        
         const plans = evalData.top_fatigue_solution || {}
-        const hasActionPlan = Object.values(plans).some(p => p.isCompleted)
         const completedOasis = Object.keys(plans).filter(k => plans[k]?.isCompleted).length
-        if (hasActionPlan) progress += 21
         
-        setJourneyProgress(Math.min(100, progress))
-        
-        let nextRoute = '/intro';
+        let nextRoute = PATHS.home;
         if (!fetchedSat || Object.keys(fetchedSat).length === 0) {
-          nextRoute = '/recovery/satisfaction';
+          nextRoute = getRecoveryPath('satisfaction');
         } else if (!fetchedTimeRel || Object.keys(fetchedTimeRel).length === 0) {
-          nextRoute = '/recovery/time-relation';
+          nextRoute = getRecoveryPath('time-relation');
         } else if (!evalData.solution_internal_speed || Object.keys(evalData.solution_internal_speed).length === 0) {
-          nextRoute = '/recovery/internal-speed';
+          nextRoute = getRecoveryPath('internal-speed');
         } else if (!evalData.solution_beliefs || !evalData.solution_beliefs._card2_completed) {
-          nextRoute = '/recovery/beliefs';
+          nextRoute = getRecoveryPath('beliefs');
         } else if (!scores || Object.keys(scores).length < 7) {
-          nextRoute = '/assessment/fisico';
+          nextRoute = getAssessmentPath('fisico');
         } else if (completedOasis < 7) {
-          nextRoute = '/continue-healing';
+          nextRoute = PATHS.continueHealing;
         } else {
-          nextRoute = '/contact';
+          nextRoute = PATHS.contact;
         }
         setNextCategory(nextRoute);
 
         // Only show radar if Card 1 is FULLY completed (all 8 time_relation + all 4 satisfaction)
-        const TIME_RELATION_KEYS = ['equilibrio', 'importancia', 'mensagens', 'tempo_livre', 'delega_centraliza', 'limite_corpo', 'stress', 'frustracao_agenda']
-        const SATISFACTION_KEYS = ['foco', 'produtividade', 'realizacao', 'ritmo']
         const timeRelComplete = TIME_RELATION_KEYS.every(k => fetchedTimeRel[k] !== undefined && fetchedTimeRel[k] !== null)
         const satComplete = SATISFACTION_KEYS.every(k => fetchedSat[k] !== undefined && fetchedSat[k] !== null)
 
         if (timeRelComplete && satComplete) {
           setHasRecord(true)
-          setAssessmentStatus(status)
 
           // Radar scores
           const normRadar = {}
@@ -172,8 +149,7 @@ export const Dashboard = () => {
         }
       } else {
         setHasRecord(false)
-        setJourneyProgress(0)
-        setNextCategory('/intro')
+        setNextCategory(PATHS.home)
         setTimeScore(0)
       }
     } catch (err) {
@@ -181,7 +157,7 @@ export const Dashboard = () => {
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user])
 
   useEffect(() => {
     fetchEvaluations()
@@ -193,14 +169,6 @@ export const Dashboard = () => {
   // Get Route for button
   const getRoute = () => {
     return nextCategory;
-  }
-
-  const handleLogout = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      console.error('Falha ao sair', error)
-    }
   }
 
   const fatigueLevels = Object.keys(SATISFACTION_DATA).map(key => ({
@@ -257,7 +225,7 @@ export const Dashboard = () => {
                   <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 max-w-[600px] w-full flex flex-col items-center text-center shadow-2xl relative overflow-y-auto max-h-[90vh] my-auto">
                     
                     <button 
-                      onClick={() => navigate('/intro')}
+                      onClick={() => navigate(PATHS.home)}
                       className="absolute top-4 right-4 md:top-6 md:right-6 w-10 h-10 bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors z-20 shrink-0"
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -286,7 +254,7 @@ export const Dashboard = () => {
                     </button>
                     
                     <button 
-                      onClick={() => navigate('/intro')}
+                      onClick={() => navigate(PATHS.home)}
                       className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 relative z-10 shrink-0 mb-2"
                       style={{ marginTop: '24px' }}
                     >

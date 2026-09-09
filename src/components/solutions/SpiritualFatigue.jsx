@@ -29,7 +29,7 @@ export const SpiritualFatigue = ({ data, onChange }) => {
   }
 
   // 04: Notas para o Divino (7 days)
-  const renderAct04 = () => {
+  const _renderAct04 = () => {
     const defaultDays = Array(7).fill({ note: '' }).map((_, i) => ({ day: i+1, note: '' }))
     const daysLog = data?.act04?.days || defaultDays
 
@@ -77,7 +77,7 @@ export const SpiritualFatigue = ({ data, onChange }) => {
       
       {renderTextBox('act03', '03. Pequenos Milagres', 'Pense na primeira vez que você viveu algo inexplicável. Um pequeno ou grande milagre que te livrou de algum problema ou má experiência? Por que você acredita que estava aberto ao espiritual naquele momento?', 'Recorde-se dos livramentos e escreva sobre seu estado de espírito na época...')}
 
-      {/* Ocultado temporariamente a pedido: renderAct04() */}
+      {/* Ocultado temporariamente a pedido: _renderAct04() */}
     </div>
   )
 }

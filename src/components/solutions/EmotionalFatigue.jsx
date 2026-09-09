@@ -25,7 +25,7 @@ export const EmotionalFatigue = ({ data, onChange }) => {
         <p className="text-slate-500 font-medium mb-10">Em uma escala de 1 a 10, quão autêntico você se considera habitualmente?</p>
         
         <div className="space-y-10">
-          {scales.map((s, index) => (
+          {scales.map((s) => (
             <div key={s.key} className="bg-[#fcfaf5] border border-slate-100 p-4 md:p-8 rounded-3xl">
               <h4 className="text-sm font-black uppercase tracking-widest text-[#eb6496] mb-6 flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-[#eb6496]"></span>

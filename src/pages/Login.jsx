@@ -4,6 +4,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
+import { PATHS } from '../lib/journey'
 
 export const Login = () => {
   const [email, setEmail] = useState('')
@@ -23,7 +24,7 @@ export const Login = () => {
     try {
       const { error } = await signIn(email, password)
       if (error) throw error
-      navigate('/intro')
+      navigate(PATHS.home)
     } catch (err) {
       if (err?.message?.includes('Email not confirmed')) {
         setError('Por favor, verifique a sua caixa de e-mail e clique no link de confirmação antes de entrar.')
@@ -52,7 +53,7 @@ export const Login = () => {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem' }}>
             <label className="input-label" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>SENHA</label>
-            <Link to="/reset-password" style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 600 }}>Esqueceu a senha?</Link>
+            <Link to={PATHS.resetPassword} style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 600 }}>Esqueceu a senha?</Link>
           </div>
           <div style={{ position: 'relative' }}>
             <Input 

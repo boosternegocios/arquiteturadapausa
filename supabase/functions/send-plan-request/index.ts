@@ -15,28 +15,105 @@ import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts"
 
 const DEFAULT_TO = "roselli.carolina@gmail.com"
 const SUBJECT = "Nova solicitação de plano personalizado - Arquitetura da Pausa"
+const DEFAULT_ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:4173",
+  "https://arquiteturadapausa.com",
+  "https://www.arquiteturadapausa.com",
+]
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+const allowedOrigins = () =>
+  (Deno.env.get("ALLOWED_ORIGINS") ?? DEFAULT_ALLOWED_ORIGINS.join(","))
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
+const isAllowedOrigin = (req: Request) => {
+  const origin = req.headers.get("Origin")
+  return !origin || allowedOrigins().includes(origin)
 }
 
-const json = (body: unknown, status = 200) =>
+const corsHeaders = (req: Request) => {
+  const origin = req.headers.get("Origin")
+  const allowOrigin = origin && allowedOrigins().includes(origin)
+    ? origin
+    : DEFAULT_ALLOWED_ORIGINS[0]
+
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  }
+}
+
+const json = (req: Request, body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   })
 
+const textValue = (value: unknown, maxLength: number) =>
+  String(value ?? "").trim().slice(0, maxLength)
+
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+
+const getAuthenticatedUser = async (req: Request) => {
+  const authHeader = req.headers.get("Authorization") ?? ""
+  const jwt = authHeader.replace(/^Bearer\s+/i, "").trim()
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")
+
+  if (!jwt || (anonKey && jwt === anonKey)) return null
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
+  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    throw new Error("Configuração Supabase ausente no servidor.")
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${jwt}`,
+    },
+  })
+
+  if (!response.ok) return null
+  return response.json()
+}
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
-  if (req.method !== "POST") return json({ error: "Método não permitido." }, 405)
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { status: isAllowedOrigin(req) ? 200 : 403, headers: corsHeaders(req) })
+  }
+  if (!isAllowedOrigin(req)) return json(req, { error: "Origem não permitida." }, 403)
+  if (req.method !== "POST") return json(req, { error: "Método não permitido." }, 405)
 
   try {
-    const { nome, email, telefone, mensagem } = await req.json()
+    const user = await getAuthenticatedUser(req)
+    if (!user) return json(req, { error: "Usuário não autenticado." }, 401)
+
+    const payload = await req.json()
+    const nome = textValue(payload.nome, 120)
+    const email = textValue(payload.email, 254).toLowerCase()
+    const telefone = textValue(payload.telefone, 30)
+    const mensagem = textValue(payload.mensagem, 1000)
+
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    const phoneDigits = telefone.replace(/\D/g, "")
 
     if (!nome || !email || !telefone) {
-      return json({ error: "Preencha nome, email e telefone." }, 400)
+      return json(req, { error: "Preencha nome, email e telefone." }, 400)
+    }
+    if (!emailOk || phoneDigits.length < 8) {
+      return json(req, { error: "Informe um email e telefone válidos." }, 400)
     }
 
     const SMTP_HOST = Deno.env.get("SMTP_HOST") ?? "smtp.hostinger.com"
@@ -47,10 +124,9 @@ serve(async (req) => {
 
     if (!SMTP_USER || !SMTP_PASSWORD) {
       console.error("Config ausente: SMTP_USER ou SMTP_PASSWORD não definidos.")
-      return json({ error: "Configuração de email ausente no servidor." }, 500)
+      return json(req, { error: "Configuração de email ausente no servidor." }, 500)
     }
 
-    const safe = (v: unknown) => String(v ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     const linha = (label: string, valor: string) =>
       `<tr>
          <td style="padding:10px 16px; background:#f7f3ec; font-weight:bold; color:#004b4c; width:150px; border-bottom:1px solid #ece5d8;">${label}</td>
@@ -67,10 +143,10 @@ serve(async (req) => {
           <div style="padding:28px 32px;">
             <p style="margin:0 0 20px; color:#4a5568; font-size:14px;">Um usuário concluiu a reflexão e solicitou um plano de ação personalizado. Dados de contato:</p>
             <table style="width:100%; border-collapse:collapse; font-size:14px; border:1px solid #ece5d8; border-radius:8px; overflow:hidden;">
-              ${linha("Nome", safe(nome))}
-              ${linha("E-mail", safe(email))}
-              ${linha("Telefone", safe(telefone))}
-              ${linha("Mensagem", safe(mensagem))}
+              ${linha("Nome", escapeHtml(nome))}
+              ${linha("E-mail", escapeHtml(email))}
+              ${linha("Telefone", escapeHtml(telefone))}
+              ${linha("Mensagem", escapeHtml(mensagem))}
             </table>
             <p style="margin:24px 0 0; font-size:12px; color:#9ca3af;">Enviado automaticamente pelo app Arquitetura da Pausa. Responda este email para falar direto com a pessoa.</p>
           </div>
@@ -125,9 +201,9 @@ serve(async (req) => {
       console.warn("Falha ao registrar no banco (ignorado):", e)
     }
 
-    return json({ success: true })
+    return json(req, { success: true })
   } catch (err) {
     console.error("Erro interno:", err)
-    return json({ error: "Erro interno ao processar a solicitação." }, 500)
+    return json(req, { error: "Erro interno ao processar a solicitação." }, 500)
   }
 })

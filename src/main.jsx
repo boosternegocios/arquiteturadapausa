@@ -17,15 +17,6 @@ try {
   console.error('Failed to clear locks', e)
 }
 
-import { supabase } from './lib/supabase'
-
-console.log("TESTING SUPABASE QUERY FROM MAIN.JSX...");
-supabase.from('admins').select('*').limit(1).then(({ data, error }) => {
-  console.log("SUPABASE QUERY RESULT:", data, error);
-}).catch(err => {
-  console.error("SUPABASE QUERY THREW EXCEPTION:", err);
-});
-
 createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
     <App />

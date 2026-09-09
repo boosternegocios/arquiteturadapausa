@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { PATHS } from '../lib/journey'
 import { Send, CheckCircle } from 'lucide-react'
 
 export const Contact = () => {
@@ -53,7 +54,7 @@ export const Contact = () => {
               Plano de Ação Personalizado
             </h1>
             <p className="text-lg text-slate-600 font-medium">
-              Você concluiu sua reflexão! Preencha o formulário abaixo para solicitar um plano de ação personalizado focado na sua jornada de recuperação.
+              Preencha o formulário abaixo para solicitar um plano de ação personalizado focado na sua jornada de recuperação.
             </p>
           </div>
 
@@ -67,7 +68,7 @@ export const Contact = () => {
                 Em breve nossa equipe entrará em contato com você para apresentar seu plano de ação personalizado.
               </p>
               <button
-                onClick={() => navigate('/intro')}
+                onClick={() => navigate(PATHS.home)}
                 className="bg-[#004b4c] text-[#1ed7a4] hover:bg-[#003b3c] px-8 py-4 rounded-xl font-bold uppercase tracking-widest transition-all shadow-lg hover:-translate-y-1"
               >
                 Voltar para o Início

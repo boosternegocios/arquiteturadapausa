@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, withTimeout } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
-import { Home, FileText, BarChart2, Activity, Settings, LogOut, LayoutDashboard } from 'lucide-react'
+import { ASSESSMENT_CATEGORY_ORDER, PATHS, getAssessmentPath } from '../lib/journey'
 
 export const Assessment = () => {
   const { category } = useParams() // e.g. 'fisico', 'sensorial'
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const mainRef = useRef(null)
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export const Assessment = () => {
   // precisar ser recarregada (queda de conexão, recuperação automática, etc.)
   const backupKey = user ? `arqpausa-answers-${user.id}` : null
 
-  const readLocalBackup = () => {
+  const readLocalBackup = useCallback(() => {
     if (!backupKey) return {}
     try {
       const raw = localStorage.getItem(backupKey)
@@ -35,7 +35,7 @@ export const Assessment = () => {
     } catch {
       return {}
     }
-  }
+  }, [backupKey])
 
   useEffect(() => {
     if (!backupKey || Object.keys(answers).length === 0) return
@@ -78,6 +78,8 @@ export const Assessment = () => {
           .select('*')
           .eq('category', category.toLowerCase())
           .order('order_index', { ascending: true })
+
+        if (qErr) throw qErr
           
         let fetchedQData = qData || []
         
@@ -102,6 +104,8 @@ export const Assessment = () => {
           .eq('status', 'draft')
           .order('created_at', { ascending: false })
           .limit(1)
+
+        if (draftErr) throw draftErr
           
         const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
           
@@ -122,7 +126,7 @@ export const Assessment = () => {
     }
     
     fetchQuestionsAndDraft()
-  }, [category, user?.id])
+  }, [category, user, readLocalBackup])
 
   // Silent re-validation when returning to tab (keeps form data, just re-validates connection)
   useVisibilityRefresh(async () => {
@@ -272,13 +276,12 @@ export const Assessment = () => {
       }
 
       // Navigating logic
-      const CATEGORIES = ['fisico', 'sensorial', 'emocional', 'mental', 'social', 'criativo', 'espiritual']
-      const currentIndex = CATEGORIES.indexOf(category.toLowerCase())
+      const currentIndex = ASSESSMENT_CATEGORY_ORDER.indexOf(category.toLowerCase())
 
-      if (currentIndex >= 0 && currentIndex < CATEGORIES.length - 1) {
+      if (currentIndex >= 0 && currentIndex < ASSESSMENT_CATEGORY_ORDER.length - 1) {
         // Próximo
-        const nextCategory = CATEGORIES[currentIndex + 1]
-        navigate(`/assessment/${nextCategory}`)
+        const nextCategory = ASSESSMENT_CATEGORY_ORDER[currentIndex + 1]
+        navigate(getAssessmentPath(nextCategory))
       } else {
         // Final
         await withTimeout(supabase
@@ -292,7 +295,7 @@ export const Assessment = () => {
           try { localStorage.removeItem(backupKey) } catch { /* ignora */ }
         }
 
-        navigate('/resultado')
+        navigate(PATHS.result)
       }
 
     } catch (err) {
@@ -305,10 +308,6 @@ export const Assessment = () => {
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const handleLogout = async () => {
-    await signOut()
   }
 
   const answeredCount = questions.filter(q => answers[q.id] !== undefined).length

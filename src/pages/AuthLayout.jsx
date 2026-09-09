@@ -1,6 +1,7 @@
 import React from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import './AuthLayout.css'
+import { PATHS } from '../lib/journey'
 
 export const AuthLayout = () => {
   const location = useLocation();
@@ -17,7 +18,7 @@ export const AuthLayout = () => {
         <div className="auth-hero-content">
           <h1>ARQUITETURA<br/>DA PAUSA</h1>
           <p>
-            {location.pathname === '/register' ? (
+            {location.pathname === PATHS.register ? (
               <>
                 Um método que conecta consciência e prática.<br/>
                 Um passo a passo que pode mudar sua relação com o tempo, foco e energia.
@@ -47,8 +48,8 @@ export const AuthLayout = () => {
           </div>
           
           <div className="auth-tabs">
-            <NavLink to="/login" className={({ isActive }) => `auth-tab ${isActive ? 'active' : ''}`}>LOGIN</NavLink>
-            <NavLink to="/register" className={({ isActive }) => `auth-tab ${isActive ? 'active' : ''}`}>CADASTRO</NavLink>
+            <NavLink to={PATHS.login} className={({ isActive }) => `auth-tab ${isActive ? 'active' : ''}`}>LOGIN</NavLink>
+            <NavLink to={PATHS.register} className={({ isActive }) => `auth-tab ${isActive ? 'active' : ''}`}>CADASTRO</NavLink>
           </div>
 
           <div className="auth-content">

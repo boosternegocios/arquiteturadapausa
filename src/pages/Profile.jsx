@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { User, Save, Bell, Mail, Phone } from 'lucide-react';
+import { User, Save, Mail, Phone } from 'lucide-react';
+import { FATIGUE_CATEGORY_KEYS, getFatiguePercent } from '../lib/journey';
 
 export const Profile = () => {
   const { user } = useAuth();
@@ -16,23 +17,11 @@ export const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-  const [energyScore, setEnergyScore] = useState(0);
-
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        full_name: user.user_metadata?.full_name || '',
-        phone: user.user_metadata?.phone || '',
-        avatar_url: user.user_metadata?.avatar_url || ''
-      });
-      fetchEnergy();
-    }
-  }, [user?.id]);
-
   const [vitalityScore, setVitalityScore] = useState(0);
   const [timeScore, setTimeScore] = useState(0);
 
-  const fetchEnergy = async () => {
+  const fetchEnergy = useCallback(async () => {
+    if (!user) return;
     try {
       const { data } = await supabase
         .from('evaluations')
@@ -44,27 +33,13 @@ export const Profile = () => {
       if (data && data.length > 0) {
         const evalData = data[0];
         
-        if (evalData.solution_satisfaction) {
-          const sat = evalData.solution_satisfaction;
-          const keys = ['foco', 'produtividade', 'felicidade', 'realizacao'];
-          let sum = 0;
-          let count = 0;
-          keys.forEach(k => {
-            if (sat[k]) { sum += sat[k]; count++; }
-          });
-          if (count > 0) {
-            setEnergyScore(Math.round((sum / count) * 10));
-          }
-        }
-
         if (evalData.scores) {
           const scores = evalData.scores;
-          const CATEGORY_DATA = { fisico: 80, mental: 80, sensorial: 80, criativo: 90, emocional: 80, social: 80, espiritual: 50 };
           let vitSum = 0;
           let vitCount = 0;
-          Object.keys(CATEGORY_DATA).forEach(key => {
+          FATIGUE_CATEGORY_KEYS.forEach(key => {
             if (scores[key] !== undefined && scores[key] !== null) {
-              vitSum += Math.min(100, Math.round((scores[key] / CATEGORY_DATA[key]) * 100));
+              vitSum += getFatiguePercent(key, scores[key]);
               vitCount++;
             }
           });
@@ -91,7 +66,18 @@ export const Profile = () => {
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        full_name: user.user_metadata?.full_name || '',
+        phone: user.user_metadata?.phone || '',
+        avatar_url: user.user_metadata?.avatar_url || ''
+      });
+      fetchEnergy();
+    }
+  }, [user, fetchEnergy]);
 
   const handleSave = async () => {
     setSaving(true);

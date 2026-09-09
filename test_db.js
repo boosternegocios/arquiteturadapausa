@@ -1,7 +1,26 @@
+/* global process */
 import { createClient } from '@supabase/supabase-js'
+import { readFileSync } from 'node:fs'
 
-const supabaseUrl = 'https://noybugsrzlxbzjgstjff.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5veWJ1Z3Nyemx4YnpqZ3N0amZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMDA4NjAsImV4cCI6MjA5MTY3Njg2MH0.C4om5xA7TQcIVfxsdP7fEA_R9Tn2AxNVMPvZFtDxKCo'
+try {
+  const env = readFileSync('.env.local', 'utf8')
+  env.split(/\r?\n/).forEach((line) => {
+    const match = line.match(/^([^#=]+)=(.*)$/)
+    if (match && !process.env[match[1].trim()]) {
+      process.env[match[1].trim()] = match[2].trim()
+    }
+  })
+} catch {
+  // .env.local é opcional quando as variáveis já foram exportadas no shell.
+}
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente ou em .env.local')
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 async function checkDatabase() {

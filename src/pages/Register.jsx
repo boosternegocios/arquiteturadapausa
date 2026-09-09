@@ -4,6 +4,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
+import { PATHS } from '../lib/journey'
 
 export const Register = () => {
   const [name, setName] = useState('')
@@ -71,7 +72,7 @@ export const Register = () => {
             Criamos sua conta. Porém, para a sua segurança, precisamos que você <strong>verifique a sua caixa de entrada</strong> ({email}) e clique no link de confirmação.
           </p>
         </div>
-        <Button onClick={() => navigate('/login')} variant="secondary" fullWidth style={{ marginTop: '1rem' }}>
+        <Button onClick={() => navigate(PATHS.login)} variant="secondary" fullWidth style={{ marginTop: '1rem' }}>
           JÁ CONFIRMEI O E-MAIL
         </Button>
       </div>
