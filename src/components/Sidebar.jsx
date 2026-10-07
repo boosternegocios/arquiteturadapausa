@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { FATIGUE_CATEGORY_KEYS, PATHS, SATISFACTION_KEYS, getFatiguePercent } from '../lib/journey';
+import { PATHS, SATISFACTION_KEYS } from '../lib/journey';
+import { calculateTimeScore, calculateVitalityScore } from '../lib/evaluationHistory';
 import { isExerciseComplete } from '../lib/exerciseCompletion';
 import {
   LayoutDashboard,
@@ -88,35 +89,13 @@ export const Sidebar = () => {
           }
 
           if (lastCompletedEvaluation?.scores) {
-            const scores = lastCompletedEvaluation.scores;
-            let vitSum = 0;
-            let vitCount = 0;
-            FATIGUE_CATEGORY_KEYS.forEach(key => {
-              if (scores[key] !== undefined && scores[key] !== null) {
-                vitSum += getFatiguePercent(key, scores[key]);
-                vitCount++;
-              }
-            });
-            if (vitCount > 0) {
-              setVitalityScore(Math.round(vitSum / vitCount));
-            }
+            setVitalityScore(calculateVitalityScore(lastCompletedEvaluation.scores) ?? 0);
           } else {
             setVitalityScore(0);
           }
 
           if (lastCompletedEvaluation?.solution_time_relation) {
-            const timeRel = lastCompletedEvaluation.solution_time_relation;
-            let timeSum = 0;
-            let timeCount = 0;
-            Object.values(timeRel).forEach(val => {
-              if (val !== undefined && val !== null) {
-                timeSum += val * 10;
-                timeCount++;
-              }
-            });
-            if (timeCount > 0) {
-              setTimeScore(Math.round(timeSum / timeCount));
-            }
+            setTimeScore(calculateTimeScore(lastCompletedEvaluation.solution_time_relation) ?? 0);
           } else {
             setTimeScore(0);
           }
