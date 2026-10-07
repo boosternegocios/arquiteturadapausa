@@ -59,4 +59,4 @@ export const getMissingExerciseFields = (category, data) => {
 }
 
 export const isExerciseComplete = (category, data) =>
-  Boolean(data?.isCompleted) || getMissingExerciseFields(category, data).length === 0
+  getMissingExerciseFields(category, data).length === 0

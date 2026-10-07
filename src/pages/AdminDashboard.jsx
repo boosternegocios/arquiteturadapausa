@@ -5,6 +5,7 @@ import { EvaluationResponseSummary } from '../components/EvaluationResponseSumma
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { PATHS } from '../lib/journey'
+import { getMissingExerciseFields } from '../lib/exerciseCompletion'
 import { 
   Users, 
   Search, 
@@ -60,6 +61,36 @@ const getCreditStatus = (status) => {
   return { label: status || 'Registrado', className: 'bg-amber-100 text-amber-700' }
 }
 
+const sortFatigueEntries = ([a], [b]) => {
+  const indexA = FATIGUE_ORDER.indexOf(a)
+  const indexB = FATIGUE_ORDER.indexOf(b)
+  const safeA = indexA === -1 ? FATIGUE_ORDER.length : indexA
+  const safeB = indexB === -1 ? FATIGUE_ORDER.length : indexB
+  return safeA - safeB || a.localeCompare(b)
+}
+
+const getExerciseAdminStatus = (category, data) => {
+  const missingFields = getMissingExerciseFields(category, data)
+  if (missingFields.length === 0) {
+    return {
+      label: 'Exercício concluído',
+      detail: 'Todos os campos obrigatórios foram preenchidos.',
+      missingFields,
+      className: 'bg-emerald-100 text-emerald-700',
+      Icon: CheckCircle,
+    }
+  }
+
+  const hasAnyData = Boolean(data && Object.keys(data).some(key => key !== 'isCompleted'))
+  return {
+    label: hasAnyData ? 'Exercício não concluído' : 'Não iniciado',
+    detail: `Falta preencher: ${missingFields.join(', ')}.`,
+    missingFields,
+    className: hasAnyData ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600',
+    Icon: hasAnyData ? Clock3 : XCircle,
+  }
+}
+
 const emptyPlanForm = {
   name: '',
   slug: '',
@@ -72,6 +103,16 @@ const emptyPlanForm = {
 }
 
 const USER_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const FATIGUE_ORDER = ['fisico', 'mental', 'emocional', 'social', 'espiritual', 'sensorial', 'criativo']
+const FATIGUE_LABELS = {
+  fisico: 'Cansaço Físico',
+  mental: 'Cansaço Mental',
+  emocional: 'Cansaço Emocional',
+  social: 'Cansaço Social',
+  espiritual: 'Cansaço Espiritual',
+  sensorial: 'Cansaço Sensorial',
+  criativo: 'Cansaço Criativo',
+}
 
 const slugify = (value) => (
   value
@@ -101,6 +142,7 @@ export const AdminDashboard = () => {
   const [evaluations, setEvaluations] = useState([])
   const [paymentOrders, setPaymentOrders] = useState([])
   const [evaluationCredits, setEvaluationCredits] = useState([])
+  const [automationEvents, setAutomationEvents] = useState([])
   const [plans, setPlans] = useState([])
   const [adminView, setAdminView] = useState('dashboard')
   const [planForm, setPlanForm] = useState(emptyPlanForm)
@@ -115,7 +157,7 @@ export const AdminDashboard = () => {
   const [userPage, setUserPage] = useState(1)
   const [usersPerPage, setUsersPerPage] = useState(10)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('habits') // habits, diagnosis, action_plan, payments
+  const [activeTab, setActiveTab] = useState('habits') // habits, diagnosis, responses, payments
 
   useEffect(() => {
     if (isAdmin === false) {
@@ -171,6 +213,19 @@ export const AdminDashboard = () => {
           setEvaluationCredits(creditsData || [])
         }
 
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('automation_events')
+          .select('*')
+          .eq('event_type', 'plan_requested')
+          .order('created_at', { ascending: false })
+
+        if (eventsError) {
+          console.warn('Eventos de automação ainda não disponíveis para o admin:', eventsError.message)
+          setAutomationEvents([])
+        } else {
+          setAutomationEvents(eventsData || [])
+        }
+
         const { data: plansData, error: plansError } = await supabase
           .from('plans')
           .select('*')
@@ -212,6 +267,7 @@ export const AdminDashboard = () => {
         evaluation_count: 0,
         orders: [],
         credits: [],
+        planRequests: [],
       }
     })
 
@@ -227,6 +283,7 @@ export const AdminDashboard = () => {
           evaluation_count: 1,
           orders: [],
           credits: [],
+          planRequests: [],
         }
       } else {
         if (!uniqueMap[ev.user_id].latest_evaluation) {
@@ -249,6 +306,7 @@ export const AdminDashboard = () => {
           evaluation_count: 0,
           orders: [],
           credits: [],
+          planRequests: [],
         }
       }
       uniqueMap[order.user_id].orders.push(order)
@@ -266,9 +324,30 @@ export const AdminDashboard = () => {
           evaluation_count: 0,
           orders: [],
           credits: [],
+          planRequests: [],
         }
       }
       uniqueMap[credit.user_id].credits.push(credit)
+    })
+
+    automationEvents.forEach(event => {
+      const userId = event.user_id
+      if (!userId) return
+      if (!uniqueMap[userId]) {
+        uniqueMap[userId] = {
+          user_id: userId,
+          email: event.user_email || 'Desconhecido',
+          name: event.payload?.user?.name || event.user_email?.split('@')[0] || 'Usuário',
+          phone: event.payload?.user?.phone || null,
+          latest_evaluation: null,
+          evaluations: [],
+          evaluation_count: 0,
+          orders: [],
+          credits: [],
+          planRequests: [],
+        }
+      }
+      uniqueMap[userId].planRequests.push(event)
     })
 
     return Object.values(uniqueMap).map(item => {
@@ -509,80 +588,105 @@ export const AdminDashboard = () => {
     )
   }
 
-  const renderDiagnosisTab = (evaluation) => {
+  const renderDiagnosisTab = (evaluation, userDetails) => {
     if (!evaluation) return (
       <p className="text-slate-500 text-sm mt-4">Nenhum diagnóstico registrado para este usuário.</p>
     )
     const scores = evaluation.scores || {}
+    const plans = evaluation.top_fatigue_solution || {}
+    const fatigueKeys = [...new Set([...Object.keys(scores), ...Object.keys(plans)])].sort((a, b) => sortFatigueEntries([a], [b]))
+    const completedExercises = fatigueKeys.filter(category => getExerciseAdminStatus(category, plans[category]).missingFields.length === 0).length
+    const planRequested = (userDetails?.planRequests || []).length > 0
     
     return (
       <div className="space-y-8 animate-fade-in">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h4 className="font-bold text-slate-800 mb-6 border-b pb-2">Scores dos 7 Cansaços</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(scores).map(([k, v]) => (
-              <div key={k} className="bg-slate-50 p-4 rounded-xl text-center">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{k}</p>
-                <p className="text-3xl font-black text-brand-pink">{v}</p>
-              </div>
-            ))}
-            {Object.keys(scores).length === 0 && (
-              <p className="text-slate-500 col-span-4 text-sm">Nenhum score registrado ainda.</p>
-            )}
+          <div className="mb-6 flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h4 className="font-bold text-slate-800">7 Cansaços e exercícios práticos</h4>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Diagnóstico e andamento real dos exercícios relacionados a cada cansaço.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                {completedExercises}/{fatigueKeys.length || 7} exercícios concluídos
+              </span>
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${planRequested ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                Plano personalizado: {planRequested ? 'solicitado' : 'não solicitado'}
+              </span>
+            </div>
           </div>
-        </div>
-      </div>
-    )
-  }
 
-  const renderActionPlanTab = (evaluation) => {
-    if (!evaluation || !evaluation.top_fatigue_solution) return (
-      <p className="text-slate-500 text-sm mt-4">Nenhum exercício prático registrado.</p>
-    )
-    
-    const plans = evaluation.top_fatigue_solution
-    
-    return (
-      <div className="space-y-6 animate-fade-in">
-        {Object.entries(plans).map(([category, data]) => (
-          <div key={category} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h4 className="font-bold text-lg text-slate-800 mb-4 capitalize flex items-center gap-2">
-              <CheckCircle size={18} className="text-emerald-500" /> Cansaço {category}
-              {data.isCompleted && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase ml-2">Concluído</span>}
-            </h4>
-            
-            {data.actionPlan ? (
-              <div className="space-y-4">
-                {data.actionPlan.action && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ação</p>
-                    <p className="text-slate-700">{data.actionPlan.action}</p>
+          {fatigueKeys.length === 0 ? (
+            <p className="text-slate-500 text-sm">Nenhum score ou exercício registrado ainda.</p>
+          ) : (
+            <div className="space-y-3">
+              {fatigueKeys.map(category => {
+                const score = scores[category]
+                const exerciseData = plans[category]
+                const status = getExerciseAdminStatus(category, exerciseData)
+                const StatusIcon = status.Icon
+
+                return (
+                  <div key={category} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <h5 className="font-black text-slate-800">{FATIGUE_LABELS[category] || `Cansaço ${category}`}</h5>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${status.className}`}>
+                            <StatusIcon size={12} />
+                            {status.label}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-slate-500">{status.detail}</p>
+                        <p className="mt-1 text-sm font-medium text-slate-500">
+                          Plano personalizado: {planRequested ? 'solicitado pelo usuário' : 'não solicitado pelo usuário'}.
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-3">
+                        <div className="rounded-xl border border-slate-100 bg-white px-4 py-3 text-center">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Score</p>
+                          <p className="text-2xl font-black text-brand-pink">{score ?? '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {exerciseData?.actionPlan && (
+                      <div className="mt-4 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 md:grid-cols-2">
+                        {exerciseData.actionPlan.action && (
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ação</p>
+                            <p className="text-sm font-bold text-slate-700">{exerciseData.actionPlan.action}</p>
+                          </div>
+                        )}
+                        {exerciseData.actionPlan.when && (
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quando</p>
+                            <p className="text-sm font-bold text-slate-700">{exerciseData.actionPlan.when}</p>
+                          </div>
+                        )}
+                        {exerciseData.actionPlan.duration && (
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Duração</p>
+                            <p className="text-sm font-bold text-slate-700">{exerciseData.actionPlan.duration}</p>
+                          </div>
+                        )}
+                        {exerciseData.actionPlan.metric && (
+                          <div className="rounded-xl bg-white p-3">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Métrica (1-10)</p>
+                            <p className="text-sm font-bold text-slate-700">{exerciseData.actionPlan.metric}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-                {data.actionPlan.when && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quando</p>
-                    <p className="text-slate-700">{data.actionPlan.when}</p>
-                  </div>
-                )}
-                {data.actionPlan.duration && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Duração</p>
-                    <p className="text-slate-700">{data.actionPlan.duration}</p>
-                  </div>
-                )}
-                {data.actionPlan.metric && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Métrica (1-10)</p>
-                    <p className="text-slate-700">{data.actionPlan.metric}</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">Apenas selecionado, sem plano preenchido.</p>
-            )}
-          </div>
-        ))}
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
@@ -1349,15 +1453,8 @@ export const AdminDashboard = () => {
                       onClick={() => setActiveTab('diagnosis')}
                       className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'diagnosis' ? 'text-brand-pink' : 'text-slate-500 hover:text-slate-800'}`}
                     >
-                      <Activity size={16} className="inline mr-2" /> 7 Cansaços
+                      <Activity size={16} className="inline mr-2" /> 7 Cansaços e Exercícios
                       {activeTab === 'diagnosis' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-pink rounded-t-full"></div>}
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('action_plan')}
-                      className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'action_plan' ? 'text-brand-pink' : 'text-slate-500 hover:text-slate-800'}`}
-                    >
-                      <CheckCircle size={16} className="inline mr-2" /> Exercícios Práticos
-                      {activeTab === 'action_plan' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-pink rounded-t-full"></div>}
                     </button>
                     <button
                       onClick={() => setActiveTab('responses')}
@@ -1379,8 +1476,7 @@ export const AdminDashboard = () => {
                 {/* Tab Content */}
                 <div className="p-8">
                   {activeTab === 'habits' && renderHabitsTab(selectedEvaluation)}
-                  {activeTab === 'diagnosis' && renderDiagnosisTab(selectedEvaluation)}
-                  {activeTab === 'action_plan' && renderActionPlanTab(selectedEvaluation)}
+                  {activeTab === 'diagnosis' && renderDiagnosisTab(selectedEvaluation, selectedUser)}
                   {activeTab === 'responses' && (
                     <div className="space-y-4 animate-fade-in">
                       <div>

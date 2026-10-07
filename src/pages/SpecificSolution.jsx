@@ -151,7 +151,7 @@ export const SpecificSolution = () => {
 
       if (isFinal) {
         const completedCategories = Object.keys(updatedSolutions).filter(
-          key => updatedSolutions[key]?.isCompleted
+          key => getMissingExerciseFields(key, updatedSolutions[key]).length === 0
         )
 
         void dispatchJourneyEvent('exercise_completed', {
