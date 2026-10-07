@@ -88,57 +88,59 @@ export const SpecificSolution = () => {
     }
   })
 
-  const validateFatigue = (category, data) => {
-    if (!data) return false;
+  const getMissingFatigueFields = (category, data) => {
+    if (!data) return ['Preencha os campos do exercício.'];
 
-    const allFilled = (arr) => arr && arr.length > 0 && arr.every(item => item && String(item).trim() !== '');
+    const missing = []
+    const hasText = (value) => String(value || '').trim() !== ''
+    const allFilled = (arr) => arr && arr.length > 0 && arr.every(item => hasText(item));
 
     switch(category) {
       case 'fisico': {
-        if (!data.act01?.list || !data.act01.list.every(i => i.act?.trim() && i.rest?.trim())) return false;
-        if (!data.act02?.records) return false;
-        const records = Object.values(data.act02.records);
-        if (records.length !== 7 || !records.every(r => r.state && r.why?.trim())) return false;
+        if (!data.act01?.list || !data.act01.list.every(i => hasText(i.act) && hasText(i.rest))) missing.push('atividade 01');
+        if (!data.act02?.records) missing.push('atividade 02');
+        const records = Object.values(data.act02?.records || {});
+        if (records.length !== 7 || !records.every(r => r.state && hasText(r.why))) missing.push('tabela de 7 dias');
         // act03 and act05 ocultados temporariamente
-        if (!data.act04 || ['temp','dark','cafeina','silencio','sons','aromas','cama'].some(k => typeof data.act04[k] !== 'number')) return false;
-        return true;
+        if (!data.act04 || ['temp','dark','cafeina','silencio','sons','aromas','cama'].some(k => typeof data.act04[k] !== 'number')) missing.push('escala da atividade 04');
+        return missing;
       }
 
       case 'criativo':
-        if (!allFilled(data.act01?.list)) return false;
-        if (!data.act02 || ['weekly','monthly','yearly'].some(k => !data.act02[k]?.trim())) return false;
-        return true;
+        if (!allFilled(data.act01?.list) || data.act01.list.length < 4) missing.push('as 4 belezas da atividade 01');
+        if (!data.act02 || ['daily','weekly','monthly','yearly'].some(k => !hasText(data.act02[k]))) missing.push('os 4 períodos da atividade 02');
+        return missing;
 
       case 'mental':
         // act01 e act02 ocultados temporariamente, não exigir preenchimento
-        if (!data.act03 || ['imagens','frases','pessoas','lugares','eventos','emocoes','medos','duvidas'].some(k => !data.act03[k]?.trim())) return false;
-        if (!data.act04?.list || !data.act04.list.every(i => i.negative?.trim() && i.positive?.trim())) return false;
-        return true;
+        if (!data.act03 || ['imagens','frases','pessoas','lugares','eventos','emocoes','medos','duvidas'].some(k => !hasText(data.act03[k]))) missing.push('atividade 03');
+        if (!data.act04?.list || !data.act04.list.every(i => hasText(i.negative) && hasText(i.positive))) missing.push('atividade 04');
+        return missing;
 
       case 'sensorial': {
         // act01 ocultado temporariamente
         const act02Keys = ['desconectar','brilho','silenciar','silencio','frutas','olhos','tampaos'];
-        if (!data.act02 || act02Keys.some(k => typeof data.act02[k] !== 'number')) return false;
-        return true;
+        if (!data.act02 || act02Keys.some(k => typeof data.act02[k] !== 'number')) missing.push('escala sensorial');
+        return missing;
       }
 
       case 'emocional':
-        if (!data.act01 || ['outros','consigo'].some(k => typeof data.act01[k] !== 'number')) return false;
-        if (!data.act02 || ['social','educacional','interessantes','infeliz'].some(k => !data.act02[k]?.trim() || typeof data.act02[`${k}_nota`] !== 'number')) return false;
-        return true;
+        if (!data.act01 || ['outros','consigo'].some(k => typeof data.act01[k] !== 'number')) missing.push('atividade 01');
+        if (!data.act02 || ['social','educacional','interessantes','infeliz'].some(k => !hasText(data.act02[k]) || typeof data.act02[`${k}_nota`] !== 'number')) missing.push('atividade 02');
+        return missing;
 
       case 'social':
-        if (!allFilled(data.act01?.drainers) || !allFilled(data.act01?.boosters)) return false;
-        if (!allFilled(data.act02?.presencial) || !allFilled(data.act02?.online) || !data.act02?.action?.trim()) return false;
-        return true;
+        if (!allFilled(data.act01?.drainers) || !allFilled(data.act01?.boosters)) missing.push('atividade 01');
+        if (!allFilled(data.act02?.presencial) || !allFilled(data.act02?.online) || !hasText(data.act02?.action)) missing.push('atividade 02');
+        return missing;
 
       case 'espiritual':
-        if (!data.act01?.text?.trim() || !data.act02?.text?.trim() || !data.act03?.text?.trim()) return false;
+        if (!hasText(data.act01?.text) || !hasText(data.act02?.text) || !hasText(data.act03?.text)) missing.push('atividades 01, 02 e 03');
         // act04 oculto temporariamente
-        return true;
+        return missing;
 
       default:
-        return false;
+        return ['Exercício não encontrado.'];
     }
   }
 
@@ -146,9 +148,10 @@ export const SpecificSolution = () => {
     if (!evaluationId || !topFatigue) return
 
     if (isFinal) {
-      const isValid = validateFatigue(topFatigue, solutionData);
+      const missingFields = getMissingFatigueFields(topFatigue, solutionData);
+      const isValid = missingFields.length === 0;
       if (!isValid) {
-        alert("Ops! Para concluir, você precisa preencher 100% dos campos de todas as seções (inclusive as tabelas inteiras). Volte e verifique o que faltou!");
+        alert(`Ops! Para concluir, falta preencher: ${missingFields.join(', ')}.`);
         return;
       }
     }
@@ -257,7 +260,13 @@ export const SpecificSolution = () => {
         <Sidebar />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-0 md:p-8 lg:p-12 w-full relative" onBlur={() => handleSave(false, true)}>
+        <main
+          className="flex-1 overflow-y-auto p-0 md:p-8 lg:p-12 w-full relative"
+          onBlur={(event) => {
+            if (event.currentTarget.contains(event.relatedTarget)) return
+            handleSave(false, true)
+          }}
+        >
           <div className="max-w-5xl mx-auto w-full min-h-full flex flex-col">
             <div className="p-4 pt-6 md:p-14 lg:p-20 pb-10 flex-1">
             {loading ? (

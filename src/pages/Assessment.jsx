@@ -6,6 +6,7 @@ import { supabase, withTimeout } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { ASSESSMENT_CATEGORY_ORDER, PATHS, getAssessmentPath } from '../lib/journey'
 import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
+import { clearLocalJourneyBackups, startPaidEvaluation } from '../lib/evaluationCredits'
 
 export const Assessment = () => {
   const { category } = useParams() // e.g. 'fisico', 'sensorial'
@@ -24,6 +25,8 @@ export const Assessment = () => {
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [requiresCredit, setRequiresCredit] = useState(false)
+  const [availableCredits, setAvailableCredits] = useState(0)
+  const [isStartingPaidEvaluation, setIsStartingPaidEvaluation] = useState(false)
 
   // Backup local das respostas: garante que nada se perde se a página
   // precisar ser recarregada (queda de conexão, recuperação automática, etc.)
@@ -121,6 +124,19 @@ export const Assessment = () => {
 
         const needsCredit = !draftData && (completedCount || 0) > 0
         setRequiresCredit(needsCredit)
+
+        if (needsCredit) {
+          const { data: creditData, error: creditErr } = await supabase
+            .from('evaluation_credits')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('status', 'available')
+
+          if (creditErr) throw creditErr
+          setAvailableCredits((creditData || []).length)
+        } else {
+          setAvailableCredits(0)
+        }
           
         // Mescla o rascunho do banco com o backup local — o backup local
         // tem prioridade porque contém os cliques mais recentes do usuário
@@ -179,12 +195,28 @@ export const Assessment = () => {
 
     if ((count || 0) > 0) {
       setRequiresCredit(true)
-      alert('Para iniciar uma nova avaliação, compre uma avaliação ou use um crédito disponível no seu perfil.')
-      navigate(PATHS.profile)
+      alert('Para iniciar uma nova avaliação, use um crédito disponível ou compre uma nova avaliação.')
       return false
     }
 
     return true
+  }
+
+  const handleStartPaidEvaluation = async () => {
+    setIsStartingPaidEvaluation(true)
+    try {
+      await startPaidEvaluation()
+      clearLocalJourneyBackups(user?.id)
+      setRequiresCredit(false)
+      setAvailableCredits(Math.max(availableCredits - 1, 0))
+      setAnswers({})
+      navigate(getAssessmentPath('fisico'))
+    } catch (error) {
+      console.error('Erro ao usar crédito para iniciar avaliação:', error)
+      alert(error.message || 'Não foi possível iniciar uma nova avaliação. Verifique se há crédito disponível.')
+    } finally {
+      setIsStartingPaidEvaluation(false)
+    }
   }
 
   const handleSaveDraft = async () => {
@@ -441,15 +473,25 @@ export const Assessment = () => {
                 <p className="text-xs font-black uppercase tracking-widest text-brand-pink mb-3">Nova avaliação</p>
                 <h2 className="text-2xl md:text-3xl font-black text-slate-800 mb-4">Use um crédito para iniciar outro diagnóstico</h2>
                 <p className="text-slate-500 font-medium leading-relaxed max-w-xl mx-auto mb-8">
-                  Você já possui uma avaliação finalizada. Para criar uma nova jornada sem sobrescrever seu histórico, compre uma nova avaliação ou use um crédito disponível no seu perfil.
+                  Você já possui uma avaliação finalizada. Para criar uma nova jornada sem sobrescrever seu histórico, use um crédito disponível ou compre uma nova avaliação.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => navigate(PATHS.profile)}
-                  className="bg-[#1f1a1a] hover:bg-black text-white font-bold py-4 px-8 rounded-xl transition-transform active:scale-95 shadow-xl"
-                >
-                  Ir para meu perfil
-                </button>
+                <div className="flex flex-col sm:flex-row justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleStartPaidEvaluation}
+                    disabled={isStartingPaidEvaluation || availableCredits <= 0}
+                    className="bg-[#1f1a1a] hover:bg-black text-white font-bold py-4 px-8 rounded-xl transition-transform active:scale-95 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isStartingPaidEvaluation ? 'Iniciando...' : `Usar crédito disponível${availableCredits > 0 ? ` (${availableCredits})` : ''}`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(PATHS.credits)}
+                    className="bg-white border-2 border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-4 px-8 rounded-xl transition-transform active:scale-95"
+                  >
+                    Comprar créditos
+                  </button>
+                </div>
               </div>
             ) : questions.length === 0 ? (
               <div className="bg-white p-8 rounded-2xl text-center text-slate-500">
