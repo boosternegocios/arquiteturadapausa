@@ -92,6 +92,17 @@ const LABELS = {
   interessantes_nota: 'Nota de atenção',
   infeliz_nota: 'Nota de atenção emocional',
   paz: 'Experiência de paz',
+  sacrificio: 'Preciso me sacrificar para atingir meus objetivos',
+  utilidade: 'Minha utilidade define meu valor',
+  sozinho: 'Dou conta do meu trabalho sozinho(a)',
+  meta_x: 'Vou ser feliz quando atingir a Meta X',
+  pressao: 'Eu funciono melhor sob pressão',
+  desorganizado: 'Sou desorganizado(a) por natureza',
+  bem_feito: 'Se eu não fizer, não sairá bem feito',
+  liberdade: 'Planejar meu tempo me deixa sem liberdade',
+  improdutivo: 'Descansar é improdutivo',
+  tempo_insuficiente: 'Não tenho tempo suficiente',
+  dar_conta: 'Tenho que dar conta de tudo',
 }
 
 const INTERNAL_KEYS = new Set(['isCompleted'])
@@ -217,6 +228,29 @@ const Section = ({ title, children }) => (
   </section>
 )
 
+const BeliefsSection = ({ value }) => {
+  const entries = visibleEntries(value)
+  if (entries.length === 0) return null
+
+  return (
+    <Section title="Crenças e reflexões">
+      <p className="mb-3 text-sm font-semibold leading-relaxed text-slate-500">
+        Escala de 1 a 10 para o quanto a pessoa concordou com cada afirmação.
+      </p>
+      <div className="space-y-2">
+        {entries.map(([key, score]) => (
+          <div key={key} className="flex min-w-0 flex-col gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <span className="break-words text-sm font-bold leading-snug text-slate-700">{labelFor(key)}</span>
+            <span className="w-max shrink-0 rounded-full bg-[#004b4c] px-3 py-1 text-xs font-black text-white">
+              Nota {formatScalar(score)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
 const ScaleSection = ({ title, value }) => {
   const entries = visibleEntries(value)
   if (entries.length === 0) return null
@@ -298,18 +332,83 @@ const ExerciseData = ({ value }) => {
 
   const allScalars = entries.every(([, nested]) => isScalar(nested))
   if (allScalars) {
-    return <RenderValue value={value} compact />
+    return <ExerciseValue value={value} />
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+    <div className="space-y-3">
       {entries.map(([key, nested]) => (
         <div key={key} className="min-w-0 rounded-2xl border border-slate-100 bg-white p-3 sm:p-4">
           <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{labelFor(key)}</p>
-          <RenderValue value={nested} depth={1} compact />
+          <ExerciseValue value={nested} />
         </div>
       ))}
     </div>
+  )
+}
+
+const ExerciseValue = ({ value }) => {
+  if (isEmptyValue(value)) return null
+
+  if (Array.isArray(value)) {
+    const visibleItems = value.filter(item => !isEmptyValue(item))
+    if (visibleItems.length === 0) return null
+
+    return (
+      <div className="space-y-2">
+        {visibleItems.map((item, index) => (
+          <div key={index} className="min-w-0 rounded-xl border border-slate-100 bg-slate-50 p-3">
+            {typeof item === 'object' && item !== null ? (
+              <ExerciseValue value={item} />
+            ) : (
+              <p className="break-words text-sm font-bold leading-relaxed text-slate-700 whitespace-pre-wrap">
+                {formatScalar(item)}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (typeof value === 'object') {
+    const entries = visibleEntries(value)
+    if (entries.length === 0) return null
+
+    const allScalars = entries.every(([, nested]) => isScalar(nested))
+    if (allScalars) {
+      return (
+        <dl className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          {entries.map(([key, nested]) => (
+            <div key={key} className="min-w-0 rounded-xl border border-slate-100 bg-white p-3">
+              <dt className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                {labelFor(key)}
+              </dt>
+              <dd className="break-words text-sm font-bold leading-relaxed text-slate-700 whitespace-pre-wrap">
+                {formatScalar(nested)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )
+    }
+
+    return (
+      <div className="space-y-3">
+        {entries.map(([key, nested]) => (
+          <div key={key} className="min-w-0 rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">{labelFor(key)}</p>
+            <ExerciseValue value={nested} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <p className="break-words text-sm font-bold leading-relaxed text-slate-700 whitespace-pre-wrap">
+      {formatScalar(value)}
+    </p>
   )
 }
 
@@ -400,7 +499,6 @@ export const EvaluationResponseSummary = ({ evaluation }) => {
     ['solution_satisfaction', evaluation.solution_satisfaction],
     ['solution_time_relation', evaluation.solution_time_relation],
     ['solution_internal_speed', evaluation.solution_internal_speed],
-    ['solution_beliefs', evaluation.solution_beliefs],
     ['solution_rhythm_impacts', evaluation.solution_rhythm_impacts],
     ['scores', evaluation.scores],
   ].filter(([, value]) => !isEmptyValue(value))
@@ -426,6 +524,7 @@ export const EvaluationResponseSummary = ({ evaluation }) => {
           </Section>
         )
       ))}
+      <BeliefsSection value={evaluation.solution_beliefs} />
       <AnswersSection answers={evaluation.answers} questionsById={questionsById} />
       <ExercisesSection solutions={evaluation.top_fatigue_solution} />
     </div>
