@@ -23,6 +23,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://127.0.0.1:4173",
   "https://arquiteturadapausa.com",
   "https://www.arquiteturadapausa.com",
+  "https://app.arquiteturadapausa.com",
 ]
 
 const allowedOrigins = () =>
