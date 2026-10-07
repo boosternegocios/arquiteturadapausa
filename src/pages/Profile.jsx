@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { EvaluationResponseSummary } from '../components/EvaluationResponseSummary';
 import { User, Save, Mail, Phone, CalendarClock, Gauge, HeartPulse, FileText, CreditCard, WalletCards, ShoppingBag, CheckCircle2, Clock3, XCircle, X } from 'lucide-react';
 import { PATHS, getAssessmentPath } from '../lib/journey';
 import {
@@ -46,6 +47,7 @@ export const Profile = () => {
   const [vitalityScore, setVitalityScore] = useState(0);
   const [timeScore, setTimeScore] = useState(0);
   const [evaluations, setEvaluations] = useState([]);
+  const [openEvaluationId, setOpenEvaluationId] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutPlanId, setCheckoutPlanId] = useState(null);
@@ -66,7 +68,7 @@ export const Profile = () => {
       setHistoryLoading(true);
       const { data } = await supabase
         .from('evaluations')
-        .select('id, created_at, status, solution_satisfaction, scores, solution_time_relation')
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(12);
@@ -748,8 +750,27 @@ export const Profile = () => {
                                 >
                                   Vitalidade
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenEvaluationId(prev => prev === evaluation.id ? null : evaluation.id)}
+                                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink transition-colors"
+                                >
+                                  {openEvaluationId === evaluation.id ? 'Ocultar respostas' : 'Ver respostas'}
+                                </button>
                               </div>
                             </div>
+
+                            {openEvaluationId === evaluation.id && (
+                              <div className="mt-5 border-t border-slate-200 pt-5">
+                                <div className="mb-4">
+                                  <h4 className="text-lg font-black text-slate-800">Respostas e compromissos</h4>
+                                  <p className="mt-1 text-sm font-medium text-slate-500">
+                                    Consulte o que foi preenchido nesta avaliação, incluindo planos, metas e exercícios.
+                                  </p>
+                                </div>
+                                <EvaluationResponseSummary evaluation={evaluation} />
+                              </div>
+                            )}
                           </div>
                         );
                       })}

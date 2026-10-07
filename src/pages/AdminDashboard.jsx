@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
+import { EvaluationResponseSummary } from '../components/EvaluationResponseSummary'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { PATHS } from '../lib/journey'
@@ -106,6 +107,7 @@ export const AdminDashboard = () => {
   const [planSaving, setPlanSaving] = useState(false)
   const [planMessage, setPlanMessage] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
+  const [selectedAdminEvaluationId, setSelectedAdminEvaluationId] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [financeSearch, setFinanceSearch] = useState('')
   const [financeStatus, setFinanceStatus] = useState('all')
@@ -205,6 +207,7 @@ export const AdminDashboard = () => {
         name: userInfo.name || userInfo.email?.split('@')[0] || 'Usuário',
         phone: userInfo.phone || null,
         latest_evaluation: null,
+        evaluations: [],
         evaluation_count: 0,
         orders: [],
         credits: [],
@@ -219,6 +222,7 @@ export const AdminDashboard = () => {
           name: 'Usuário',
           phone: null,
           latest_evaluation: ev,
+          evaluations: [ev],
           evaluation_count: 1,
           orders: [],
           credits: [],
@@ -227,6 +231,7 @@ export const AdminDashboard = () => {
         if (!uniqueMap[ev.user_id].latest_evaluation) {
           uniqueMap[ev.user_id].latest_evaluation = ev
         }
+        uniqueMap[ev.user_id].evaluations.push(ev)
         uniqueMap[ev.user_id].evaluation_count += 1
       }
     })
@@ -239,6 +244,7 @@ export const AdminDashboard = () => {
           name: order.user_email?.split('@')[0] || 'Usuário',
           phone: null,
           latest_evaluation: null,
+          evaluations: [],
           evaluation_count: 0,
           orders: [],
           credits: [],
@@ -255,6 +261,7 @@ export const AdminDashboard = () => {
           name: 'Usuário',
           phone: null,
           latest_evaluation: null,
+          evaluations: [],
           evaluation_count: 0,
           orders: [],
           credits: [],
@@ -316,6 +323,13 @@ export const AdminDashboard = () => {
     const matchesStatus = financeStatus === 'all' || order.status === financeStatus
     return matchesSearch && matchesStatus
   })
+  const selectedUserEvaluations = selectedUser
+    ? [...(selectedUser.evaluations || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    : []
+  const selectedEvaluation = selectedUserEvaluations.find(evaluation => evaluation.id === selectedAdminEvaluationId)
+    || selectedUser?.latest_evaluation
+    || selectedUserEvaluations[0]
+    || null
 
   useEffect(() => {
     setUserPage(1)
@@ -1184,7 +1198,10 @@ export const AdminDashboard = () => {
                 paginatedUsers.map(u => (
                   <button
                     key={u.user_id}
-                    onClick={() => setSelectedUser(u)}
+                    onClick={() => {
+                      setSelectedUser(u)
+                      setSelectedAdminEvaluationId(u.latest_evaluation?.id || u.evaluations?.[0]?.id || null)
+                    }}
                     className={`w-full text-left p-4 rounded-xl transition-all flex items-start gap-3 border ${
                       selectedUser?.user_id === u.user_id 
                         ? 'bg-brand-pink/5 border-brand-pink shadow-sm' 
@@ -1283,6 +1300,40 @@ export const AdminDashboard = () => {
                       </div>
                     </div>
                   </div>
+
+                  {selectedUserEvaluations.length > 0 && (
+                    <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Histórico de avaliações</p>
+                          <p className="text-sm font-bold text-slate-600 mt-1">Escolha qual avaliação deseja consultar.</p>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {selectedUserEvaluations.length} registro{selectedUserEvaluations.length === 1 ? '' : 's'}
+                        </span>
+                      </div>
+
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {selectedUserEvaluations.map(evaluation => (
+                          <button
+                            key={evaluation.id}
+                            type="button"
+                            onClick={() => setSelectedAdminEvaluationId(evaluation.id)}
+                            className={`shrink-0 rounded-xl border px-4 py-3 text-left transition-all ${
+                              selectedEvaluation?.id === evaluation.id
+                                ? 'border-brand-pink bg-white shadow-sm'
+                                : 'border-slate-200 bg-white/70 hover:border-slate-300'
+                            }`}
+                          >
+                            <p className="text-xs font-black text-slate-800">{formatDateTime(evaluation.created_at)}</p>
+                            <p className={`mt-1 text-[10px] font-black uppercase tracking-widest ${evaluation.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                              {evaluation.status === 'completed' ? 'Finalizada' : 'Em andamento'}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Tabs */}
                   <div className="flex gap-4 md:gap-6 mt-6 md:mt-8 border-b border-slate-200 overflow-x-auto no-scrollbar whitespace-nowrap">
@@ -1308,6 +1359,13 @@ export const AdminDashboard = () => {
                       {activeTab === 'action_plan' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-pink rounded-t-full"></div>}
                     </button>
                     <button
+                      onClick={() => setActiveTab('responses')}
+                      className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'responses' ? 'text-brand-pink' : 'text-slate-500 hover:text-slate-800'}`}
+                    >
+                      <FileText size={16} className="inline mr-2" /> Respostas
+                      {activeTab === 'responses' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-pink rounded-t-full"></div>}
+                    </button>
+                    <button
                       onClick={() => setActiveTab('payments')}
                       className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'payments' ? 'text-brand-pink' : 'text-slate-500 hover:text-slate-800'}`}
                     >
@@ -1319,9 +1377,20 @@ export const AdminDashboard = () => {
                 
                 {/* Tab Content */}
                 <div className="p-8">
-                  {activeTab === 'habits' && renderHabitsTab(selectedUser.latest_evaluation)}
-                  {activeTab === 'diagnosis' && renderDiagnosisTab(selectedUser.latest_evaluation)}
-                  {activeTab === 'action_plan' && renderActionPlanTab(selectedUser.latest_evaluation)}
+                  {activeTab === 'habits' && renderHabitsTab(selectedEvaluation)}
+                  {activeTab === 'diagnosis' && renderDiagnosisTab(selectedEvaluation)}
+                  {activeTab === 'action_plan' && renderActionPlanTab(selectedEvaluation)}
+                  {activeTab === 'responses' && (
+                    <div className="space-y-4 animate-fade-in">
+                      <div>
+                        <h4 className="text-xl font-black text-slate-800">Respostas e compromissos</h4>
+                        <p className="mt-1 text-sm font-medium text-slate-500">
+                          Dados preenchidos na avaliação selecionada, incluindo planos, metas e exercícios.
+                        </p>
+                      </div>
+                      <EvaluationResponseSummary evaluation={selectedEvaluation} />
+                    </div>
+                  )}
                   {activeTab === 'payments' && renderPaymentsTab(selectedUser)}
                 </div>
               </div>
