@@ -710,7 +710,7 @@ export const Profile = () => {
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2 mb-2">
                                   <span className="text-sm font-black text-slate-800">
-                                    {formatEvaluationDate(evaluation.created_at)}
+                                    Iniciada em {formatEvaluationDate(evaluation.created_at)}
                                   </span>
                                   <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${evaluation.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                                     {getEvaluationStatusLabel(evaluation.status)}

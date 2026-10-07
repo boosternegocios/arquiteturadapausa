@@ -1430,7 +1430,8 @@ export const AdminDashboard = () => {
                                 : 'border-slate-200 bg-white/70 hover:border-slate-300'
                             }`}
                           >
-                            <p className="text-xs font-black text-slate-800">{formatDateTime(evaluation.created_at)}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Iniciada em</p>
+                            <p className="mt-1 text-xs font-black text-slate-800">{formatDateTime(evaluation.created_at)}</p>
                             <p className={`mt-1 text-[10px] font-black uppercase tracking-widest ${evaluation.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>
                               {evaluation.status === 'completed' ? 'Finalizada' : 'Em andamento'}
                             </p>
