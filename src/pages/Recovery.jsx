@@ -6,6 +6,7 @@ import { supabase, withTimeout } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
 import { BELIEF_KEYS, PATHS, getRecoveryPath, normalizeRecoveryStep } from '../lib/journey'
+import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
 
 const STEPS = [
   { id: 'satisfaction', number: 1, title: '1 Quão satisfeito você está com seu nível de...', subtitle: 'Usando uma escala de 1 (mais baixo) a 10 (mais alto)' },
@@ -284,6 +285,32 @@ export const Recovery = () => {
         setSaving(false)
 
         if (isAdvancing) {
+          void dispatchJourneyEvent('recovery_step_completed', {
+            evaluation_id: currentEvalId,
+            step,
+            is_final_step: isFinal,
+          }, {
+            eventKey: buildEventKey('recovery_step_completed', currentEvalId, step),
+          })
+
+          if (step === 'internal-speed') {
+            void dispatchJourneyEvent('time_radar_completed', {
+              evaluation_id: currentEvalId,
+              completed_steps: ['satisfaction', 'time-relation', 'internal-speed'],
+            }, {
+              eventKey: buildEventKey('time_radar_completed', currentEvalId),
+            })
+          }
+
+          if (step === 'time-tips') {
+            void dispatchJourneyEvent('beliefs_reflection_completed', {
+              evaluation_id: currentEvalId,
+              completed_steps: ['beliefs', 'cycle', 'time-tips'],
+            }, {
+              eventKey: buildEventKey('beliefs_reflection_completed', currentEvalId),
+            })
+          }
+
           if (isFinal) {
             navigate(PATHS.contact)
           } else if (step === 'internal-speed' || step === 'time-tips') {

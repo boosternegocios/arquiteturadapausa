@@ -13,6 +13,7 @@ import { SensorialFatigue } from '../components/solutions/SensorialFatigue'
 import { EmotionalFatigue } from '../components/solutions/EmotionalFatigue'
 import { SocialFatigue } from '../components/solutions/SocialFatigue'
 import { SpiritualFatigue } from '../components/solutions/SpiritualFatigue'
+import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
 
 const CATEGORY_DATA = FATIGUE_CATEGORY_CONFIG
 
@@ -170,11 +171,13 @@ export const SpecificSolution = () => {
         updatedData.isCompleted = true;
       }
 
+      const updatedSolutions = {
+        ...currentSolutions,
+        [topFatigue]: updatedData
+      }
+
       const updates = {
-        top_fatigue_solution: {
-          ...currentSolutions,
-          [topFatigue]: updatedData
-        }
+        top_fatigue_solution: updatedSolutions
       }
 
       // Removemos a tentativa de atualizar `solution_status` pois a coluna não existe.
@@ -192,6 +195,27 @@ export const SpecificSolution = () => {
       }
 
       if (isFinal) {
+        const completedCategories = Object.keys(updatedSolutions).filter(
+          key => updatedSolutions[key]?.isCompleted
+        )
+
+        void dispatchJourneyEvent('exercise_completed', {
+          evaluation_id: evaluationId,
+          category: topFatigue,
+          completed_count: completedCategories.length,
+        }, {
+          eventKey: buildEventKey('exercise_completed', evaluationId, topFatigue),
+        })
+
+        if (completedCategories.length >= 7) {
+          void dispatchJourneyEvent('all_exercises_completed', {
+            evaluation_id: evaluationId,
+            completed_categories: completedCategories,
+          }, {
+            eventKey: buildEventKey('all_exercises_completed', evaluationId),
+          })
+        }
+
         navigate(PATHS.continueHealing)
       }
     } catch (error) {

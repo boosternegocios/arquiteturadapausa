@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -18,6 +18,7 @@ import {
 import {
   Brain, Heart, HeartPulse, Fingerprint, Lightbulb, Users, Sun, ArrowRight, ActivitySquare
 } from 'lucide-react'
+import { getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
 
 const CATEGORY_DATA = {
   fisico: { ...FATIGUE_CATEGORY_CONFIG.fisico, icon: ActivitySquare },
@@ -42,6 +43,8 @@ const RESULT_TEXTS = {
 export const Result = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const selectedEvaluationId = getEvaluationIdFromSearchParams(searchParams)
 
   const [loading, setLoading] = useState(true)
   const [scores, setScores] = useState([])
@@ -52,13 +55,18 @@ export const Result = () => {
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      let query = supabase
         .from('evaluations')
         .select('scores')
         .eq('user_id', user.id)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(1)
+
+      if (selectedEvaluationId) {
+        query = query.eq('id', selectedEvaluationId)
+      } else {
+        query = query.eq('status', 'completed').order('created_at', { ascending: false })
+      }
+
+      const { data, error } = await query.limit(1)
 
       if (error) throw error
 
@@ -91,7 +99,7 @@ export const Result = () => {
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [user, selectedEvaluationId])
 
   useEffect(() => {
     fetchResults()
@@ -137,10 +145,10 @@ export const Result = () => {
             {/* CTA Button moved to Header for Above the Fold visibility */}
             {!loading && scores.length > 0 && (
               <button
-                onClick={() => navigate(PATHS.solution)}
+                onClick={() => navigate(selectedEvaluationId ? PATHS.profile : PATHS.solution)}
                 className="bg-[#1f1a1a] hover:bg-black text-white font-bold py-4 px-8 rounded-xl flex items-center justify-center gap-3 transition-transform active:scale-95 whitespace-nowrap shadow-xl w-full md:w-auto"
               >
-                Iniciar sua reflexão <ArrowRight size={20} />
+                {selectedEvaluationId ? 'Voltar ao histórico' : 'Iniciar sua reflexão'} <ArrowRight size={20} />
               </button>
             )}
           </header>

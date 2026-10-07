@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase, withTimeout } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { ASSESSMENT_CATEGORY_ORDER, PATHS, getAssessmentPath } from '../lib/journey'
+import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
 
 export const Assessment = () => {
   const { category } = useParams() // e.g. 'fisico', 'sensorial'
@@ -22,6 +23,7 @@ export const Assessment = () => {
   const [answers, setAnswers] = useState({}) // { questionId: value (0-10) }
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [requiresCredit, setRequiresCredit] = useState(false)
 
   // Backup local das respostas: garante que nada se perde se a página
   // precisar ser recarregada (queda de conexão, recuperação automática, etc.)
@@ -108,11 +110,22 @@ export const Assessment = () => {
         if (draftErr) throw draftErr
           
         const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
+
+        const { count: completedCount, error: completedErr } = await supabase
+          .from('evaluations')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+
+        if (completedErr) throw completedErr
+
+        const needsCredit = !draftData && (completedCount || 0) > 0
+        setRequiresCredit(needsCredit)
           
         // Mescla o rascunho do banco com o backup local — o backup local
         // tem prioridade porque contém os cliques mais recentes do usuário
         // (inclusive os feitos logo antes de uma recuperação automática).
-        setAnswers({ ...(draftData?.answers || {}), ...readLocalBackup() })
+        setAnswers(needsCredit ? {} : { ...(draftData?.answers || {}), ...readLocalBackup() })
       } catch (err) {
         if (err.code !== 'PGRST116') { // ignora erro de nenhum rascunho encontrado
           console.error('Erro ao buscar dados:', err)
@@ -153,6 +166,27 @@ export const Assessment = () => {
     window.location.reload()
   }
 
+  const ensureCanCreateDraft = async (draftData) => {
+    if (draftData) return true
+
+    const { count, error } = await withTimeout(supabase
+      .from('evaluations')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'completed'))
+
+    if (error) throw error
+
+    if ((count || 0) > 0) {
+      setRequiresCredit(true)
+      alert('Para iniciar uma nova avaliação, compre uma avaliação ou use um crédito disponível no seu perfil.')
+      navigate(PATHS.profile)
+      return false
+    }
+
+    return true
+  }
+
   const handleSaveDraft = async () => {
     setIsSaving(true)
     try {
@@ -166,6 +200,9 @@ export const Assessment = () => {
         
       if (fetchErr) console.error('[Assessment] Erro ao buscar rascunho:', fetchErr)
       const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
+
+      const canCreateDraft = await ensureCanCreateDraft(draftData)
+      if (!canCreateDraft) return
         
       const existingAnswers = draftData?.answers || {}
       const existingScores = draftData?.scores || {}
@@ -237,6 +274,9 @@ export const Assessment = () => {
       if (fetchErr) console.error('[Assessment] Erro ao buscar rascunho:', fetchErr)
         
       const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
+
+      const canCreateDraft = await ensureCanCreateDraft(draftData)
+      if (!canCreateDraft) return
       
       const existingAnswers = draftData?.answers || {}
       const existingScores = draftData?.scores || {}
@@ -253,6 +293,8 @@ export const Assessment = () => {
       
       const newScores = { ...existingScores, [category.toLowerCase()]: categoryScore }
       
+      let currentEvaluationId = draftData?.id
+
       if (draftData) {
         // Update draft
         console.log('[Assessment] Atualizando rascunho ID:', draftData.id)
@@ -264,19 +306,43 @@ export const Assessment = () => {
       } else {
         // Create new draft
         console.log('[Assessment] Criando novo rascunho')
-        const { error } = await withTimeout(supabase
+        const { data: createdDraft, error } = await withTimeout(supabase
           .from('evaluations')
           .insert({
             user_id: user.id,
             status: 'draft',
             answers: newAnswers,
             scores: newScores
-          }))
+          })
+          .select('id')
+          .single())
         if (error) throw error
+        currentEvaluationId = createdDraft?.id
       }
 
       // Navigating logic
       const currentIndex = ASSESSMENT_CATEGORY_ORDER.indexOf(category.toLowerCase())
+      const currentCategory = category.toLowerCase()
+
+      if (currentEvaluationId) {
+        if (currentIndex === 0) {
+          void dispatchJourneyEvent('fatigue_assessment_started', {
+            evaluation_id: currentEvaluationId,
+            first_category: currentCategory,
+          }, {
+            eventKey: buildEventKey('fatigue_assessment_started', currentEvaluationId),
+          })
+        }
+
+        void dispatchJourneyEvent('fatigue_category_completed', {
+          evaluation_id: currentEvaluationId,
+          category: currentCategory,
+          score: categoryScore,
+          answered_count: questions.length,
+        }, {
+          eventKey: buildEventKey('fatigue_category_completed', currentEvaluationId, currentCategory),
+        })
+      }
 
       if (currentIndex >= 0 && currentIndex < ASSESSMENT_CATEGORY_ORDER.length - 1) {
         // Próximo
@@ -284,11 +350,24 @@ export const Assessment = () => {
         navigate(getAssessmentPath(nextCategory))
       } else {
         // Final
+        if (!currentEvaluationId) {
+          throw new Error('Avaliação atual não encontrada para finalização.')
+        }
+
         await withTimeout(supabase
           .from('evaluations')
           .update({ status: 'completed' })
-          .eq('user_id', user.id)
-          .eq('status', 'draft'))
+          .eq('id', currentEvaluationId))
+
+        if (currentEvaluationId) {
+          void dispatchJourneyEvent('fatigue_assessment_completed', {
+            evaluation_id: currentEvaluationId,
+            completed_categories: ASSESSMENT_CATEGORY_ORDER,
+            scores: newScores,
+          }, {
+            eventKey: buildEventKey('fatigue_assessment_completed', currentEvaluationId),
+          })
+        }
 
         // Avaliação concluída — o backup local já cumpriu seu papel
         if (backupKey) {
@@ -356,6 +435,21 @@ export const Assessment = () => {
             {loading ? (
               <div className="flex justify-center p-12">
                 <div className="w-10 h-10 border-4 border-mint/30 border-t-mint rounded-full animate-spin"></div>
+              </div>
+            ) : requiresCredit ? (
+              <div className="bg-white rounded-[2rem] p-8 md:p-10 text-center shadow-sm border border-slate-100">
+                <p className="text-xs font-black uppercase tracking-widest text-brand-pink mb-3">Nova avaliação</p>
+                <h2 className="text-2xl md:text-3xl font-black text-slate-800 mb-4">Use um crédito para iniciar outro diagnóstico</h2>
+                <p className="text-slate-500 font-medium leading-relaxed max-w-xl mx-auto mb-8">
+                  Você já possui uma avaliação finalizada. Para criar uma nova jornada sem sobrescrever seu histórico, compre uma nova avaliação ou use um crédito disponível no seu perfil.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate(PATHS.profile)}
+                  className="bg-[#1f1a1a] hover:bg-black text-white font-bold py-4 px-8 rounded-xl transition-transform active:scale-95 shadow-xl"
+                >
+                  Ir para meu perfil
+                </button>
               </div>
             ) : questions.length === 0 ? (
               <div className="bg-white p-8 rounded-2xl text-center text-slate-500">
@@ -453,7 +547,7 @@ export const Assessment = () => {
           </div>
           
           {/* Footer Actions */}
-          {!loading && questions.length > 0 && (
+          {!loading && !requiresCredit && questions.length > 0 && (
             <div className="flex flex-col sm:flex-row justify-end items-center gap-4 mt-auto border-t border-slate-200/60 pt-8 pb-10">
               <button 
                 onClick={handleSaveDraft}

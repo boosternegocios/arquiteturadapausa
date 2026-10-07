@@ -1,12 +1,38 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { User, Save, Mail, Phone } from 'lucide-react';
-import { FATIGUE_CATEGORY_KEYS, getFatiguePercent } from '../lib/journey';
+import { User, Save, Mail, Phone, CalendarClock, Gauge, HeartPulse, FileText, CreditCard, WalletCards, ShoppingBag, CheckCircle2, Clock3, XCircle, X } from 'lucide-react';
+import { PATHS, getAssessmentPath } from '../lib/journey';
+import {
+  buildEvaluationScopedPath,
+  calculateTimeScore,
+  calculateVitalityScore,
+  formatEvaluationDate,
+  hasCompleteFatigueScores,
+  hasCompleteSpeedRadar,
+} from '../lib/evaluationHistory';
+import { clearLocalJourneyBackups, startPaidEvaluation } from '../lib/evaluationCredits';
+import { createEvaluationPaymentOrder, fetchActivePlans, formatPlanPrice, processCardPayment } from '../lib/payments';
+import { loadMercadoPagoSdk } from '../lib/mercadoPagoSdk';
+
+const getEvaluationStatusLabel = (status) => {
+  if (status === 'completed') return 'Finalizada';
+  if (status === 'draft') return 'Em andamento';
+  return 'Registrada';
+};
+
+const getPaymentStatus = (status) => {
+  if (status === 'approved') return { label: 'Aprovado', Icon: CheckCircle2, className: 'bg-emerald-100 text-emerald-700' };
+  if (status === 'rejected' || status === 'cancelled' || status === 'failed') return { label: 'Não concluído', Icon: XCircle, className: 'bg-rose-100 text-rose-700' };
+  if (status === 'refunded' || status === 'charged_back') return { label: 'Estornado', Icon: XCircle, className: 'bg-slate-200 text-slate-700' };
+  return { label: 'Pendente', Icon: Clock3, className: 'bg-amber-100 text-amber-700' };
+};
 
 export const Profile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -19,52 +45,93 @@ export const Profile = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [vitalityScore, setVitalityScore] = useState(0);
   const [timeScore, setTimeScore] = useState(0);
+  const [evaluations, setEvaluations] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutPlanId, setCheckoutPlanId] = useState(null);
+  const [startLoading, setStartLoading] = useState(false);
+  const [availableCredits, setAvailableCredits] = useState(0);
+  const [creditSummary, setCreditSummary] = useState({ total: 0, available: 0, consumed: 0 });
+  const [paymentOrders, setPaymentOrders] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [paymentSession, setPaymentSession] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
+  const [brickReady, setBrickReady] = useState(false);
+  const paymentControllerRef = useRef(null);
 
   const fetchEnergy = useCallback(async () => {
     if (!user) return;
     try {
+      setHistoryLoading(true);
       const { data } = await supabase
         .from('evaluations')
-        .select('solution_satisfaction, scores, solution_time_relation')
+        .select('id, created_at, status, solution_satisfaction, scores, solution_time_relation')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(12);
+
+      setEvaluations(data || []);
+
+      const { data: creditData, error: creditError } = await supabase
+        .from('evaluation_credits')
+        .select('id, status, created_at, consumed_at')
+        .eq('user_id', user.id);
+
+      if (creditError) {
+        console.warn('Créditos de avaliação ainda não disponíveis neste banco:', creditError.message);
+        setAvailableCredits(0);
+        setCreditSummary({ total: 0, available: 0, consumed: 0 });
+      } else {
+        const credits = creditData || [];
+        const available = credits.filter(credit => credit.status === 'available').length;
+        const consumed = credits.filter(credit => credit.status === 'consumed').length;
+        setAvailableCredits(available);
+        setCreditSummary({ total: credits.length, available, consumed });
+      }
+
+      const { data: orderData, error: orderError } = await supabase
+        .from('payment_orders')
+        .select('id, created_at, status, plan_name, credits_purchased, amount_cents, currency, provider_status_detail')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (orderError) {
+        console.warn('Pedidos ainda não disponíveis neste banco:', orderError.message);
+        setPaymentOrders([]);
+      } else {
+        setPaymentOrders(orderData || []);
+      }
+
+      try {
+        const activePlans = await fetchActivePlans();
+        setPlans(activePlans);
+      } catch (planError) {
+        console.warn('Planos ainda não disponíveis neste banco:', planError.message);
+        setPlans([]);
+      }
 
       if (data && data.length > 0) {
         const evalData = data[0];
         
         if (evalData.scores) {
-          const scores = evalData.scores;
-          let vitSum = 0;
-          let vitCount = 0;
-          FATIGUE_CATEGORY_KEYS.forEach(key => {
-            if (scores[key] !== undefined && scores[key] !== null) {
-              vitSum += getFatiguePercent(key, scores[key]);
-              vitCount++;
-            }
-          });
-          if (vitCount > 0) {
-            setVitalityScore(Math.round(vitSum / vitCount));
-          }
+          const nextVitalityScore = calculateVitalityScore(evalData.scores);
+          setVitalityScore(nextVitalityScore ?? 0);
         }
 
         if (evalData.solution_time_relation) {
-          const timeRel = evalData.solution_time_relation;
-          let timeSum = 0;
-          let timeCount = 0;
-          Object.values(timeRel).forEach(val => {
-            if (val !== undefined && val !== null) {
-              timeSum += val * 10;
-              timeCount++;
-            }
-          });
-          if (timeCount > 0) {
-            setTimeScore(Math.round(timeSum / timeCount));
-          }
+          const nextTimeScore = calculateTimeScore(evalData.solution_time_relation);
+          setTimeScore(nextTimeScore ?? 0);
         }
+      } else {
+        setVitalityScore(0);
+        setTimeScore(0);
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setHistoryLoading(false);
     }
   }, [user]);
 
@@ -175,8 +242,200 @@ export const Profile = () => {
     setFormData({ ...formData, [e.target.name]: value });
   };
 
+  useEffect(() => {
+    if (!paymentSession?.public_key || !paymentSession?.order_id) return undefined;
+
+    let cancelled = false;
+    setBrickReady(false);
+    setPaymentError('');
+    setPaymentStatus('');
+
+    const renderBrick = async () => {
+      try {
+        const MercadoPago = await loadMercadoPagoSdk();
+        if (cancelled) return;
+
+        if (paymentControllerRef.current?.unmount) {
+          paymentControllerRef.current.unmount();
+          paymentControllerRef.current = null;
+        }
+
+        const mp = new MercadoPago(paymentSession.public_key, { locale: 'pt-BR' });
+        const bricksBuilder = mp.bricks();
+
+        paymentControllerRef.current = await bricksBuilder.create('cardPayment', 'cardPaymentBrick_container', {
+          initialization: {
+            amount: paymentSession.amount,
+            payer: {
+              email: paymentSession.payer?.email || user?.email || '',
+            },
+          },
+          customization: {
+            visual: {
+              style: {
+                theme: 'default',
+              },
+            },
+            paymentMethods: {
+              minInstallments: 1,
+              maxInstallments: 12,
+            },
+          },
+          callbacks: {
+            onReady: () => {
+              if (!cancelled) setBrickReady(true);
+            },
+            onSubmit: (cardFormData, additionalData) => (
+              new Promise((resolve, reject) => {
+                setPaymentStatus('Processando pagamento...');
+                setPaymentError('');
+
+                processCardPayment({
+                  orderId: paymentSession.order_id,
+                  paymentData: cardFormData,
+                  additionalData,
+                })
+                  .then(async (result) => {
+                    if (cancelled) return;
+                    if (result?.status === 'approved') {
+                      setPaymentStatus('Pagamento aprovado. Crédito liberado na sua conta.');
+                      await fetchEnergy();
+                    } else if (result?.status === 'pending') {
+                      setPaymentStatus('Pagamento enviado. Assim que o Mercado Pago confirmar, o crédito aparece aqui.');
+                      await fetchEnergy();
+                    } else {
+                      setPaymentStatus('');
+                      setPaymentError('Pagamento não aprovado. Confira os dados e tente novamente.');
+                    }
+                    resolve(result);
+                  })
+                  .catch((error) => {
+                    if (!cancelled) {
+                      setPaymentStatus('');
+                      setPaymentError(error.message || 'Não foi possível processar o pagamento.');
+                    }
+                    reject(error);
+                  });
+              })
+            ),
+            onError: (error) => {
+              console.error('Erro no Card Payment Brick:', error);
+              if (!cancelled) setPaymentError('O formulário de pagamento encontrou um erro. Tente novamente.');
+            },
+          },
+        });
+      } catch (error) {
+        console.error('Erro ao carregar checkout transparente:', error);
+        if (!cancelled) {
+          setPaymentError(error.message || 'Não foi possível carregar o checkout transparente.');
+          setBrickReady(true);
+        }
+      }
+    };
+
+    renderBrick();
+
+    return () => {
+      cancelled = true;
+      if (paymentControllerRef.current?.unmount) {
+        paymentControllerRef.current.unmount();
+        paymentControllerRef.current = null;
+      }
+    };
+  }, [fetchEnergy, paymentSession, user?.email]);
+
+  const handleCreateCheckout = async (plan) => {
+    setCheckoutLoading(true);
+    setCheckoutPlanId(plan?.id || null);
+    try {
+      if (!plan?.id) throw new Error('Escolha um plano para continuar.');
+      const session = await createEvaluationPaymentOrder({ planId: plan.id });
+      if (!session?.public_key || !session?.order_id) {
+        throw new Error('Pedido criado sem dados para abrir o checkout transparente.');
+      }
+      setPaymentSession(session);
+    } catch (error) {
+      console.error('Erro ao criar checkout:', error);
+      alert(error.message || 'Não foi possível iniciar o pagamento. Tente novamente.');
+    } finally {
+      setCheckoutLoading(false);
+      setCheckoutPlanId(null);
+    }
+  };
+
+  const handleStartPaidEvaluation = async () => {
+    setStartLoading(true);
+    try {
+      await startPaidEvaluation();
+      clearLocalJourneyBackups(user?.id);
+      navigate(getAssessmentPath('fisico'));
+    } catch (error) {
+      console.error('Erro ao iniciar avaliação paga:', error);
+      alert(error.message || 'Não foi possível iniciar uma nova avaliação. Verifique se há crédito disponível.');
+    } finally {
+      setStartLoading(false);
+    }
+  };
+
+  const closePaymentSession = () => {
+    if (paymentControllerRef.current?.unmount) {
+      paymentControllerRef.current.unmount();
+      paymentControllerRef.current = null;
+    }
+    setPaymentSession(null);
+    setPaymentError('');
+    setPaymentStatus('');
+    setBrickReady(false);
+  };
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 min-h-screen font-display">
+      {paymentSession && (
+        <div className="fixed inset-0 z-50 bg-slate-950/55 px-4 py-6 flex items-center justify-center">
+          <div className="bg-white rounded-[1.75rem] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white z-10 border-b border-slate-100 px-5 md:px-7 py-4 flex items-start justify-between gap-4 rounded-t-[1.75rem]">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Checkout transparente</p>
+                <h3 className="text-xl md:text-2xl font-black text-slate-800">{paymentSession.plan?.name || 'Plano'}</h3>
+                <p className="text-sm font-bold text-slate-500 mt-1">
+                  {formatPlanPrice(paymentSession.plan)} · {paymentSession.plan?.evaluation_credits || 1} crédito{(paymentSession.plan?.evaluation_credits || 1) === 1 ? '' : 's'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePaymentSession}
+                className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 transition-colors"
+                aria-label="Fechar checkout"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 md:p-7">
+              {!brickReady && (
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 text-sm font-bold text-slate-500 mb-4">
+                  Carregando pagamento seguro...
+                </div>
+              )}
+
+              {paymentError && (
+                <div className="rounded-2xl border border-rose-100 bg-rose-50 text-rose-700 p-4 text-sm font-bold mb-4">
+                  {paymentError}
+                </div>
+              )}
+
+              {paymentStatus && (
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 text-emerald-700 p-4 text-sm font-bold mb-4">
+                  {paymentStatus}
+                </div>
+              )}
+
+              <div id="cardPaymentBrick_container" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row lg:h-[100dvh] lg:overflow-hidden">
         {/* Sidebar */}
         <Sidebar />
@@ -279,6 +538,223 @@ export const Profile = () => {
                       </button>
                     </div>
                   </div>
+                </div>
+
+                <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                        <WalletCards size={24} className="text-primary" /> Créditos e planos
+                      </h3>
+                      <p className="text-sm text-slate-500 font-medium mt-2">
+                        Compre planos, acompanhe seus créditos e inicie novas autoavaliações.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Disponíveis</p>
+                      <p className="text-3xl font-black text-slate-800">{creditSummary.available}</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Usados</p>
+                      <p className="text-3xl font-black text-slate-800">{creditSummary.consumed}</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Total comprado</p>
+                      <p className="text-3xl font-black text-slate-800">{creditSummary.total}</p>
+                    </div>
+                  </div>
+
+                  {availableCredits > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleStartPaidEvaluation}
+                      disabled={startLoading}
+                      className="w-full mb-6 bg-brand-pink hover:bg-[#d84e80] text-white font-bold py-4 px-5 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-60 shadow-md shadow-brand-pink/20"
+                    >
+                      <FileText size={18} />
+                      {startLoading ? 'Iniciando...' : 'Iniciar nova avaliação'}
+                    </button>
+                  )}
+
+                  <div className="border-t border-slate-100 pt-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Planos disponíveis</p>
+
+                    {plans.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                        Nenhum plano ativo configurado ainda.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {plans.map((plan) => (
+                          <div key={plan.id} className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col gap-4">
+                            <div>
+                              <div className="flex items-start justify-between gap-3">
+                                <h4 className="font-black text-slate-800">{plan.name}</h4>
+                                <span className="text-sm font-black text-primary whitespace-nowrap">{formatPlanPrice(plan)}</span>
+                              </div>
+                              {plan.description && (
+                                <p className="text-sm text-slate-500 font-medium mt-2 leading-relaxed">{plan.description}</p>
+                              )}
+                              <p className="text-xs font-black text-slate-500 mt-3">
+                                {plan.evaluation_credits} autoavaliação{plan.evaluation_credits === 1 ? '' : 'ões'}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCreateCheckout(plan)}
+                              disabled={checkoutLoading}
+                              className="bg-[#1f1a1a] hover:bg-black text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-60 shadow-xl mt-auto"
+                            >
+                              <CreditCard size={18} />
+                              {checkoutLoading && checkoutPlanId === plan.id ? 'Criando checkout...' : 'Comprar plano'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                        <ShoppingBag size={24} className="text-primary" /> Pedidos recentes
+                      </h3>
+                      <p className="text-sm text-slate-500 font-medium mt-2">
+                        Acompanhe compras aprovadas, pendentes ou não concluídas.
+                      </p>
+                    </div>
+                  </div>
+
+                  {paymentOrders.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+                      <CreditCard size={36} className="mx-auto text-slate-300 mb-3" />
+                      <p className="font-bold text-slate-500">Nenhum pedido registrado ainda.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {paymentOrders.map((order) => {
+                        const status = getPaymentStatus(order.status);
+                        const StatusIcon = status.Icon;
+
+                        return (
+                          <div key={order.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <span className="font-black text-slate-800">{order.plan_name || 'Plano'}</span>
+                                <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${status.className}`}>
+                                  <StatusIcon size={12} />
+                                  {status.label}
+                                </span>
+                              </div>
+                              <p className="text-xs font-bold text-slate-500">
+                                {formatEvaluationDate(order.created_at)} · {order.credits_purchased || 1} crédito{(order.credits_purchased || 1) === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                            <span className="text-sm font-black text-primary">{formatPlanPrice(order)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                        <CalendarClock size={24} className="text-primary" /> Histórico de avaliações
+                      </h3>
+                      <p className="text-sm text-slate-500 font-medium mt-2">
+                        Revise diagnósticos e radares já registrados na sua conta.
+                      </p>
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                      {evaluations.length} registro{evaluations.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  {historyLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((item) => (
+                        <div key={item} className="h-24 rounded-2xl bg-slate-100 animate-pulse" />
+                      ))}
+                    </div>
+                  ) : evaluations.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+                      <FileText size={36} className="mx-auto text-slate-300 mb-3" />
+                      <p className="font-bold text-slate-500">Nenhuma avaliação registrada ainda.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {evaluations.map((evaluation) => {
+                        const fatigueReady = hasCompleteFatigueScores(evaluation.scores || {});
+                        const speedReady = hasCompleteSpeedRadar(evaluation);
+                        const historicalVitality = calculateVitalityScore(evaluation.scores || {});
+                        const historicalTime = calculateTimeScore(evaluation.solution_time_relation || {});
+
+                        return (
+                          <div key={evaluation.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 md:p-5">
+                            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                  <span className="text-sm font-black text-slate-800">
+                                    {formatEvaluationDate(evaluation.created_at)}
+                                  </span>
+                                  <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${evaluation.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                    {getEvaluationStatusLabel(evaluation.status)}
+                                  </span>
+                                </div>
+
+                                <div className="flex flex-wrap gap-3 text-xs font-bold text-slate-500">
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <HeartPulse size={14} className="text-brand-pink" />
+                                    Vitalidade: {historicalVitality ?? '--'}%
+                                  </span>
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <Gauge size={14} className="text-primary" />
+                                    Tempo: {historicalTime ?? '--'}%
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  disabled={!fatigueReady}
+                                  onClick={() => navigate(buildEvaluationScopedPath(PATHS.result, evaluation.id))}
+                                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                >
+                                  Resultado
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!speedReady}
+                                  onClick={() => navigate(buildEvaluationScopedPath(PATHS.dashboard, evaluation.id))}
+                                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                >
+                                  Velocidade
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!fatigueReady}
+                                  onClick={() => navigate(buildEvaluationScopedPath(PATHS.vitality, evaluation.id))}
+                                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-mint hover:text-[#004b4c] disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                >
+                                  Vitalidade
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
               

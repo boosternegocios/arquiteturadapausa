@@ -19,19 +19,43 @@ export const Contact = () => {
   const [isSuccess, setIsSuccess] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
+  const invokePlanRequest = async (body) => {
+    const localFunctionsUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
+
+    if (!localFunctionsUrl) {
+      return supabase.functions.invoke('send-plan-request', { body })
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData?.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY
+    const response = await fetch(`${localFunctionsUrl.replace(/\/$/, '')}/send-plan-request`, {
+      method: 'POST',
+      headers: {
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      return { data: null, error: new Error(data?.error || `Erro HTTP ${response.status}`) }
+    }
+    return { data, error: null }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
     setErrorMsg('')
 
     try {
-      const { error } = await supabase.functions.invoke('send-plan-request', {
-        body: {
-          nome: formData.nome,
-          email: formData.email,
-          telefone: formData.telefone,
-          mensagem: formData.mensagem,
-        },
+      const { error } = await invokePlanRequest({
+        nome: formData.nome,
+        email: formData.email,
+        telefone: formData.telefone,
+        mensagem: formData.mensagem,
       })
       if (error) throw error
       setIsSuccess(true)

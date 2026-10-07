@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -16,6 +16,7 @@ import {
 import { 
   Radar as RechartsRadar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip 
 } from 'recharts'
+import { getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
 
 // Map of categories and max possible values
 const CATEGORY_DATA = FATIGUE_CATEGORY_CONFIG
@@ -23,6 +24,8 @@ const CATEGORY_DATA = FATIGUE_CATEGORY_CONFIG
 export const VitalityRadar = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const selectedEvaluationId = getEvaluationIdFromSearchParams(searchParams)
   const [scores, setScores] = useState({
     fisico: 0,
     mental: 0,
@@ -46,12 +49,18 @@ export const VitalityRadar = () => {
     
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      let query = supabase
         .from('evaluations')
         .select('solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution, status')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
+
+      if (selectedEvaluationId) {
+        query = query.eq('id', selectedEvaluationId)
+      } else {
+        query = query.order('created_at', { ascending: false })
+      }
+
+      const { data, error } = await query.limit(1)
       
       if (error) throw error
       
@@ -140,7 +149,7 @@ export const VitalityRadar = () => {
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [user, selectedEvaluationId])
 
   useEffect(() => {
     fetchEvaluations()

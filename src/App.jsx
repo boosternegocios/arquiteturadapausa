@@ -20,7 +20,9 @@ import { Introduction } from './pages/Introduction'
 import { Contact } from './pages/Contact'
 import { VitalityRadar } from './pages/VitalityRadar'
 import { Profile } from './pages/Profile'
+import { Credits } from './pages/Credits'
 import { AdminDashboard } from './pages/AdminDashboard'
+import { PaymentReturn } from './pages/PaymentReturn'
 
 const RedirectAssessment = () => {
   const { category } = useParams()
@@ -78,6 +80,15 @@ function App() {
                 <Profile />
               </ProtectedRoute>
             } 
+          />
+
+          <Route
+            path={PATHS.credits}
+            element={
+              <ProtectedRoute>
+                <Credits />
+              </ProtectedRoute>
+            }
           />
 
           <Route 
@@ -142,6 +153,15 @@ function App() {
             } 
           />
 
+          <Route
+            path={PATHS.payment}
+            element={
+              <ProtectedRoute>
+                <PaymentReturn />
+              </ProtectedRoute>
+            }
+          />
+
           <Route 
             path={PATHS.vitality}
             element={
@@ -178,6 +198,7 @@ function App() {
           <Route path="/intro" element={<Navigate to={PATHS.home} replace />} />
           <Route path="/dashboard" element={<Navigate to={PATHS.dashboard} replace />} />
           <Route path="/profile" element={<Navigate to={PATHS.profile} replace />} />
+          <Route path="/credits" element={<Navigate to={PATHS.credits} replace />} />
           <Route path="/assessment/:category" element={<RedirectAssessment />} />
           <Route path="/solution" element={<Navigate to={PATHS.solution} replace />} />
           <Route path="/recovery/:step" element={<RedirectRecovery />} />
@@ -185,6 +206,7 @@ function App() {
           <Route path="/specific-solution/:category" element={<RedirectSpecificSolution />} />
           <Route path="/continue-healing" element={<Navigate to={PATHS.continueHealing} replace />} />
           <Route path="/contact" element={<Navigate to={PATHS.contact} replace />} />
+          <Route path="/payment" element={<Navigate to={PATHS.payment} replace />} />
           <Route path="/vitality" element={<Navigate to={PATHS.vitality} replace />} />
           <Route path="/login" element={<Navigate to={PATHS.login} replace />} />
           <Route path="/register" element={<Navigate to={PATHS.register} replace />} />

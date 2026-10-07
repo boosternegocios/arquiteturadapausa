@@ -14,7 +14,8 @@ import {
   Globe,
   ShieldCheck,
   Menu,
-  X
+  X,
+  WalletCards
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -160,11 +161,11 @@ export const Sidebar = () => {
       {/* Sidebar Content */}
       <aside className={`fixed lg:relative top-0 left-0 z-50 w-80 bg-mint flex flex-col shrink-0 h-[100dvh] overflow-y-auto border-r border-primary/10 transition-transform duration-300 shadow-2xl lg:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
 
-        <div className="p-8 pb-4 items-center flex justify-between gap-3">
+        <div className="px-8 pt-5 pb-2 items-center flex justify-between gap-3">
           <img
             src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png"
             alt="Logo Carol Rocha Mentoria E Negócios"
-            className="w-48 h-auto object-contain hidden lg:block"
+            className="w-36 h-auto object-contain hidden lg:block"
           />
           <img
             src="https://noybugsrzlxbzjgstjff.supabase.co/storage/v1/object/public/Imagens/logotipo_carolrocha_branco%20(1).png"
@@ -182,14 +183,14 @@ export const Sidebar = () => {
         <nav className="flex-1 px-4 py-2 space-y-1.5 mt-2">
           <button
             onClick={() => window.open('https://arquiteturadapausa.com/', '_blank')}
-            className="w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 text-primary hover:bg-primary/10"
+            className="w-full flex items-center justify-start gap-3 px-5 py-3 rounded-full mx-2 font-bold transition-all duration-300 text-primary hover:bg-primary/10"
           >
             <Globe size={20} /> O Método
           </button>
 
           <button
             onClick={() => navigate(PATHS.home)}
-            className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
+            className={`w-full flex items-center justify-start gap-3 px-5 py-3 rounded-full mx-2 font-bold transition-all duration-300 ${
               (isActive(PATHS.home) || isActive('/avaliacao') || isActive('/recuperacao') || isActive(PATHS.result) || isActive(PATHS.solution))
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
@@ -203,7 +204,7 @@ export const Sidebar = () => {
               if (energyScore === 0 && vitalityScore === 0) setLockModal({ show: true, type: 'radar' })
               else navigate(PATHS.dashboard)
             }}
-            className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
+            className={`w-full flex items-center justify-start gap-3 px-5 py-3 rounded-full mx-2 font-bold transition-all duration-300 ${
               isActive(PATHS.dashboard)
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
@@ -217,7 +218,7 @@ export const Sidebar = () => {
               if (energyScore === 0 && vitalityScore === 0) setLockModal({ show: true, type: 'radar' })
               else navigate(PATHS.vitality)
             }}
-            className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
+            className={`w-full flex items-center justify-start gap-3 px-5 py-3 rounded-full mx-2 font-bold transition-all duration-300 ${
               isActive(PATHS.vitality)
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
@@ -231,7 +232,7 @@ export const Sidebar = () => {
               if (!isMainRecoveryDone) setLockModal({ show: true, type: 'exercises' })
               else navigate(PATHS.continueHealing)
             }}
-            className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
+            className={`w-full flex items-center justify-start gap-3 px-5 py-3 rounded-full mx-2 font-bold transition-all duration-300 ${
               (isActive(PATHS.continueHealing) || isActive('/exercicio'))
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
@@ -242,7 +243,7 @@ export const Sidebar = () => {
 
           <button
             onClick={() => navigate(PATHS.contact)}
-            className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
+            className={`w-full flex items-center justify-start gap-3 px-5 py-3 rounded-full mx-2 font-bold transition-all duration-300 ${
               isActive(PATHS.contact)
                 ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                 : 'text-primary hover:bg-primary/10'
@@ -251,10 +252,21 @@ export const Sidebar = () => {
             <Send size={20} /> Plano de ação
           </button>
 
+          <button
+            onClick={() => navigate(PATHS.credits)}
+            className={`w-full flex items-center justify-start gap-3 px-5 py-3 rounded-full mx-2 font-bold transition-all duration-300 ${
+              isActive(PATHS.credits)
+                ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
+                : 'text-primary hover:bg-primary/10'
+            }`}
+          >
+            <WalletCards size={20} /> Meus créditos
+          </button>
+
           {isAdmin && (
             <button
               onClick={() => navigate(PATHS.admin)}
-              className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-full mx-2 font-bold transition-all duration-300 ${
+              className={`w-full flex items-center justify-start gap-3 px-5 py-3 rounded-full mx-2 font-bold transition-all duration-300 ${
                 isActive(PATHS.admin)
                   ? 'bg-brand-pink text-white shadow-md shadow-brand-pink/20 transition-transform active:scale-95'
                   : 'text-primary hover:bg-primary/10'
@@ -265,26 +277,26 @@ export const Sidebar = () => {
           )}
         </nav>
 
-        <div className="p-6 space-y-4">
-          <div className="bg-white/30 p-5 rounded-2xl shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-3">Sua Energia</p>
-            <div className="h-2.5 w-full bg-white/50 rounded-full overflow-hidden">
+        <div className="p-5 pt-3 space-y-3">
+          <div className="bg-white/30 p-4 rounded-2xl shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-2">Sua Energia</p>
+            <div className="h-2 w-full bg-white/50 rounded-full overflow-hidden">
               <div className="h-full bg-primary transition-all duration-1000 ease-out" style={{ width: `${vitalityScore}%` }}></div>
             </div>
-            <p className="text-sm mt-3 font-bold text-primary">{vitalityScore}% Vitalidade</p>
+            <p className="text-sm mt-2 font-bold text-primary">{vitalityScore}% Vitalidade</p>
           </div>
 
-          <div className="bg-white/30 p-5 rounded-2xl shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-3">Relação com o Tempo</p>
-            <div className="h-2.5 w-full bg-white/50 rounded-full overflow-hidden">
+          <div className="bg-white/30 p-4 rounded-2xl shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-2">Relação com o Tempo</p>
+            <div className="h-2 w-full bg-white/50 rounded-full overflow-hidden">
               <div className="h-full bg-primary transition-all duration-1000 ease-out" style={{ width: `${timeScore}%` }}></div>
             </div>
-            <p className="text-sm mt-3 font-bold text-primary">{timeScore}% Satisfação</p>
+            <p className="text-sm mt-2 font-bold text-primary">{timeScore}% Satisfação</p>
           </div>
 
           <div
             onClick={() => navigate(PATHS.profile)}
-            className="flex items-center gap-4 px-5 py-4 bg-white/30 rounded-2xl cursor-pointer shadow-sm hover:bg-white/40 transition-colors"
+            className="flex items-center gap-4 px-5 py-3.5 bg-white/30 rounded-2xl cursor-pointer shadow-sm hover:bg-white/40 transition-colors"
           >
             <img
               alt="Avatar"
@@ -302,7 +314,7 @@ export const Sidebar = () => {
 
           <button
             onClick={handleLogout}
-            className="w-full bg-primary text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-md hover:bg-primary/90 transition-all active:scale-95 text-base mt-2"
+            className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-md hover:bg-primary/90 transition-all active:scale-95 text-base mt-2"
           >
             <LogOut size={20} /> Sair
           </button>
