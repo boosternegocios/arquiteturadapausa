@@ -17,6 +17,7 @@ import {
   Radar as RechartsRadar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip 
 } from 'recharts'
 import { getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
+import { isExerciseComplete } from '../lib/exerciseCompletion'
 
 // Map of satisfaction categories
 const SATISFACTION_DATA = {
@@ -89,7 +90,7 @@ export const Dashboard = () => {
         const fetchedSat = evalData.solution_satisfaction || {}
         const scores = evalData.scores || {}
         const plans = evalData.top_fatigue_solution || {}
-        const completedOasis = Object.keys(plans).filter(k => plans[k]?.isCompleted).length
+        const completedOasis = Object.keys(plans).filter(k => isExerciseComplete(k, plans[k])).length
         
         let nextRoute = PATHS.home;
         if (!fetchedSat || Object.keys(fetchedSat).length === 0) {

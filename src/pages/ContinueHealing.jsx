@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { CheckCircle, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart, Lock } from 'lucide-react'
 import { PATHS, getSpecificSolutionPath } from '../lib/journey'
+import { isExerciseComplete } from '../lib/exerciseCompletion'
 
 // Informações estendidas para os cards do Oásis
 const CATEGORY_OASIS = {
@@ -40,10 +41,10 @@ export const ContinueHealing = () => {
 
         if (data && data.length > 0) {
           setIsAssessmentCompleted(data[0].status === 'completed')
-          if (data[0].top_fatigue_solution) {
-            // Conta apenas como concluído os que tem a flag isCompleted
-            const tracks = Object.keys(data[0].top_fatigue_solution).filter(
-              key => data[0].top_fatigue_solution[key]?.isCompleted === true
+          const solutions = data[0].top_fatigue_solution || {}
+          if (solutions) {
+            const tracks = Object.keys(solutions).filter(
+              key => isExerciseComplete(key, solutions[key])
             )
             setCompletedTracks(tracks)
           }

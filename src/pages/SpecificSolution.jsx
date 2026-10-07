@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
@@ -14,6 +14,7 @@ import { EmotionalFatigue } from '../components/solutions/EmotionalFatigue'
 import { SocialFatigue } from '../components/solutions/SocialFatigue'
 import { SpiritualFatigue } from '../components/solutions/SpiritualFatigue'
 import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
+import { getMissingExerciseFields } from '../lib/exerciseCompletion'
 
 const CATEGORY_DATA = FATIGUE_CATEGORY_CONFIG
 
@@ -24,6 +25,7 @@ export const SpecificSolution = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [evaluationId, setEvaluationId] = useState(null)
+  const suppressAutosaveRef = useRef(false)
 
   const [topFatigue, setTopFatigue] = useState(null)
   const [solutionData, setSolutionData] = useState({})
@@ -88,69 +90,19 @@ export const SpecificSolution = () => {
     }
   })
 
-  const getMissingFatigueFields = (category, data) => {
-    if (!data) return ['Preencha os campos do exercício.'];
-
-    const missing = []
-    const hasText = (value) => String(value || '').trim() !== ''
-    const allFilled = (arr) => arr && arr.length > 0 && arr.every(item => hasText(item));
-
-    switch(category) {
-      case 'fisico': {
-        if (!data.act01?.list || !data.act01.list.every(i => hasText(i.act) && hasText(i.rest))) missing.push('atividade 01');
-        if (!data.act02?.records) missing.push('atividade 02');
-        const records = Object.values(data.act02?.records || {});
-        if (records.length !== 7 || !records.every(r => r.state && hasText(r.why))) missing.push('tabela de 7 dias');
-        // act03 and act05 ocultados temporariamente
-        if (!data.act04 || ['temp','dark','cafeina','silencio','sons','aromas','cama'].some(k => typeof data.act04[k] !== 'number')) missing.push('escala da atividade 04');
-        return missing;
-      }
-
-      case 'criativo':
-        if (!allFilled(data.act01?.list) || data.act01.list.length < 4) missing.push('as 4 belezas da atividade 01');
-        if (!data.act02 || ['daily','weekly','monthly','yearly'].some(k => !hasText(data.act02[k]))) missing.push('os 4 períodos da atividade 02');
-        return missing;
-
-      case 'mental':
-        // act01 e act02 ocultados temporariamente, não exigir preenchimento
-        if (!data.act03 || ['imagens','frases','pessoas','lugares','eventos','emocoes','medos','duvidas'].some(k => !hasText(data.act03[k]))) missing.push('atividade 03');
-        if (!data.act04?.list || !data.act04.list.every(i => hasText(i.negative) && hasText(i.positive))) missing.push('atividade 04');
-        return missing;
-
-      case 'sensorial': {
-        // act01 ocultado temporariamente
-        const act02Keys = ['desconectar','brilho','silenciar','silencio','frutas','olhos','tampaos'];
-        if (!data.act02 || act02Keys.some(k => typeof data.act02[k] !== 'number')) missing.push('escala sensorial');
-        return missing;
-      }
-
-      case 'emocional':
-        if (!data.act01 || ['outros','consigo'].some(k => typeof data.act01[k] !== 'number')) missing.push('atividade 01');
-        if (!data.act02 || ['social','educacional','interessantes','infeliz'].some(k => !hasText(data.act02[k]) || typeof data.act02[`${k}_nota`] !== 'number')) missing.push('atividade 02');
-        return missing;
-
-      case 'social':
-        if (!allFilled(data.act01?.drainers) || !allFilled(data.act01?.boosters)) missing.push('atividade 01');
-        if (!allFilled(data.act02?.presencial) || !allFilled(data.act02?.online) || !hasText(data.act02?.action)) missing.push('atividade 02');
-        return missing;
-
-      case 'espiritual':
-        if (!hasText(data.act01?.text) || !hasText(data.act02?.text) || !hasText(data.act03?.text)) missing.push('atividades 01, 02 e 03');
-        // act04 oculto temporariamente
-        return missing;
-
-      default:
-        return ['Exercício não encontrado.'];
-    }
-  }
-
   const handleSave = async (isFinal = false, isSilent = false) => {
     if (!evaluationId || !topFatigue) return
+    if (isSilent && suppressAutosaveRef.current) return
 
     if (isFinal) {
-      const missingFields = getMissingFatigueFields(topFatigue, solutionData);
+      suppressAutosaveRef.current = true
+    }
+
+    if (isFinal) {
+      const missingFields = getMissingExerciseFields(topFatigue, solutionData);
       const isValid = missingFields.length === 0;
       if (!isValid) {
+        suppressAutosaveRef.current = false
         alert(`Ops! Para concluir, falta preencher: ${missingFields.join(', ')}.`);
         return;
       }
@@ -224,6 +176,7 @@ export const SpecificSolution = () => {
     } catch (error) {
       console.error('Erro ao salvar:', error)
       if (!isSilent) alert('Erro no banco de dados: ' + error.message)
+      if (isFinal) suppressAutosaveRef.current = false
     } finally {
       if (!isSilent) setSaving(false)
     }
@@ -297,6 +250,9 @@ export const SpecificSolution = () => {
                       Voltar ao Início
                     </button>
                     <button
+                      onPointerDown={() => {
+                        suppressAutosaveRef.current = true
+                      }}
                       onClick={() => handleSave(true)}
                       disabled={saving}
                       className="px-8 py-3.5 font-bold text-[#004b4c] bg-[#1ed7a4] shadow-[0_10px_20px_rgba(30,215,164,0.3)] hover:shadow-[0_15px_30px_rgba(30,215,164,0.4)] rounded-xl transition-all w-full sm:w-auto text-xs md:text-sm tracking-widest uppercase hover:bg-[#1bc294] hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"

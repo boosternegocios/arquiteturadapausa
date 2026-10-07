@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { FATIGUE_CATEGORY_KEYS, PATHS, SATISFACTION_KEYS, getFatiguePercent } from '../lib/journey';
+import { isExerciseComplete } from '../lib/exerciseCompletion';
 import {
   LayoutDashboard,
   Settings,
@@ -55,7 +56,7 @@ export const Sidebar = () => {
           let completedCount = 0;
           if (evalData.top_fatigue_solution) {
             completedCount = Object.keys(evalData.top_fatigue_solution).filter(
-              key => evalData.top_fatigue_solution[key]?.isCompleted === true
+              key => isExerciseComplete(key, evalData.top_fatigue_solution[key])
             ).length;
           }
           if (completedCount >= 1) setIsMainRecoveryDone(true);

@@ -17,6 +17,7 @@ import {
   Radar as RechartsRadar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip 
 } from 'recharts'
 import { getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
+import { isExerciseComplete } from '../lib/exerciseCompletion'
 
 // Map of categories and max possible values
 const CATEGORY_DATA = FATIGUE_CATEGORY_CONFIG
@@ -78,7 +79,7 @@ export const VitalityRadar = () => {
           nextRoute = getRecoveryPath('beliefs');
         } else if (!evalData.scores || Object.keys(evalData.scores).length < 7) {
           nextRoute = getAssessmentPath('fisico');
-        } else if (Object.keys(evalData.top_fatigue_solution || {}).filter(k => evalData.top_fatigue_solution[k]?.isCompleted).length < 7) {
+        } else if (Object.keys(evalData.top_fatigue_solution || {}).filter(k => isExerciseComplete(k, evalData.top_fatigue_solution[k])).length < 7) {
           nextRoute = PATHS.continueHealing;
         } else {
           nextRoute = PATHS.contact;

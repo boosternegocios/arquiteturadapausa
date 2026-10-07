@@ -23,6 +23,7 @@ import {
   Lock,
   ArrowRight
 } from 'lucide-react'
+import { isExerciseComplete } from '../lib/exerciseCompletion'
 
 export const Introduction = () => {
   const navigate = useNavigate()
@@ -102,7 +103,7 @@ export const Introduction = () => {
         let completedCount = 0
         if (d.top_fatigue_solution) {
           completedCount = Object.keys(d.top_fatigue_solution).filter(
-            key => d.top_fatigue_solution[key]?.isCompleted === true
+            key => isExerciseComplete(key, d.top_fatigue_solution[key])
           ).length
         }
         if (completedCount >= 1) setMainRecoveryDone(true)
