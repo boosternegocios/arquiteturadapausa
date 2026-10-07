@@ -4,9 +4,10 @@ import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
-import { CheckCircle, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart, Lock } from 'lucide-react'
-import { PATHS, getSpecificSolutionPath } from '../lib/journey'
+import { CheckCircle, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart, Lock, WalletCards } from 'lucide-react'
+import { PATHS, getAssessmentPath, getSpecificSolutionPath } from '../lib/journey'
 import { isExerciseComplete } from '../lib/exerciseCompletion'
+import { clearLocalJourneyBackups, startPaidEvaluation } from '../lib/evaluationCredits'
 
 // Informações estendidas para os cards do Oásis
 const CATEGORY_OASIS = {
@@ -25,6 +26,10 @@ export const ContinueHealing = () => {
   const [loading, setLoading] = useState(true)
   const [completedTracks, setCompletedTracks] = useState([])
   const [isAssessmentCompleted, setIsAssessmentCompleted] = useState(false)
+  const [availableCredits, setAvailableCredits] = useState(0)
+  const [startLoading, setStartLoading] = useState(false)
+
+  const allExercisesCompleted = completedTracks.length >= Object.keys(CATEGORY_OASIS).length
 
   const fetchEvaluation = useCallback(async () => {
     if (!user) return
@@ -51,6 +56,15 @@ export const ContinueHealing = () => {
         } else {
           setIsAssessmentCompleted(false)
         }
+
+        const { data: creditData, error: creditError } = await supabase
+          .from('evaluation_credits')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'available')
+
+        if (creditError) throw creditError
+        setAvailableCredits((creditData || []).length)
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
       } finally {
@@ -64,6 +78,25 @@ export const ContinueHealing = () => {
 
   // Re-fetch data when user returns to the tab after switching away
   useVisibilityRefresh(fetchEvaluation)
+
+  const handleStartNewEvaluation = async () => {
+    if (availableCredits <= 0) {
+      navigate(PATHS.credits)
+      return
+    }
+
+    setStartLoading(true)
+    try {
+      await startPaidEvaluation()
+      clearLocalJourneyBackups(user?.id)
+      navigate(getAssessmentPath('fisico'))
+    } catch (error) {
+      console.error('Erro ao iniciar nova avaliação:', error)
+      alert(error.message || 'Não foi possível iniciar uma nova avaliação. Verifique se há crédito disponível.')
+    } finally {
+      setStartLoading(false)
+    }
+  }
 
     return (
       <div className="bg-[#fcfaf5] text-slate-900 lg:h-[100dvh] font-display flex flex-col lg:flex-row lg:overflow-hidden overflow-x-hidden">
@@ -171,12 +204,37 @@ export const ContinueHealing = () => {
             )}
 
           <div className="mt-12 mb-10 pb-20 text-center animate-in fade-in" style={{animationDelay: '300ms'}}>
-             <button
-              onClick={() => navigate(PATHS.home)}
-              className="px-10 py-5 rounded-2xl bg-white/5 text-white font-bold tracking-widest uppercase text-sm border border-white/10 hover:bg-white/10 transition-colors shadow-lg"
-            >
-              Voltar ao Início
-            </button>
+            {allExercisesCompleted && (
+              <div className="mx-auto mb-6 max-w-3xl rounded-3xl bg-white p-6 md:p-8 text-left shadow-2xl border border-white/20">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#eb6496] mb-2">Jornada concluída</p>
+                    <h3 className="text-2xl md:text-3xl font-black text-[#004b4c] leading-tight">Quer fazer uma nova autoavaliação?</h3>
+                    <p className="mt-2 text-sm md:text-base font-medium text-slate-500">
+                      {availableCredits > 0
+                        ? `Você tem ${availableCredits} crédito${availableCredits === 1 ? '' : 's'} ${availableCredits === 1 ? 'disponível' : 'disponíveis'} para iniciar uma nova leitura.`
+                        : 'Você pode comprar créditos e iniciar outra leitura quando quiser.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleStartNewEvaluation}
+                    disabled={startLoading}
+                    className="shrink-0 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#1ed7a4] px-6 py-4 text-sm font-black uppercase tracking-widest text-[#004b4c] shadow-lg shadow-[#1ed7a4]/20 transition-all hover:-translate-y-0.5 hover:bg-[#19c898] disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {availableCredits > 0 ? <CheckCircle size={18} /> : <WalletCards size={18} />}
+                    {startLoading ? 'Iniciando...' : availableCredits > 0 ? 'Iniciar nova autoavaliação' : 'Comprar créditos'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <button
+             onClick={() => navigate(PATHS.home)}
+             className="px-10 py-5 rounded-2xl bg-white/5 text-white font-bold tracking-widest uppercase text-sm border border-white/10 hover:bg-white/10 transition-colors shadow-lg"
+           >
+             Voltar ao Início
+           </button>
           </div>
 
         </div>
