@@ -52,9 +52,11 @@ export const Credits = () => {
   const [pixPayment, setPixPayment] = useState(null);
   const [pixLoading, setPixLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [checkoutSuccess, setCheckoutSuccess] = useState('');
   const [paymentError, setPaymentError] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('');
   const [brickReady, setBrickReady] = useState(false);
+  const [refreshingCredits, setRefreshingCredits] = useState(false);
 
   const unmountPaymentBrick = useCallback(() => {
     try {
@@ -69,7 +71,7 @@ export const Credits = () => {
   }, []);
 
   const fetchCredits = useCallback(async () => {
-    if (!user) return;
+    if (!user) return null;
 
     try {
       setLoading(true);
@@ -84,7 +86,8 @@ export const Credits = () => {
       const credits = creditData || [];
       const available = credits.filter(credit => credit.status === 'available').length;
       const consumed = credits.filter(credit => credit.status === 'consumed').length;
-      setCreditSummary({ total: credits.length, available, consumed });
+      const nextSummary = { total: credits.length, available, consumed };
+      setCreditSummary(nextSummary);
 
       const { data: orderData, error: orderError } = await supabase
         .from('payment_orders')
@@ -98,11 +101,17 @@ export const Credits = () => {
 
       const activePlans = await fetchActivePlans();
       setPlans(activePlans);
+
+      return {
+        summary: nextSummary,
+        orders: orderData || [],
+      };
     } catch (error) {
       console.error('Erro ao carregar créditos:', error);
       setCreditSummary({ total: 0, available: 0, consumed: 0 });
       setPaymentOrders([]);
       setPlans([]);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -111,6 +120,47 @@ export const Credits = () => {
   useEffect(() => {
     fetchCredits();
   }, [fetchCredits]);
+
+  const closePaymentSession = useCallback(() => {
+    unmountPaymentBrick();
+    setPaymentSession(null);
+    setPaymentMethod('pix');
+    setPixPayment(null);
+    setPixLoading(false);
+    setPaymentError('');
+    setPaymentStatus('');
+    setBrickReady(false);
+  }, [unmountPaymentBrick]);
+
+  const confirmCreditsAndClose = useCallback(async () => {
+    if (!paymentSession?.order_id) return;
+
+    setRefreshingCredits(true);
+    setPaymentError('');
+
+    try {
+      const previousAvailable = creditSummary.available;
+      const result = await fetchCredits();
+      const currentOrder = result?.orders?.find(order => order.id === paymentSession.order_id);
+      const nextAvailable = result?.summary?.available ?? previousAvailable;
+      const releasedCredits = Number(currentOrder?.credits_purchased) || Math.max(1, nextAvailable - previousAvailable);
+
+      if (currentOrder?.status === 'approved' || nextAvailable > previousAvailable) {
+        closePaymentSession();
+        setCheckoutSuccess(
+          `Pagamento confirmado! ${releasedCredits} crédito${releasedCredits === 1 ? '' : 's'} liberado${releasedCredits === 1 ? '' : 's'} para sua conta.`
+        );
+        return;
+      }
+
+      setPaymentStatus('Ainda não identificamos a confirmação do pagamento. Aguarde alguns instantes e tente atualizar de novo.');
+    } catch (error) {
+      console.error('Erro ao atualizar créditos:', error);
+      setPaymentError(error.message || 'Não foi possível atualizar os créditos agora.');
+    } finally {
+      setRefreshingCredits(false);
+    }
+  }, [closePaymentSession, creditSummary.available, fetchCredits, paymentSession?.order_id]);
 
   useEffect(() => {
     if (!paymentSession?.public_key || !paymentSession?.order_id || paymentMethod !== 'card') {
@@ -168,8 +218,7 @@ export const Credits = () => {
                   .then(async (result) => {
                     if (cancelled) return;
                     if (result?.status === 'approved') {
-                      setPaymentStatus('Pagamento aprovado. Crédito liberado na sua conta.');
-                      await fetchCredits();
+                      await confirmCreditsAndClose();
                     } else if (result?.status === 'pending') {
                       setPaymentStatus('Pagamento enviado. Assim que o Mercado Pago confirmar, o crédito aparece aqui.');
                       await fetchCredits();
@@ -209,12 +258,13 @@ export const Credits = () => {
       cancelled = true;
       unmountPaymentBrick();
     };
-  }, [fetchCredits, paymentMethod, paymentSession, unmountPaymentBrick, user?.email]);
+  }, [confirmCreditsAndClose, fetchCredits, paymentMethod, paymentSession, unmountPaymentBrick, user?.email]);
 
   const handleCreateCheckout = async (planOrOrder, options = {}) => {
     setCheckoutLoading(true);
     setCheckoutPlanId(planOrOrder?.id || null);
     setCheckoutError('');
+    setCheckoutSuccess('');
     try {
       const session = options.orderId
         ? await createEvaluationPaymentOrder({ orderId: options.orderId })
@@ -251,17 +301,6 @@ export const Credits = () => {
     }
   };
 
-  const closePaymentSession = () => {
-    unmountPaymentBrick();
-    setPaymentSession(null);
-    setPaymentMethod('pix');
-    setPixPayment(null);
-    setPixLoading(false);
-    setPaymentError('');
-    setPaymentStatus('');
-    setBrickReady(false);
-  };
-
   const handleCreatePixPayment = async () => {
     if (!paymentSession?.order_id) return;
     setPixLoading(true);
@@ -272,11 +311,11 @@ export const Credits = () => {
       const result = await processPixPayment({ orderId: paymentSession.order_id });
       setPixPayment(result);
       if (result?.status === 'approved') {
-        setPaymentStatus('Pagamento aprovado. Crédito liberado na sua conta.');
+        await confirmCreditsAndClose();
       } else {
         setPaymentStatus('Pix gerado. Depois do pagamento, a confirmação pode levar alguns instantes.');
+        await fetchCredits();
       }
-      await fetchCredits();
     } catch (error) {
       console.error('Erro ao gerar Pix:', error);
       setPaymentError(getPaymentUiError(error));
@@ -426,10 +465,11 @@ export const Credits = () => {
 
                       <button
                         type="button"
-                        onClick={fetchCredits}
-                        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
+                        onClick={confirmCreditsAndClose}
+                        disabled={refreshingCredits}
+                        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 disabled:opacity-60"
                       >
-                        Já paguei, atualizar créditos
+                        {refreshingCredits ? 'Atualizando créditos...' : 'Já paguei, atualizar créditos'}
                       </button>
                     </div>
                   )}
@@ -470,6 +510,12 @@ export const Credits = () => {
             {checkoutError && (
               <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm font-bold text-rose-700">
                 {checkoutError}
+              </div>
+            )}
+
+            {checkoutSuccess && (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
+                {checkoutSuccess}
               </div>
             )}
 
