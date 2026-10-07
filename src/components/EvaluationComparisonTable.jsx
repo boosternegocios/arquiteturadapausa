@@ -12,9 +12,35 @@ const valueOrDash = (value, suffix = '') => (
   value === null || value === undefined ? '--' : `${value}${suffix}`
 )
 
-const buildRows = (evaluations = []) => (
-  [...evaluations]
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+const formatDelta = (delta, suffix = '') => {
+  if (delta === null || delta === undefined || delta === 0) return 'sem mudança'
+  return `${delta > 0 ? '+' : ''}${delta}${suffix}`
+}
+
+const getPositiveDeltaClass = (delta) => {
+  if (delta === null || delta === undefined || delta === 0) return 'bg-slate-100 text-slate-500'
+  return delta > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+}
+
+const getFatigueDeltaClass = (delta) => {
+  if (delta === null || delta === undefined || delta === 0) return 'bg-slate-100 text-slate-500'
+  return delta < 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+}
+
+const DeltaBadge = ({ delta, suffix = '', type = 'positive' }) => {
+  if (delta === null || delta === undefined) return null
+  const className = type === 'fatigue' ? getFatigueDeltaClass(delta) : getPositiveDeltaClass(delta)
+
+  return (
+    <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black ${className}`}>
+      {formatDelta(delta, suffix)}
+    </span>
+  )
+}
+
+const buildRows = (evaluations = []) => {
+  const chronologicalRows = [...evaluations]
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     .map((evaluation) => {
       const scores = evaluation.scores || {}
       const fatigueScores = FATIGUE_CATEGORIES.map(category => ({
@@ -33,10 +59,74 @@ const buildRows = (evaluations = []) => (
         fatigueScores,
       }
     })
-)
+
+  return chronologicalRows
+    .map((row, index) => {
+      const previous = chronologicalRows[index - 1]
+      const fatigueScores = row.fatigueScores.map(score => {
+        const previousScore = previous?.fatigueScores.find(item => item.key === score.key)
+        return {
+          ...score,
+          delta: previousScore?.value !== null && previousScore?.value !== undefined && score.value !== null && score.value !== undefined
+            ? Number((score.value - previousScore.value).toFixed(1))
+            : null,
+        }
+      })
+
+      return {
+        ...row,
+        vitalityDelta: previous?.vitality !== null && previous?.vitality !== undefined && row.vitality !== null && row.vitality !== undefined
+          ? row.vitality - previous.vitality
+          : null,
+        timeDelta: previous?.time !== null && previous?.time !== undefined && row.time !== null && row.time !== undefined
+          ? row.time - previous.time
+          : null,
+        fatigueScores,
+      }
+    })
+    .reverse()
+}
+
+const getLatestInsights = (rows) => {
+  if (rows.length < 2) return []
+
+  const latest = rows[0]
+  const insights = []
+
+  if (latest.vitalityDelta !== null && latest.vitalityDelta !== 0) {
+    insights.push({
+      label: 'Vitalidade',
+      text: latest.vitalityDelta > 0 ? `subiu ${latest.vitalityDelta} pontos` : `caiu ${Math.abs(latest.vitalityDelta)} pontos`,
+      className: getPositiveDeltaClass(latest.vitalityDelta),
+    })
+  }
+
+  if (latest.timeDelta !== null && latest.timeDelta !== 0) {
+    insights.push({
+      label: 'Relação com o tempo',
+      text: latest.timeDelta > 0 ? `melhorou ${latest.timeDelta} pontos` : `caiu ${Math.abs(latest.timeDelta)} pontos`,
+      className: getPositiveDeltaClass(latest.timeDelta),
+    })
+  }
+
+  const fatigueMoves = latest.fatigueScores
+    .filter(score => score.delta !== null && score.delta !== 0)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+
+  fatigueMoves.slice(0, 2).forEach(score => {
+    insights.push({
+      label: score.label,
+      text: score.delta < 0 ? `reduziu ${Math.abs(score.delta)} ponto${Math.abs(score.delta) === 1 ? '' : 's'}` : `aumentou ${score.delta} ponto${score.delta === 1 ? '' : 's'}`,
+      className: getFatigueDeltaClass(score.delta),
+    })
+  })
+
+  return insights.slice(0, 4)
+}
 
 export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparativo por data' }) => {
   const rows = buildRows(evaluations)
+  const insights = getLatestInsights(rows)
 
   if (rows.length === 0) {
     return null
@@ -50,6 +140,19 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
           Compare a evolução dos principais indicadores em cada autoavaliação.
         </p>
       </div>
+
+      {insights.length > 0 && (
+        <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {insights.map(insight => (
+            <div key={`${insight.label}-${insight.text}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{insight.label}</p>
+              <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${insight.className}`}>
+                {insight.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[980px] border-separate border-spacing-y-2 text-left">
@@ -77,11 +180,18 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
                     {getStatusLabel(row.status)}
                   </span>
                 </td>
-                <td className="bg-slate-50 px-3 py-3 text-sm font-black text-brand-pink">{valueOrDash(row.vitality, '%')}</td>
-                <td className="bg-slate-50 px-3 py-3 text-sm font-black text-primary">{valueOrDash(row.time, '%')}</td>
+                <td className="bg-slate-50 px-3 py-3 text-sm font-black text-brand-pink">
+                  <div>{valueOrDash(row.vitality, '%')}</div>
+                  <DeltaBadge delta={row.vitalityDelta} suffix="%" />
+                </td>
+                <td className="bg-slate-50 px-3 py-3 text-sm font-black text-primary">
+                  <div>{valueOrDash(row.time, '%')}</div>
+                  <DeltaBadge delta={row.timeDelta} suffix="%" />
+                </td>
                 {row.fatigueScores.map(score => (
                   <td key={score.key} className="bg-slate-50 px-3 py-3 text-sm font-black text-slate-700">
-                    {valueOrDash(score.value)}
+                    <div>{valueOrDash(score.value)}</div>
+                    <DeltaBadge delta={score.delta} type="fatigue" />
                   </td>
                 ))}
               </tr>
@@ -107,10 +217,12 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
               <div className="rounded-xl bg-white p-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Vitalidade</p>
                 <p className="text-lg font-black text-brand-pink">{valueOrDash(row.vitality, '%')}</p>
+                <DeltaBadge delta={row.vitalityDelta} suffix="%" />
               </div>
               <div className="rounded-xl bg-white p-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tempo</p>
                 <p className="text-lg font-black text-primary">{valueOrDash(row.time, '%')}</p>
+                <DeltaBadge delta={row.timeDelta} suffix="%" />
               </div>
             </div>
 
@@ -119,6 +231,7 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
                 <div key={score.key} className="rounded-xl bg-white p-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{score.label}</p>
                   <p className="text-base font-black text-slate-700">{valueOrDash(score.value)}</p>
+                  <DeltaBadge delta={score.delta} type="fatigue" />
                 </div>
               ))}
             </div>
