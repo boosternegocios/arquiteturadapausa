@@ -20,7 +20,9 @@ import {
   XCircle,
   Pencil,
   PauseCircle,
-  PlayCircle
+  PlayCircle,
+  TrendingUp,
+  Filter
 } from 'lucide-react'
 
 const formatDateTime = (value) => {
@@ -97,13 +99,15 @@ export const AdminDashboard = () => {
   const [paymentOrders, setPaymentOrders] = useState([])
   const [evaluationCredits, setEvaluationCredits] = useState([])
   const [plans, setPlans] = useState([])
-  const [adminView, setAdminView] = useState('users')
+  const [adminView, setAdminView] = useState('dashboard')
   const [planForm, setPlanForm] = useState(emptyPlanForm)
   const [editingPlanId, setEditingPlanId] = useState(null)
   const [planSaving, setPlanSaving] = useState(false)
   const [planMessage, setPlanMessage] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [financeSearch, setFinanceSearch] = useState('')
+  const [financeStatus, setFinanceStatus] = useState('all')
   const [userPage, setUserPage] = useState(1)
   const [usersPerPage, setUsersPerPage] = useState(10)
   const [loading, setLoading] = useState(true)
@@ -288,6 +292,29 @@ export const AdminDashboard = () => {
   const paginatedUsers = filteredUsers.slice(firstUserIndex, firstUserIndex + usersPerPage)
   const visibleUserStart = filteredUsers.length === 0 ? 0 : firstUserIndex + 1
   const visibleUserEnd = Math.min(firstUserIndex + usersPerPage, filteredUsers.length)
+  const approvedOrders = paymentOrders.filter(order => order.status === 'approved')
+  const pendingOrders = paymentOrders.filter(order => !['approved', 'rejected', 'cancelled', 'failed', 'refunded', 'charged_back'].includes(order.status))
+  const failedOrders = paymentOrders.filter(order => ['rejected', 'cancelled', 'failed'].includes(order.status))
+  const grossRevenueCents = approvedOrders.reduce((sum, order) => sum + Number(order.amount_cents || 0), 0)
+  const totalCreditsSold = approvedOrders.reduce((sum, order) => sum + Number(order.credits_purchased || order.quantity || 1), 0)
+  const financeRows = paymentOrders.map(order => {
+    const userInfo = mergedUsers.find(user => user.user_id === order.user_id)
+    return {
+      ...order,
+      buyerName: userInfo?.name || order.user_email?.split('@')[0] || 'Cliente',
+      buyerEmail: userInfo?.email || order.user_email || 'E-mail indisponível',
+    }
+  })
+  const filteredFinanceRows = financeRows.filter(order => {
+    const query = financeSearch.toLowerCase()
+    const matchesSearch = !query
+      || order.buyerName.toLowerCase().includes(query)
+      || order.buyerEmail.toLowerCase().includes(query)
+      || String(order.plan_name || '').toLowerCase().includes(query)
+      || String(order.provider_payment_id || '').toLowerCase().includes(query)
+    const matchesStatus = financeStatus === 'all' || order.status === financeStatus
+    return matchesSearch && matchesStatus
+  })
 
   useEffect(() => {
     setUserPage(1)
@@ -638,6 +665,244 @@ export const AdminDashboard = () => {
     )
   }
 
+  const renderDashboardHome = () => {
+    const activeCustomers = mergedUsers.filter(user => user.approvedOrders > 0).length
+    const recentOrders = financeRows.slice(0, 6)
+    const planSales = approvedOrders.reduce((acc, order) => {
+      const key = order.plan_name || 'Plano sem nome'
+      if (!acc[key]) {
+        acc[key] = {
+          name: key,
+          count: 0,
+          revenue: 0,
+          credits: 0,
+        }
+      }
+      acc[key].count += 1
+      acc[key].revenue += Number(order.amount_cents || 0)
+      acc[key].credits += Number(order.credits_purchased || order.quantity || 1)
+      return acc
+    }, {})
+    const topPlans = Object.values(planSales).sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+
+    return (
+      <div className="bg-slate-50/70 p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Receita aprovada</p>
+              <p className="text-3xl font-black text-slate-800">{formatMoney(grossRevenueCents)}</p>
+              <p className="text-xs font-bold text-emerald-600 mt-2">{approvedOrders.length} venda{approvedOrders.length === 1 ? '' : 's'} aprovada{approvedOrders.length === 1 ? '' : 's'}</p>
+            </div>
+            <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Clientes compradores</p>
+              <p className="text-3xl font-black text-slate-800">{activeCustomers}</p>
+              <p className="text-xs font-bold text-slate-500 mt-2">Usuários com ao menos 1 compra aprovada</p>
+            </div>
+            <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Créditos vendidos</p>
+              <p className="text-3xl font-black text-brand-pink">{totalCreditsSold}</p>
+              <p className="text-xs font-bold text-slate-500 mt-2">Total liberado por vendas aprovadas</p>
+            </div>
+            <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Pedidos pendentes</p>
+              <p className="text-3xl font-black text-amber-500">{pendingOrders.length}</p>
+              <p className="text-xs font-bold text-rose-500 mt-2">{failedOrders.length} não concluído{failedOrders.length === 1 ? '' : 's'}</p>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <div className="xl:col-span-2 rounded-2xl bg-white border border-slate-100 p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-4 mb-5">
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Planos mais vendidos</h3>
+                  <p className="text-sm font-medium text-slate-500 mt-1">Ranking por receita aprovada.</p>
+                </div>
+                <TrendingUp className="text-brand-pink" size={22} />
+              </div>
+
+              {topPlans.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm font-bold text-slate-500">Nenhuma venda aprovada ainda.</p>
+              ) : (
+                <div className="space-y-3">
+                  {topPlans.map(plan => (
+                    <div key={plan.name} className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-black text-slate-800">{plan.name}</p>
+                          <p className="text-xs font-bold text-slate-500 mt-1">{plan.count} venda{plan.count === 1 ? '' : 's'} · {plan.credits} crédito{plan.credits === 1 ? '' : 's'}</p>
+                        </div>
+                        <span className="text-sm font-black text-primary whitespace-nowrap">{formatMoney(plan.revenue)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="xl:col-span-3 rounded-2xl bg-white border border-slate-100 p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-4 mb-5">
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Últimas transações</h3>
+                  <p className="text-sm font-medium text-slate-500 mt-1">Compras recentes registradas no sistema.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdminView('finance')}
+                  className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black uppercase tracking-widest text-white hover:bg-black"
+                >
+                  Ver financeiro
+                </button>
+              </div>
+
+              {recentOrders.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm font-bold text-slate-500">Nenhuma transação registrada ainda.</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentOrders.map(order => {
+                    const status = getPaymentStatus(order.status)
+                    const StatusIcon = status.Icon
+                    return (
+                      <div key={order.id} className="rounded-xl bg-slate-50 border border-slate-100 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-800 truncate">{order.buyerName}</p>
+                          <p className="text-xs font-bold text-slate-500 truncate">{order.plan_name || 'Plano'} · {order.buyerEmail}</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${status.className}`}>
+                            <StatusIcon size={12} />
+                            {status.label}
+                          </span>
+                          <span className="text-sm font-black text-primary">{formatMoney(order.amount_cents, order.currency)}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    )
+  }
+
+  const renderFinanceManager = () => (
+    <div className="bg-slate-50/70 p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Receita aprovada</p>
+            <p className="text-3xl font-black text-slate-800">{formatMoney(grossRevenueCents)}</p>
+          </div>
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Vendas aprovadas</p>
+            <p className="text-3xl font-black text-emerald-600">{approvedOrders.length}</p>
+          </div>
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Pendentes</p>
+            <p className="text-3xl font-black text-amber-500">{pendingOrders.length}</p>
+          </div>
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Créditos vendidos</p>
+            <p className="text-3xl font-black text-brand-pink">{totalCreditsSold}</p>
+          </div>
+        </section>
+
+        <section className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+              <div>
+                <h3 className="text-2xl font-black text-slate-800">Financeiro e vendas</h3>
+                <p className="text-sm font-medium text-slate-500 mt-1">Quem comprou, o que comprou e o status de cada transação.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative">
+                  <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={financeSearch}
+                    onChange={event => setFinanceSearch(event.target.value)}
+                    placeholder="Buscar comprador, plano ou ID..."
+                    className="w-full sm:w-80 bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm outline-none focus:border-brand-pink"
+                  />
+                </div>
+                <label className="relative">
+                  <Filter size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <select
+                    value={financeStatus}
+                    onChange={event => setFinanceStatus(event.target.value)}
+                    className="w-full sm:w-48 appearance-none bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:border-brand-pink"
+                  >
+                    <option value="all">Todos os status</option>
+                    <option value="approved">Aprovados</option>
+                    <option value="pending">Pendentes</option>
+                    <option value="rejected">Rejeitados</option>
+                    <option value="cancelled">Cancelados</option>
+                    <option value="failed">Falhos</option>
+                    <option value="refunded">Estornados</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {filteredFinanceRows.length === 0 ? (
+            <p className="p-10 text-center text-sm font-bold text-slate-500">Nenhuma venda encontrada com os filtros atuais.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px] text-left">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Comprador</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Plano</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Valor</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Data</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Mercado Pago</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredFinanceRows.map(order => {
+                    const status = getPaymentStatus(order.status)
+                    const StatusIcon = status.Icon
+                    return (
+                      <tr key={order.id} className="hover:bg-slate-50/80">
+                        <td className="px-6 py-4">
+                          <p className="font-black text-slate-800">{order.buyerName}</p>
+                          <p className="text-xs font-bold text-slate-500">{order.buyerEmail}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-slate-700">{order.plan_name || 'Plano'}</p>
+                          <p className="text-xs font-bold text-slate-400">{order.credits_purchased || 1} crédito{(order.credits_purchased || 1) === 1 ? '' : 's'}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${status.className}`}>
+                            <StatusIcon size={12} />
+                            {status.label}
+                          </span>
+                          {order.provider_status_detail && (
+                            <p className="text-[11px] font-bold text-slate-400 mt-1">{order.provider_status_detail}</p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-black text-primary">{formatMoney(order.amount_cents, order.currency)}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-slate-500">{formatDateTime(order.created_at)}</td>
+                        <td className="px-6 py-4">
+                          <p className="max-w-[170px] truncate text-xs font-bold text-slate-500" title={order.provider_payment_id || order.external_reference || ''}>
+                            {order.provider_payment_id || order.external_reference || '-'}
+                          </p>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  )
+
   const renderPlansManager = () => (
     <div className="bg-slate-50/70 p-6 lg:p-8">
       <div className="max-w-6xl mx-auto grid grid-cols-1 xl:grid-cols-5 gap-6">
@@ -846,11 +1111,22 @@ export const AdminDashboard = () => {
         </div>
 
         <div className="bg-white border-b border-slate-200 px-8 lg:px-12 py-3 shrink-0">
-          <div className="inline-flex rounded-2xl bg-slate-100 p-1">
+          <div className="inline-flex max-w-full overflow-x-auto rounded-2xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setAdminView('dashboard')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${
+                adminView === 'dashboard'
+                  ? 'bg-white text-brand-pink shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <LayoutDashboard size={16} /> Dashboard
+            </button>
             <button
               type="button"
               onClick={() => setAdminView('users')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${
                 adminView === 'users'
                   ? 'bg-white text-brand-pink shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
@@ -861,7 +1137,7 @@ export const AdminDashboard = () => {
             <button
               type="button"
               onClick={() => setAdminView('plans')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${
                 adminView === 'plans'
                   ? 'bg-white text-brand-pink shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
@@ -869,10 +1145,21 @@ export const AdminDashboard = () => {
             >
               <WalletCards size={16} /> Planos
             </button>
+            <button
+              type="button"
+              onClick={() => setAdminView('finance')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${
+                adminView === 'finance'
+                  ? 'bg-white text-brand-pink shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <CreditCard size={16} /> Financeiro
+            </button>
           </div>
         </div>
 
-        {adminView === 'plans' ? renderPlansManager() : (
+        {adminView === 'dashboard' ? renderDashboardHome() : adminView === 'plans' ? renderPlansManager() : adminView === 'finance' ? renderFinanceManager() : (
         <div className="flex flex-col md:flex-row bg-slate-50/50">
           {/* Left Panel: User List */}
           <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 md:min-w-[300px] md:max-w-[400px] border-r border-slate-200 bg-white flex-col shrink-0`}>
