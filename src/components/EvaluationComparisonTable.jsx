@@ -203,10 +203,10 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
   const summaryItems = insights.length > 0 ? insights : currentSnapshot
 
   return (
-    <section className="rounded-[1.75rem] border border-brand-pink/20 bg-gradient-to-br from-brand-pink/10 via-white to-primary/10 p-4 shadow-lg shadow-slate-200/60 md:p-5">
+    <section className="rounded-[1.75rem] border border-primary/20 bg-gradient-to-br from-mint/30 via-white to-primary/15 p-4 shadow-lg shadow-slate-200/60 md:p-5">
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <span className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand-pink shadow-sm">
+          <span className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary shadow-sm">
             Evolução
           </span>
           <h4 className="mt-3 text-xl font-black text-slate-900 md:text-2xl">{title}</h4>
