@@ -142,9 +142,10 @@ const RenderValue = ({ value, depth = 0, compact = false }) => {
   if (Array.isArray(value)) {
     const visibleItems = value.filter(item => !isEmptyValue(item))
     if (visibleItems.length === 0) return null
+    const hasObjectItems = visibleItems.some(item => typeof item === 'object' && item !== null)
 
     return (
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className={hasObjectItems || compact ? 'space-y-2' : 'grid grid-cols-1 gap-2 sm:grid-cols-2'}>
         {visibleItems.map((item, index) => (
           <div key={index} className="min-w-0 rounded-xl border border-slate-100 bg-white p-3">
             {typeof item === 'object' && item !== null ? (
@@ -165,13 +166,22 @@ const RenderValue = ({ value, depth = 0, compact = false }) => {
     const allScalars = entries.every(([, nested]) => isScalar(nested))
 
     if (allScalars || compact) {
+      const stacked = compact || depth > 0
+      const hasNestedValues = entries.some(([, nested]) => !isScalar(nested))
       return (
-        <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <dl className={stacked && !hasNestedValues ? 'space-y-2' : 'grid grid-cols-1 gap-2 sm:grid-cols-2'}>
           {entries.map(([key, nested]) => (
-            <div key={key} className="min-w-0 rounded-xl border border-slate-100 bg-white p-3">
-              <dt className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{labelFor(key)}</dt>
+            <div
+              key={key}
+              className={
+                stacked && isScalar(nested)
+                  ? 'min-w-0 rounded-xl border border-slate-100 bg-white p-3 sm:flex sm:items-start sm:justify-between sm:gap-4'
+                  : 'min-w-0 rounded-xl border border-slate-100 bg-white p-3'
+              }
+            >
+              <dt className="mb-1 min-w-0 text-[10px] font-black uppercase tracking-widest text-slate-400 sm:mb-0">{labelFor(key)}</dt>
               {isScalar(nested) ? (
-                <dd className="break-words text-sm font-bold text-slate-700 whitespace-pre-wrap">{formatScalar(nested)}</dd>
+                <dd className="min-w-0 break-words text-sm font-bold text-slate-700 whitespace-pre-wrap sm:text-right">{formatScalar(nested)}</dd>
               ) : (
                 <dd><RenderValue value={nested} depth={depth + 1} compact /></dd>
               )}
@@ -282,6 +292,27 @@ const AnswersSection = ({ answers, questionsById }) => {
   )
 }
 
+const ExerciseData = ({ value }) => {
+  const entries = visibleEntries(value)
+  if (entries.length === 0) return null
+
+  const allScalars = entries.every(([, nested]) => isScalar(nested))
+  if (allScalars) {
+    return <RenderValue value={value} compact />
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+      {entries.map(([key, nested]) => (
+        <div key={key} className="min-w-0 rounded-2xl border border-slate-100 bg-white p-3 sm:p-4">
+          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{labelFor(key)}</p>
+          <RenderValue value={nested} depth={1} compact />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const ExercisesSection = ({ solutions }) => {
   const entries = Object.entries(solutions || {}).filter(([, data]) => !isEmptyValue(data))
   if (entries.length === 0) return null
@@ -302,7 +333,7 @@ const ExercisesSection = ({ solutions }) => {
                   </span>
                 )}
               </div>
-              <RenderValue value={data} compact />
+              <ExerciseData value={data} />
             </div>
           )
         })}
