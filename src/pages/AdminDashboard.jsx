@@ -16,6 +16,7 @@ import {
   CreditCard,
   WalletCards,
   ShoppingBag,
+  LayoutDashboard,
   Clock3,
   XCircle,
   Pencil,
