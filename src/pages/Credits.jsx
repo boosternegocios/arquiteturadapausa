@@ -48,7 +48,7 @@ export const Credits = () => {
   const [paymentOrders, setPaymentOrders] = useState([]);
   const [plans, setPlans] = useState([]);
   const [paymentSession, setPaymentSession] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('pix');
   const [pixPayment, setPixPayment] = useState(null);
   const [pixLoading, setPixLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
@@ -224,7 +224,7 @@ export const Credits = () => {
       if (!session?.public_key || !session?.order_id) {
         throw new Error('Pedido criado sem dados para abrir o checkout transparente.');
       }
-      setPaymentMethod(options.method || 'card');
+      setPaymentMethod(options.method || 'pix');
       setPixPayment(null);
       setPaymentError('');
       setPaymentSession(session);
@@ -254,7 +254,7 @@ export const Credits = () => {
   const closePaymentSession = () => {
     unmountPaymentBrick();
     setPaymentSession(null);
-    setPaymentMethod('card');
+    setPaymentMethod('pix');
     setPixPayment(null);
     setPixLoading(false);
     setPaymentError('');

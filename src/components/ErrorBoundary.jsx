@@ -6,11 +6,27 @@ export class ErrorBoundary extends React.Component {
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
+  static isRecoverableDomCleanupError(error) {
+    return (
+      error?.name === 'NotFoundError' &&
+      String(error?.message || '').includes('removeChild')
+    );
+  }
+
   static getDerivedStateFromError(error) {
+    if (ErrorBoundary.isRecoverableDomCleanupError(error)) {
+      return { hasError: false, error: null, errorInfo: null };
+    }
+
     return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
+    if (ErrorBoundary.isRecoverableDomCleanupError(error)) {
+      console.warn("Erro recuperável ao limpar componente externo:", error);
+      return;
+    }
+
     console.error("ErrorBoundary caught an error:", error, errorInfo);
     this.setState({ errorInfo });
   }
