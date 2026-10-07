@@ -87,6 +87,20 @@ const buildRows = (evaluations = []) => {
     .reverse()
 }
 
+const getTopFatigue = (row, direction = 'highest') => {
+  if (!row) return null
+
+  const validScores = row.fatigueScores.filter(score => (
+    score.value !== null && score.value !== undefined
+  ))
+
+  if (validScores.length === 0) return null
+
+  return [...validScores].sort((a, b) => (
+    direction === 'highest' ? b.value - a.value : a.value - b.value
+  ))[0]
+}
+
 const getLatestInsights = (rows) => {
   if (rows.length < 2) return []
 
@@ -124,42 +138,111 @@ const getLatestInsights = (rows) => {
   return insights.slice(0, 4)
 }
 
-export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparativo por data' }) => {
-  const rows = buildRows(evaluations)
-  const insights = getLatestInsights(rows)
+const getCurrentSnapshot = (row) => {
+  if (!row) return []
 
-  if (rows.length === 0) {
-    return null
+  const highestFatigue = getTopFatigue(row, 'highest')
+  const lowestFatigue = getTopFatigue(row, 'lowest')
+  const snapshot = []
+
+  if (row.vitality !== null && row.vitality !== undefined) {
+    snapshot.push({
+      label: 'Vitalidade atual',
+      text: `${row.vitality}%`,
+      helper: 'Energia registrada na última avaliação finalizada.',
+      className: 'bg-rose-100 text-brand-pink',
+    })
   }
+
+  if (row.time !== null && row.time !== undefined) {
+    snapshot.push({
+      label: 'Relação com o tempo',
+      text: `${row.time}%`,
+      helper: 'Satisfação com o uso do tempo na última avaliação.',
+      className: 'bg-teal-100 text-primary',
+    })
+  }
+
+  if (highestFatigue) {
+    snapshot.push({
+      label: 'Maior cansaço',
+      text: `${highestFatigue.label}: ${highestFatigue.value}`,
+      helper: 'Ponto que pede mais atenção agora.',
+      className: 'bg-amber-100 text-amber-700',
+    })
+  }
+
+  if (lowestFatigue) {
+    snapshot.push({
+      label: 'Menor cansaço',
+      text: `${lowestFatigue.label}: ${lowestFatigue.value}`,
+      helper: 'Área mais leve nesta leitura.',
+      className: 'bg-emerald-100 text-emerald-700',
+    })
+  }
+
+  return snapshot
+}
+
+const SummaryCard = ({ item }) => (
+  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
+    <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${item.className}`}>
+      {item.text}
+    </p>
+    {item.helper && <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-500">{item.helper}</p>}
+  </div>
+)
+
+export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparativo por data' }) => {
+  const completedEvaluations = evaluations.filter(evaluation => evaluation.status === 'completed')
+  const inProgressCount = evaluations.length - completedEvaluations.length
+  const rows = buildRows(completedEvaluations)
+  const insights = getLatestInsights(rows)
+  const currentSnapshot = getCurrentSnapshot(rows[0])
+  const summaryItems = insights.length > 0 ? insights : currentSnapshot
 
   return (
     <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm md:p-5">
       <div className="mb-4">
         <h4 className="text-lg font-black text-slate-800">{title}</h4>
         <p className="mt-1 text-sm font-medium text-slate-500">
-          Compare a evolução dos principais indicadores em cada autoavaliação.
+          Compare a evolução das autoavaliações finalizadas. Rascunhos ficam no histórico, mas não entram na comparação.
         </p>
       </div>
 
-      {insights.length > 0 && (
-        <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
-          {insights.map(insight => (
-            <div key={`${insight.label}-${insight.text}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{insight.label}</p>
-              <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${insight.className}`}>
-                {insight.text}
-              </p>
-            </div>
-          ))}
+      {inProgressCount > 0 && (
+        <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+          {inProgressCount} {inProgressCount === 1 ? 'autoavaliação em andamento ficou fora' : 'autoavaliações em andamento ficaram fora'} deste comparativo até serem finalizadas.
         </div>
       )}
 
-      <div className="hidden overflow-x-auto lg:block">
+      {rows.length === 0 && (
+        <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-5">
+          <p className="text-sm font-black text-slate-700">Ainda não há autoavaliações finalizadas para comparar.</p>
+          <p className="mt-1 text-sm font-medium text-slate-500">
+            Quando a primeira avaliação for concluída, os indicadores aparecem aqui.
+          </p>
+        </div>
+      )}
+
+      {rows.length === 1 && (
+        <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+          Esta é a primeira autoavaliação finalizada. Finalize outra para ver a evolução entre datas.
+        </div>
+      )}
+
+      {summaryItems.length > 0 && (
+        <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {summaryItems.map(item => <SummaryCard key={`${item.label}-${item.text}`} item={item} />)}
+        </div>
+      )}
+
+      {rows.length > 0 && <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[980px] border-separate border-spacing-y-2 text-left">
           <thead>
             <tr>
               <th className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Data</th>
-              <th className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
               <th className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Vitalidade</th>
               <th className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Tempo</th>
               {FATIGUE_CATEGORIES.map(category => (
@@ -174,11 +257,6 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
               <tr key={row.id}>
                 <td className="rounded-l-xl bg-slate-50 px-3 py-3 text-xs font-black text-slate-800">
                   {formatEvaluationDate(row.createdAt)}
-                </td>
-                <td className="bg-slate-50 px-3 py-3">
-                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${row.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {getStatusLabel(row.status)}
-                  </span>
                 </td>
                 <td className="bg-slate-50 px-3 py-3 text-sm font-black text-brand-pink">
                   <div>{valueOrDash(row.vitality, '%')}</div>
@@ -198,9 +276,9 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
 
-      <div className="space-y-3 lg:hidden">
+      {rows.length > 0 && <div className="space-y-3 lg:hidden">
         {rows.map(row => (
           <div key={row.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -208,7 +286,7 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Iniciada em</p>
                 <p className="text-sm font-black text-slate-800">{formatEvaluationDate(row.createdAt)}</p>
               </div>
-              <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${row.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">
                 {getStatusLabel(row.status)}
               </span>
             </div>
@@ -237,7 +315,7 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
             </div>
           </div>
         ))}
-      </div>
+      </div>}
     </section>
   )
 }
