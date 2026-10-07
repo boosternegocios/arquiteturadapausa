@@ -24,7 +24,8 @@ import {
   PauseCircle,
   PlayCircle,
   TrendingUp,
-  Filter
+  Filter,
+  FileText
 } from 'lucide-react'
 
 const formatDateTime = (value) => {
