@@ -185,14 +185,85 @@ const getCurrentSnapshot = (row) => {
 }
 
 const SummaryCard = ({ item }) => (
-  <div className="rounded-2xl border border-white/70 bg-white p-3 shadow-sm">
-    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
+  <div className="rounded-2xl border border-white/15 bg-white/10 p-3 shadow-sm">
+    <p className="text-[10px] font-black uppercase tracking-widest text-white/70">{item.label}</p>
     <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${item.className}`}>
       {item.text}
     </p>
-    {item.helper && <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-500">{item.helper}</p>}
+    {item.helper && <p className="mt-2 text-xs font-semibold leading-relaxed text-white/75">{item.helper}</p>}
   </div>
 )
+
+const MetricBlock = ({ label, value, delta, suffix = '', accent = 'text-white', type = 'positive' }) => (
+  <div className="rounded-2xl border border-white/15 bg-white/10 p-3">
+    <p className="text-[10px] font-black uppercase tracking-widest text-white/65">{label}</p>
+    <p className={`mt-2 text-2xl font-black leading-none ${accent}`}>{value}</p>
+    <DeltaBadge delta={delta} suffix={suffix} type={type} />
+  </div>
+)
+
+const FatigueChip = ({ score }) => (
+  <div className="min-w-0 rounded-2xl border border-white/15 bg-white/10 p-3">
+    <p className="truncate text-[10px] font-black uppercase tracking-widest text-white/65">{score.label}</p>
+    <div className="mt-2 flex flex-wrap items-end gap-2">
+      <span className="text-xl font-black leading-none text-white">{valueOrDash(score.value)}</span>
+      <DeltaBadge delta={score.delta} type="fatigue" />
+    </div>
+  </div>
+)
+
+const EvaluationComparisonCard = ({ row }) => {
+  const highestFatigue = getTopFatigue(row, 'highest')
+  const lowestFatigue = getTopFatigue(row, 'lowest')
+
+  return (
+    <article className="rounded-[1.5rem] border border-white/15 bg-white/10 p-4 shadow-sm md:p-5">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/65">Autoavaliação</p>
+          <h5 className="mt-1 text-lg font-black text-white">{formatEvaluationDate(row.createdAt)}</h5>
+        </div>
+        <span className="inline-flex w-fit rounded-full bg-mint px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+          {getStatusLabel(row.status)}
+        </span>
+      </div>
+
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricBlock
+          label="Vitalidade"
+          value={valueOrDash(row.vitality, '%')}
+          delta={row.vitalityDelta}
+          suffix="%"
+          accent="text-brand-pink"
+        />
+        <MetricBlock
+          label="Relação com o tempo"
+          value={valueOrDash(row.time, '%')}
+          delta={row.timeDelta}
+          suffix="%"
+          accent="text-mint"
+        />
+        <MetricBlock
+          label="Maior cansaço"
+          value={highestFatigue ? `${highestFatigue.label}: ${highestFatigue.value}` : '--'}
+          accent="text-white"
+        />
+        <MetricBlock
+          label="Menor cansaço"
+          value={lowestFatigue ? `${lowestFatigue.label}: ${lowestFatigue.value}` : '--'}
+          accent="text-white"
+        />
+      </div>
+
+      <div>
+        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-white/65">Mapa dos 7 cansaços</p>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
+          {row.fatigueScores.map(score => <FatigueChip key={score.key} score={score} />)}
+        </div>
+      </div>
+    </article>
+  )
+}
 
 export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparativo por data' }) => {
   const completedEvaluations = evaluations.filter(evaluation => evaluation.status === 'completed')
@@ -203,41 +274,41 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
   const summaryItems = insights.length > 0 ? insights : currentSnapshot
 
   return (
-    <section className="rounded-[1.75rem] border border-primary/20 bg-mint p-4 shadow-lg shadow-slate-200/60 md:p-5">
+    <section className="rounded-[1.75rem] border border-mint/30 bg-primary p-4 shadow-lg shadow-slate-200/60 md:p-5">
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <span className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary shadow-sm">
+          <span className="inline-flex rounded-full bg-mint px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary shadow-sm">
             Evolução
           </span>
-          <h4 className="mt-3 text-xl font-black text-slate-900 md:text-2xl">{title}</h4>
-          <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">
+          <h4 className="mt-3 text-xl font-black text-white md:text-2xl">{title}</h4>
+          <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-white/75">
             Compare a evolução das autoavaliações finalizadas. Rascunhos ficam no histórico, mas não entram na comparação.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white/80 px-4 py-3 text-left shadow-sm md:text-right">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Finalizadas</p>
-          <p className="text-2xl font-black text-primary">{rows.length}</p>
+        <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-left shadow-sm md:text-right">
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/65">Finalizadas</p>
+          <p className="text-2xl font-black text-white">{rows.length}</p>
         </div>
       </div>
 
       {inProgressCount > 0 && (
-        <div className="mb-4 rounded-2xl border border-amber-100 bg-white/80 px-4 py-3 text-sm font-bold text-amber-800 shadow-sm">
+        <div className="mb-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white shadow-sm">
           {inProgressCount} {inProgressCount === 1 ? 'autoavaliação em andamento ficou fora' : 'autoavaliações em andamento ficaram fora'} deste comparativo até serem finalizadas.
         </div>
       )}
 
       {rows.length === 0 && (
-        <div className="rounded-2xl border border-white/70 bg-white px-4 py-5 shadow-sm">
-          <p className="text-sm font-black text-slate-700">Ainda não há autoavaliações finalizadas para comparar.</p>
-          <p className="mt-1 text-sm font-medium text-slate-500">
+        <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-5 shadow-sm">
+          <p className="text-sm font-black text-white">Ainda não há autoavaliações finalizadas para comparar.</p>
+          <p className="mt-1 text-sm font-medium text-white/70">
             Quando a primeira avaliação for concluída, os indicadores aparecem aqui.
           </p>
         </div>
       )}
 
       {rows.length === 1 && (
-        <div className="mb-4 rounded-2xl border border-white/70 bg-white/85 px-4 py-3 text-sm font-bold text-slate-600 shadow-sm">
+        <div className="mb-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white shadow-sm">
           Esta é a primeira autoavaliação finalizada. Finalize outra para ver a evolução entre datas.
         </div>
       )}
@@ -248,83 +319,8 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
         </div>
       )}
 
-      {rows.length > 0 && <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[980px] border-separate border-spacing-y-2 text-left">
-          <thead>
-            <tr>
-              <th className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Data</th>
-              <th className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Vitalidade</th>
-              <th className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Tempo</th>
-              {FATIGUE_CATEGORIES.map(category => (
-                <th key={category.key} className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  {category.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(row => (
-              <tr key={row.id}>
-                <td className="rounded-l-xl bg-white px-3 py-3 text-xs font-black text-slate-800 shadow-sm">
-                  {formatEvaluationDate(row.createdAt)}
-                </td>
-                <td className="bg-white px-3 py-3 text-sm font-black text-brand-pink shadow-sm">
-                  <div>{valueOrDash(row.vitality, '%')}</div>
-                  <DeltaBadge delta={row.vitalityDelta} suffix="%" />
-                </td>
-                <td className="bg-white px-3 py-3 text-sm font-black text-primary shadow-sm">
-                  <div>{valueOrDash(row.time, '%')}</div>
-                  <DeltaBadge delta={row.timeDelta} suffix="%" />
-                </td>
-                {row.fatigueScores.map(score => (
-                  <td key={score.key} className="bg-white px-3 py-3 text-sm font-black text-slate-700 shadow-sm">
-                    <div>{valueOrDash(score.value)}</div>
-                    <DeltaBadge delta={score.delta} type="fatigue" />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>}
-
-      {rows.length > 0 && <div className="space-y-3 lg:hidden">
-        {rows.map(row => (
-          <div key={row.id} className="rounded-2xl border border-white/70 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Iniciada em</p>
-                <p className="text-sm font-black text-slate-800">{formatEvaluationDate(row.createdAt)}</p>
-              </div>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">
-                {getStatusLabel(row.status)}
-              </span>
-            </div>
-
-            <div className="mb-3 grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-slate-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Vitalidade</p>
-                <p className="text-lg font-black text-brand-pink">{valueOrDash(row.vitality, '%')}</p>
-                <DeltaBadge delta={row.vitalityDelta} suffix="%" />
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tempo</p>
-                <p className="text-lg font-black text-primary">{valueOrDash(row.time, '%')}</p>
-                <DeltaBadge delta={row.timeDelta} suffix="%" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {row.fatigueScores.map(score => (
-                <div key={score.key} className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{score.label}</p>
-                  <p className="text-base font-black text-slate-700">{valueOrDash(score.value)}</p>
-                  <DeltaBadge delta={score.delta} type="fatigue" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+      {rows.length > 0 && <div className="space-y-3">
+        {rows.map(row => <EvaluationComparisonCard key={row.id} row={row} />)}
       </div>}
     </section>
   )
