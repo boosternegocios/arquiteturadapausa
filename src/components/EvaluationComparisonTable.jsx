@@ -185,7 +185,7 @@ const getCurrentSnapshot = (row) => {
 }
 
 const SummaryCard = ({ item }) => (
-  <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+  <div className="rounded-2xl border border-white/70 bg-white p-3 shadow-sm">
     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
     <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${item.className}`}>
       {item.text}
@@ -203,22 +203,32 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
   const summaryItems = insights.length > 0 ? insights : currentSnapshot
 
   return (
-    <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm md:p-5">
-      <div className="mb-4">
-        <h4 className="text-lg font-black text-slate-800">{title}</h4>
-        <p className="mt-1 text-sm font-medium text-slate-500">
-          Compare a evolução das autoavaliações finalizadas. Rascunhos ficam no histórico, mas não entram na comparação.
-        </p>
+    <section className="rounded-[1.75rem] border border-brand-pink/20 bg-gradient-to-br from-brand-pink/10 via-white to-primary/10 p-4 shadow-lg shadow-slate-200/60 md:p-5">
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <span className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand-pink shadow-sm">
+            Evolução
+          </span>
+          <h4 className="mt-3 text-xl font-black text-slate-900 md:text-2xl">{title}</h4>
+          <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">
+            Compare a evolução das autoavaliações finalizadas. Rascunhos ficam no histórico, mas não entram na comparação.
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white/80 px-4 py-3 text-left shadow-sm md:text-right">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Finalizadas</p>
+          <p className="text-2xl font-black text-primary">{rows.length}</p>
+        </div>
       </div>
 
       {inProgressCount > 0 && (
-        <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+        <div className="mb-4 rounded-2xl border border-amber-100 bg-white/80 px-4 py-3 text-sm font-bold text-amber-800 shadow-sm">
           {inProgressCount} {inProgressCount === 1 ? 'autoavaliação em andamento ficou fora' : 'autoavaliações em andamento ficaram fora'} deste comparativo até serem finalizadas.
         </div>
       )}
 
       {rows.length === 0 && (
-        <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-5">
+        <div className="rounded-2xl border border-white/70 bg-white px-4 py-5 shadow-sm">
           <p className="text-sm font-black text-slate-700">Ainda não há autoavaliações finalizadas para comparar.</p>
           <p className="mt-1 text-sm font-medium text-slate-500">
             Quando a primeira avaliação for concluída, os indicadores aparecem aqui.
@@ -227,7 +237,7 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
       )}
 
       {rows.length === 1 && (
-        <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+        <div className="mb-4 rounded-2xl border border-white/70 bg-white/85 px-4 py-3 text-sm font-bold text-slate-600 shadow-sm">
           Esta é a primeira autoavaliação finalizada. Finalize outra para ver a evolução entre datas.
         </div>
       )}
@@ -255,19 +265,19 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
           <tbody>
             {rows.map(row => (
               <tr key={row.id}>
-                <td className="rounded-l-xl bg-slate-50 px-3 py-3 text-xs font-black text-slate-800">
+                <td className="rounded-l-xl bg-white px-3 py-3 text-xs font-black text-slate-800 shadow-sm">
                   {formatEvaluationDate(row.createdAt)}
                 </td>
-                <td className="bg-slate-50 px-3 py-3 text-sm font-black text-brand-pink">
+                <td className="bg-white px-3 py-3 text-sm font-black text-brand-pink shadow-sm">
                   <div>{valueOrDash(row.vitality, '%')}</div>
                   <DeltaBadge delta={row.vitalityDelta} suffix="%" />
                 </td>
-                <td className="bg-slate-50 px-3 py-3 text-sm font-black text-primary">
+                <td className="bg-white px-3 py-3 text-sm font-black text-primary shadow-sm">
                   <div>{valueOrDash(row.time, '%')}</div>
                   <DeltaBadge delta={row.timeDelta} suffix="%" />
                 </td>
                 {row.fatigueScores.map(score => (
-                  <td key={score.key} className="bg-slate-50 px-3 py-3 text-sm font-black text-slate-700">
+                  <td key={score.key} className="bg-white px-3 py-3 text-sm font-black text-slate-700 shadow-sm">
                     <div>{valueOrDash(score.value)}</div>
                     <DeltaBadge delta={score.delta} type="fatigue" />
                   </td>
@@ -280,7 +290,7 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
 
       {rows.length > 0 && <div className="space-y-3 lg:hidden">
         {rows.map(row => (
-          <div key={row.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <div key={row.id} className="rounded-2xl border border-white/70 bg-white p-4 shadow-sm">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Iniciada em</p>
@@ -292,12 +302,12 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
             </div>
 
             <div className="mb-3 grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-white p-3">
+              <div className="rounded-xl bg-slate-50 p-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Vitalidade</p>
                 <p className="text-lg font-black text-brand-pink">{valueOrDash(row.vitality, '%')}</p>
                 <DeltaBadge delta={row.vitalityDelta} suffix="%" />
               </div>
-              <div className="rounded-xl bg-white p-3">
+              <div className="rounded-xl bg-slate-50 p-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tempo</p>
                 <p className="text-lg font-black text-primary">{valueOrDash(row.time, '%')}</p>
                 <DeltaBadge delta={row.timeDelta} suffix="%" />
@@ -306,7 +316,7 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {row.fatigueScores.map(score => (
-                <div key={score.key} className="rounded-xl bg-white p-3">
+                <div key={score.key} className="rounded-xl bg-slate-50 p-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{score.label}</p>
                   <p className="text-base font-black text-slate-700">{valueOrDash(score.value)}</p>
                   <DeltaBadge delta={score.delta} type="fatigue" />
