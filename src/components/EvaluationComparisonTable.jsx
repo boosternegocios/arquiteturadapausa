@@ -293,7 +293,7 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
       </div>
 
       {inProgressCount > 0 && (
-        <div className="mb-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white shadow-sm">
+        <div className="mb-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 font-antonio text-sm font-semibold uppercase text-brand-pink shadow-sm">
           {inProgressCount} {inProgressCount === 1 ? 'autoavaliação em andamento ficou fora' : 'autoavaliações em andamento ficaram fora'} deste comparativo até serem finalizadas.
         </div>
       )}
@@ -308,7 +308,7 @@ export const EvaluationComparisonTable = ({ evaluations = [], title = 'Comparati
       )}
 
       {rows.length === 1 && (
-        <div className="mb-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white shadow-sm">
+        <div className="mb-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 font-antonio text-sm font-semibold uppercase text-brand-pink shadow-sm">
           Esta é a primeira autoavaliação finalizada. Finalize outra para ver a evolução entre datas.
         </div>
       )}
