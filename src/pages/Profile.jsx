@@ -115,16 +115,20 @@ export const Profile = () => {
       }
 
       if (data && data.length > 0) {
-        const evalData = data[0];
+        const evalData = data.find(evaluation => evaluation.status === 'completed') || null;
         
-        if (evalData.scores) {
+        if (evalData?.scores) {
           const nextVitalityScore = calculateVitalityScore(evalData.scores);
           setVitalityScore(nextVitalityScore ?? 0);
+        } else {
+          setVitalityScore(0);
         }
 
-        if (evalData.solution_time_relation) {
+        if (evalData?.solution_time_relation) {
           const nextTimeScore = calculateTimeScore(evalData.solution_time_relation);
           setTimeScore(nextTimeScore ?? 0);
+        } else {
+          setTimeScore(0);
         }
       } else {
         setVitalityScore(0);
@@ -779,7 +783,7 @@ export const Profile = () => {
                 </div>
               </div>
               
-              <div className="col-span-1 lg:col-span-4 flex flex-col gap-6">
+              <div className="col-span-1 lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-8 lg:self-start">
                 <div className="bg-brand-pink text-white rounded-[2rem] p-8 shadow-lg shadow-brand-pink/20 flex flex-col justify-between text-center relative overflow-hidden">
                   <div className="relative z-10 mb-2">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-white/70 mb-3">Sua Energia</h3>

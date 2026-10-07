@@ -42,16 +42,17 @@ export const Sidebar = () => {
       try {
         const { data, error } = await supabase
           .from('evaluations')
-          .select('solution_satisfaction, scores, solution_time_relation, top_fatigue_solution')
+          .select('status, solution_satisfaction, scores, solution_time_relation, top_fatigue_solution')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(1);
+          .limit(12);
 
         if (error) throw error;
 
         if (data && data.length > 0) {
           setIsDiagnosisStarted(true);
           const evalData = data[0];
+          const lastCompletedEvaluation = data.find(evaluation => evaluation.status === 'completed') || null;
 
           let completedCount = 0;
           if (evalData.top_fatigue_solution) {
@@ -59,10 +60,17 @@ export const Sidebar = () => {
               key => isExerciseComplete(key, evalData.top_fatigue_solution[key])
             ).length;
           }
-          if (completedCount >= 1) setIsMainRecoveryDone(true);
+          setIsMainRecoveryDone(completedCount >= 1);
 
-          if (evalData.solution_satisfaction) {
-            const sat = evalData.solution_satisfaction;
+          if (!lastCompletedEvaluation) {
+            setEnergyScore(0);
+            setVitalityScore(0);
+            setTimeScore(0);
+            return;
+          }
+
+          if (lastCompletedEvaluation?.solution_satisfaction) {
+            const sat = lastCompletedEvaluation.solution_satisfaction;
             let sum = 0;
             let count = 0;
             SATISFACTION_KEYS.forEach(k => {
@@ -75,10 +83,12 @@ export const Sidebar = () => {
               const avg = sum / count;
               setEnergyScore(Math.round(avg * 10));
             }
+          } else {
+            setEnergyScore(0);
           }
 
-          if (evalData.scores) {
-            const scores = evalData.scores;
+          if (lastCompletedEvaluation?.scores) {
+            const scores = lastCompletedEvaluation.scores;
             let vitSum = 0;
             let vitCount = 0;
             FATIGUE_CATEGORY_KEYS.forEach(key => {
@@ -90,10 +100,12 @@ export const Sidebar = () => {
             if (vitCount > 0) {
               setVitalityScore(Math.round(vitSum / vitCount));
             }
+          } else {
+            setVitalityScore(0);
           }
 
-          if (evalData.solution_time_relation) {
-            const timeRel = evalData.solution_time_relation;
+          if (lastCompletedEvaluation?.solution_time_relation) {
+            const timeRel = lastCompletedEvaluation.solution_time_relation;
             let timeSum = 0;
             let timeCount = 0;
             Object.values(timeRel).forEach(val => {
@@ -105,7 +117,15 @@ export const Sidebar = () => {
             if (timeCount > 0) {
               setTimeScore(Math.round(timeSum / timeCount));
             }
+          } else {
+            setTimeScore(0);
           }
+        } else {
+          setIsDiagnosisStarted(false);
+          setIsMainRecoveryDone(false);
+          setEnergyScore(0);
+          setVitalityScore(0);
+          setTimeScore(0);
         }
       } catch (err) {
         console.error('Erro ao buscar energia:', err);
