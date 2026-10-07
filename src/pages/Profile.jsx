@@ -4,6 +4,7 @@ import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { EvaluationResponseSummary } from '../components/EvaluationResponseSummary';
+import { EvaluationComparisonTable } from '../components/EvaluationComparisonTable';
 import { User, Save, Mail, Phone, CalendarClock, Gauge, HeartPulse, FileText, CreditCard, WalletCards, ShoppingBag, CheckCircle2, Clock3, XCircle, X } from 'lucide-react';
 import { PATHS, getAssessmentPath } from '../lib/journey';
 import {
@@ -698,6 +699,8 @@ export const Profile = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      <EvaluationComparisonTable evaluations={evaluations} />
+
                       {evaluations.map((evaluation) => {
                         const fatigueReady = hasCompleteFatigueScores(evaluation.scores || {});
                         const speedReady = hasCompleteSpeedRadar(evaluation);

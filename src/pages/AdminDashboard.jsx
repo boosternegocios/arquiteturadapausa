@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { EvaluationResponseSummary } from '../components/EvaluationResponseSummary'
+import { EvaluationComparisonTable } from '../components/EvaluationComparisonTable'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { PATHS } from '../lib/journey'
@@ -1437,6 +1438,13 @@ export const AdminDashboard = () => {
                             </p>
                           </button>
                         ))}
+                      </div>
+
+                      <div className="mt-4">
+                        <EvaluationComparisonTable
+                          evaluations={selectedUserEvaluations}
+                          title="Comparativo do histórico"
+                        />
                       </div>
                     </div>
                   )}
