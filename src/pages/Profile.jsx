@@ -61,6 +61,7 @@ export const Profile = () => {
   const [paymentError, setPaymentError] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('');
   const [brickReady, setBrickReady] = useState(false);
+  const [profileTab, setProfileTab] = useState('plans');
   const paymentControllerRef = useRef(null);
 
   const fetchEnergy = useCallback(async () => {
@@ -460,8 +461,8 @@ export const Profile = () => {
               </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
-              <div className="col-span-1 lg:col-span-8 flex flex-col gap-8">
+            <div className="flex flex-col gap-6 lg:gap-8">
+              <div className="flex flex-col gap-6 lg:gap-8">
                 <div className="bg-white rounded-[2rem] p-10 shadow-sm">
                   <h3 className="text-xl font-bold mb-8 flex items-center gap-2 text-slate-800">
                     <User size={24} className="text-primary" /> Dados Pessoais
@@ -551,10 +552,10 @@ export const Profile = () => {
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
                     <div>
                       <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
-                        <WalletCards size={24} className="text-primary" /> Créditos e planos
+                        <WalletCards size={24} className="text-primary" /> Créditos
                       </h3>
                       <p className="text-sm text-slate-500 font-medium mt-2">
-                        Compre planos, acompanhe seus créditos e inicie novas autoavaliações.
+                        Acompanhe seus créditos e inicie novas autoavaliações.
                       </p>
                     </div>
                   </div>
@@ -585,16 +586,50 @@ export const Profile = () => {
                       {startLoading ? 'Iniciando...' : 'Iniciar nova avaliação'}
                     </button>
                   )}
+                </div>
 
-                  <div className="border-t border-slate-100 pt-6">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Planos disponíveis</p>
+                <div className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'plans', label: 'Créditos e planos' },
+                      { id: 'orders', label: 'Pedidos recentes' },
+                      { id: 'history', label: 'Histórico de avaliações' },
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setProfileTab(tab.id)}
+                        className={`rounded-2xl px-3 py-3 text-center font-antonio text-xs font-semibold uppercase tracking-[0.14em] transition-colors md:text-sm ${
+                          profileTab === tab.id
+                            ? 'bg-primary text-white shadow-md shadow-primary/15'
+                            : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-primary'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {profileTab === 'plans' && (
+                  <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
+                      <div>
+                        <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                          <WalletCards size={24} className="text-primary" /> Créditos e planos
+                        </h3>
+                        <p className="text-sm text-slate-500 font-medium mt-2">
+                          Escolha um plano para liberar novas autoavaliações.
+                        </p>
+                      </div>
+                    </div>
 
                     {plans.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-500">
                         Nenhum plano ativo configurado ainda.
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                         {plans.map((plan) => (
                           <div key={plan.id} className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col gap-4">
                             <div>
@@ -624,8 +659,9 @@ export const Profile = () => {
                       </div>
                     )}
                   </div>
-                </div>
+                )}
 
+                {profileTab === 'orders' && (
                 <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm">
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
                     <div>
@@ -670,7 +706,9 @@ export const Profile = () => {
                     </div>
                   )}
                 </div>
+                )}
 
+                {profileTab === 'history' && (
                 <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm">
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
                     <div>
@@ -699,8 +737,6 @@ export const Profile = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <EvaluationComparisonTable evaluations={evaluations} />
-
                       {evaluations.map((evaluation) => {
                         const fatigueReady = hasCompleteFatigueScores(evaluation.scores || {});
                         const speedReady = hasCompleteSpeedRadar(evaluation);
@@ -732,12 +768,12 @@ export const Profile = () => {
                                 </div>
                               </div>
 
-                              <div className="flex flex-wrap gap-2">
+                              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                                 <button
                                   type="button"
                                   disabled={!fatigueReady}
                                   onClick={() => navigate(buildEvaluationScopedPath(PATHS.result, evaluation.id))}
-                                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                  className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
                                 >
                                   Resultado
                                 </button>
@@ -745,7 +781,7 @@ export const Profile = () => {
                                   type="button"
                                   disabled={!speedReady}
                                   onClick={() => navigate(buildEvaluationScopedPath(PATHS.dashboard, evaluation.id))}
-                                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                  className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
                                 >
                                   Velocidade
                                 </button>
@@ -753,14 +789,14 @@ export const Profile = () => {
                                   type="button"
                                   disabled={!fatigueReady}
                                   onClick={() => navigate(buildEvaluationScopedPath(PATHS.vitality, evaluation.id))}
-                                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-mint hover:text-[#004b4c] disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                  className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-mint hover:text-[#004b4c] disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
                                 >
                                   Vitalidade
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setOpenEvaluationId(prev => prev === evaluation.id ? null : evaluation.id)}
-                                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink transition-colors"
+                                  className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink transition-colors"
                                 >
                                   {openEvaluationId === evaluation.id ? 'Ocultar respostas' : 'Ver respostas'}
                                 </button>
@@ -781,12 +817,15 @@ export const Profile = () => {
                           </div>
                         );
                       })}
+
+                      <EvaluationComparisonTable evaluations={evaluations} />
                     </div>
                   )}
                 </div>
+                )}
               </div>
               
-              <div className="col-span-1 lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-8 lg:self-start">
+              <div className="order-first grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="bg-brand-pink text-white rounded-[2rem] p-8 shadow-lg shadow-brand-pink/20 flex flex-col justify-between text-center relative overflow-hidden">
                   <div className="relative z-10 mb-2">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-white/70 mb-3">Sua Energia</h3>
