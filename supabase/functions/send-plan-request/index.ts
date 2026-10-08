@@ -19,6 +19,7 @@ import {
   enqueueConfiguredWebhooks,
   logAutomationEvent,
   processDueWebhookDeliveries,
+  serviceFetch,
 } from "../_shared/automation-webhooks.ts"
 
 const DEFAULT_TO = "roselli.carolina@gmail.com"
@@ -67,6 +68,13 @@ const json = (req: Request, body: unknown, status = 200) =>
 const textValue = (value: unknown, maxLength: number) =>
   String(value ?? "").trim().slice(0, maxLength)
 
+const uuidValue = (value: unknown) => {
+  const text = textValue(value, 80)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)
+    ? text
+    : null
+}
+
 const escapeHtml = (value: unknown) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -89,6 +97,7 @@ const dispatchPlanRequestWebhook = async (
   eventPayload: Record<string, unknown>,
   userId?: string | null,
   userEmail?: string | null,
+  eventKey?: string | null,
 ) => {
   const eventType = "plan_requested"
 
@@ -96,6 +105,7 @@ const dispatchPlanRequestWebhook = async (
     const loggedEvent = await logAutomationEvent({
       eventType,
       source: "send-plan-request",
+      eventKey: eventKey ?? null,
       userId,
       userEmail,
       payload: eventPayload,
@@ -104,7 +114,7 @@ const dispatchPlanRequestWebhook = async (
 
     await enqueueConfiguredWebhooks({
       eventType,
-      eventKey: null,
+      eventKey: eventKey ?? null,
       eventId: loggedEvent?.id ?? null,
       payload: eventPayload,
     })
@@ -174,6 +184,7 @@ serve(async (req) => {
     const email = textValue(payload.email, 254).toLowerCase()
     const telefone = textValue(payload.telefone, 30)
     const mensagem = textValue(payload.mensagem, 1000)
+    const evaluationId = uuidValue(payload.evaluation_id)
 
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     const phoneDigits = telefone.replace(/\D/g, "")
@@ -183,6 +194,26 @@ serve(async (req) => {
     }
     if (!emailOk || phoneDigits.length < 8) {
       return json(req, { error: "Informe um email e telefone válidos." }, 400)
+    }
+
+    if (payload.evaluation_id && !evaluationId) {
+      return json(req, { error: "Avaliação informada é inválida." }, 400)
+    }
+
+    if (evaluationId && typeof user.id === "string") {
+      const evaluationResponse = await serviceFetch(
+        `evaluations?id=eq.${encodeURIComponent(evaluationId)}&user_id=eq.${encodeURIComponent(user.id)}&select=id&limit=1`,
+        { method: "GET" },
+      )
+
+      if (!evaluationResponse?.ok) {
+        return json(req, { error: "Não foi possível validar a avaliação informada." }, 500)
+      }
+
+      const evaluationRows = await evaluationResponse.json().catch(() => [])
+      if (!Array.isArray(evaluationRows) || evaluationRows.length === 0) {
+        return json(req, { error: "Avaliação não encontrada para este usuário." }, 403)
+      }
     }
 
     const SMTP_HOST = Deno.env.get("SMTP_HOST") ?? "smtp.hostinger.com"
@@ -256,20 +287,55 @@ serve(async (req) => {
     }
 
     // Registra no banco (best-effort — não falha o envio se der erro)
+    let contactRequestId: string | null = null
+    const requestedAt = new Date().toISOString()
     try {
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
       const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
       if (SUPABASE_URL && SERVICE_KEY) {
-        await fetch(`${SUPABASE_URL}/rest/v1/contact_requests`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/contact_requests`, {
           method: "POST",
           headers: {
             apikey: SERVICE_KEY,
             Authorization: `Bearer ${SERVICE_KEY}`,
             "Content-Type": "application/json",
-            Prefer: "return=minimal",
+            Prefer: "return=representation",
           },
-          body: JSON.stringify({ nome, email, telefone, mensagem: mensagem ?? null }),
+          body: JSON.stringify({
+            user_id: typeof user.id === "string" ? user.id : null,
+            evaluation_id: evaluationId,
+            nome,
+            email,
+            telefone,
+            mensagem: mensagem || null,
+          }),
         })
+
+        if (response.ok) {
+          const rows = await response.json().catch(() => [])
+          contactRequestId = Array.isArray(rows) && rows.length > 0 && typeof rows[0]?.id === "string"
+            ? rows[0].id
+            : null
+        } else {
+          const details = await response.text().catch(() => "")
+          console.warn("Falha ao registrar contato no banco:", response.status, details)
+        }
+
+        if (evaluationId) {
+          await fetch(`${SUPABASE_URL}/rest/v1/evaluations?id=eq.${encodeURIComponent(evaluationId)}`, {
+            method: "PATCH",
+            headers: {
+              apikey: SERVICE_KEY,
+              Authorization: `Bearer ${SERVICE_KEY}`,
+              "Content-Type": "application/json",
+              Prefer: "return=minimal",
+            },
+            body: JSON.stringify({
+              plan_requested_at: requestedAt,
+              plan_request_id: contactRequestId,
+            }),
+          })
+        }
       }
     } catch (e) {
       console.warn("Falha ao registrar no banco (ignorado):", e)
@@ -281,6 +347,10 @@ serve(async (req) => {
       source: "arq_pausa_app",
       occurred_at: new Date().toISOString(),
       request_id: crypto.randomUUID(),
+      evaluation: {
+        id: evaluationId,
+        plan_requested_at: evaluationId ? requestedAt : null,
+      },
       user: {
         id: user.id ?? null,
         email: user.email ?? email,
@@ -294,6 +364,10 @@ serve(async (req) => {
         mensagem,
         has_message: mensagem.length > 0,
       },
+      plan_request: {
+        id: contactRequestId,
+        evaluation_id: evaluationId,
+      },
       routing: {
         notify_owner: true,
         manual_review_required: mensagem.length > 0,
@@ -305,6 +379,7 @@ serve(async (req) => {
       eventPayload,
       typeof user.id === "string" ? user.id : null,
       typeof user.email === "string" ? user.email : email,
+      evaluationId ? `plan_requested:${evaluationId}` : null,
     )
 
     return json(req, { success: true })

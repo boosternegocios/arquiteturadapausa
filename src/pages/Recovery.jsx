@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
 import { BELIEF_KEYS, PATHS, getRecoveryPath, normalizeRecoveryStep } from '../lib/journey'
 import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
 import { clearLocalJourneyBackups, ensureSignupEvaluationCredit, startPaidEvaluation } from '../lib/evaluationCredits'
+import { buildEvaluationScopedPath } from '../lib/evaluationHistory'
 
 const STEPS = [
   { id: 'satisfaction', number: 1, title: '1 Quão satisfeito você está com seu nível de...', subtitle: 'Usando uma escala de 1 (mais baixo) a 10 (mais alto)' },
@@ -310,7 +311,7 @@ export const Recovery = () => {
           }
 
           if (isFinal) {
-            navigate(PATHS.contact)
+            navigate(buildEvaluationScopedPath(PATHS.contact, currentEvalId))
           } else if (step === 'internal-speed' || step === 'time-tips') {
             navigate(PATHS.home)
           } else {

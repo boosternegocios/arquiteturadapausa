@@ -137,6 +137,16 @@ const getPlanErrorMessage = (error) => {
   return message || 'Não foi possível salvar o plano.'
 }
 
+const planRequestMatchesEvaluation = (event, evaluationId) => {
+  if (!event || !evaluationId) return false
+  const payload = event.payload || {}
+  return (
+    payload?.evaluation?.id === evaluationId ||
+    payload?.plan_request?.evaluation_id === evaluationId ||
+    payload?.payload?.evaluation_id === evaluationId
+  )
+}
+
 export const AdminDashboard = () => {
   const { isAdmin } = useAuth()
   const navigate = useNavigate()
@@ -599,7 +609,11 @@ export const AdminDashboard = () => {
     const plans = evaluation.top_fatigue_solution || {}
     const fatigueKeys = [...new Set([...Object.keys(scores), ...Object.keys(plans)])].sort((a, b) => sortFatigueEntries([a], [b]))
     const completedExercises = fatigueKeys.filter(category => getExerciseAdminStatus(category, plans[category]).missingFields.length === 0).length
-    const planRequested = (userDetails?.planRequests || []).length > 0
+    const planRequested = Boolean(
+      evaluation.plan_requested_at ||
+      evaluation.plan_request_id ||
+      (userDetails?.planRequests || []).some(event => planRequestMatchesEvaluation(event, evaluation.id))
+    )
     
     return (
       <div className="space-y-8 animate-fade-in">

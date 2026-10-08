@@ -16,7 +16,7 @@ import {
 import { 
   Radar as RechartsRadar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip 
 } from 'recharts'
-import { getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
+import { buildEvaluationScopedPath, getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
 import { isExerciseComplete } from '../lib/exerciseCompletion'
 
 // Map of satisfaction categories
@@ -71,7 +71,7 @@ export const Dashboard = () => {
       setLoading(true)
       let query = supabase
         .from('evaluations')
-        .select('solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution')
+        .select('id, solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution')
         .eq('user_id', user.id)
 
       if (selectedEvaluationId) {
@@ -106,7 +106,7 @@ export const Dashboard = () => {
         } else if (completedOasis < 7) {
           nextRoute = PATHS.continueHealing;
         } else {
-          nextRoute = PATHS.contact;
+          nextRoute = buildEvaluationScopedPath(PATHS.contact, evalData.id);
         }
         setNextCategory(nextRoute);
 

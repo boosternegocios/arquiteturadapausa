@@ -16,7 +16,7 @@ import {
 import { 
   Radar as RechartsRadar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip 
 } from 'recharts'
-import { getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
+import { buildEvaluationScopedPath, getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
 import { isExerciseComplete } from '../lib/exerciseCompletion'
 
 // Map of categories and max possible values
@@ -52,7 +52,7 @@ export const VitalityRadar = () => {
       setLoading(true)
       let query = supabase
         .from('evaluations')
-        .select('solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution, status')
+        .select('id, solution_time_relation, solution_satisfaction, solution_internal_speed, solution_beliefs, scores, top_fatigue_solution, status')
         .eq('user_id', user.id)
 
       if (selectedEvaluationId) {
@@ -82,7 +82,7 @@ export const VitalityRadar = () => {
         } else if (Object.keys(evalData.top_fatigue_solution || {}).filter(k => isExerciseComplete(k, evalData.top_fatigue_solution[k])).length < 7) {
           nextRoute = PATHS.continueHealing;
         } else {
-          nextRoute = PATHS.contact;
+          nextRoute = buildEvaluationScopedPath(PATHS.contact, evalData.id);
         }
         setNextCategory(nextRoute);
 

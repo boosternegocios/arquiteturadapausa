@@ -178,6 +178,28 @@ const getEvaluationStatus = async (evaluationId: string) => {
   return Array.isArray(rows) && rows.length > 0 ? rows[0]?.status as string | null : null
 }
 
+const hasPlanRequestForEvaluation = async (evaluationId: string) => {
+  const evaluationResponse = await serviceFetch(
+    `evaluations?id=eq.${encodeURIComponent(evaluationId)}&select=id,plan_requested_at,plan_request_id&limit=1`,
+    { method: "GET" },
+  )
+
+  if (evaluationResponse?.ok) {
+    const rows = await evaluationResponse.json().catch(() => [])
+    const evaluation = Array.isArray(rows) && rows.length > 0 ? rows[0] as JsonRecord : null
+    if (evaluation?.plan_requested_at || evaluation?.plan_request_id) return true
+  }
+
+  const requestResponse = await serviceFetch(
+    `contact_requests?evaluation_id=eq.${encodeURIComponent(evaluationId)}&select=id&limit=1`,
+    { method: "GET" },
+  )
+
+  if (!requestResponse?.ok) return false
+  const requestRows = await requestResponse.json().catch(() => [])
+  return Array.isArray(requestRows) && requestRows.length > 0
+}
+
 const getNestedPayload = (delivery: WebhookDelivery) => {
   const payload = delivery.payload && typeof delivery.payload === "object" ? delivery.payload : {}
   const nested = payload.payload
@@ -218,6 +240,23 @@ export const processDueWebhookDeliveries = async (limit = 30) => {
             attempt_count: attemptCount,
             delivered_at: new Date().toISOString(),
             error_message: status ? "A avaliação já não está mais em rascunho." : "Avaliação não encontrada.",
+          })
+          continue
+        }
+      }
+
+      if (delivery.event_type === "fatigue_assessment_completed") {
+        const nestedPayload = getNestedPayload(delivery)
+        const evaluationId = typeof nestedPayload.evaluation_id === "string" ? nestedPayload.evaluation_id : null
+        const hasPlanRequest = evaluationId ? await hasPlanRequestForEvaluation(evaluationId) : false
+
+        if (hasPlanRequest) {
+          skipped += 1
+          await updateDelivery(delivery.id, {
+            status: "skipped",
+            attempt_count: attemptCount,
+            delivered_at: new Date().toISOString(),
+            error_message: "Plano personalizado já solicitado para esta autoavaliação.",
           })
           continue
         }

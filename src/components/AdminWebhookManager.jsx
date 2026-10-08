@@ -20,8 +20,8 @@ const AUTOMATION_EVENT_OPTIONS = [
   },
   {
     event_type: 'fatigue_assessment_completed',
-    label: 'Autoavaliação concluída',
-    description: 'Dispara sempre que uma autoavaliação é finalizada.',
+    label: 'Autoavaliação concluída sem plano',
+    description: 'Dispara após o atraso configurado somente se a pessoa ainda não tiver solicitado o plano personalizado desta autoavaliação.',
   },
   {
     event_type: 'plan_requested',

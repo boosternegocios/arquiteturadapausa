@@ -1,14 +1,18 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { PATHS } from '../lib/journey'
+import { getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
 import { Send, CheckCircle } from 'lucide-react'
 
 export const Contact = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuth()
+  const evaluationIdFromUrl = useMemo(() => getEvaluationIdFromSearchParams(searchParams), [searchParams])
+  const [fallbackEvaluationId, setFallbackEvaluationId] = useState(null)
   const [formData, setFormData] = useState({
     nome: '',
     email: user?.email || '',
@@ -18,6 +22,36 @@ export const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const evaluationId = evaluationIdFromUrl || fallbackEvaluationId
+
+  useEffect(() => {
+    if (!user || evaluationIdFromUrl) return
+
+    let isMounted = true
+    const fetchLatestCompletedEvaluation = async () => {
+      const { data, error } = await supabase
+        .from('evaluations')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!isMounted) return
+      if (error) {
+        console.warn('Não foi possível vincular a solicitação à última avaliação:', error.message)
+        return
+      }
+      setFallbackEvaluationId(data?.id || null)
+    }
+
+    fetchLatestCompletedEvaluation()
+    return () => {
+      isMounted = false
+    }
+  }, [user, evaluationIdFromUrl])
 
   const invokePlanRequest = async (body) => {
     const localFunctionsUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
@@ -56,6 +90,7 @@ export const Contact = () => {
         email: formData.email,
         telefone: formData.telefone,
         mensagem: formData.mensagem,
+        evaluation_id: evaluationId,
       })
       if (error) throw error
       setIsSuccess(true)
