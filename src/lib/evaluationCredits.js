@@ -11,6 +11,12 @@ export const clearLocalJourneyBackups = (userId) => {
   }
 }
 
+export const ensureSignupEvaluationCredit = async () => {
+  const { data, error } = await supabase.rpc('ensure_signup_evaluation_credit')
+  if (error) throw error
+  return data
+}
+
 export const startPaidEvaluation = async () => {
   const localFunctionsUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
 

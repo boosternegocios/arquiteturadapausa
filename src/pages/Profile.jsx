@@ -15,7 +15,7 @@ import {
   hasCompleteFatigueScores,
   hasCompleteSpeedRadar,
 } from '../lib/evaluationHistory';
-import { clearLocalJourneyBackups, startPaidEvaluation } from '../lib/evaluationCredits';
+import { clearLocalJourneyBackups, ensureSignupEvaluationCredit, startPaidEvaluation } from '../lib/evaluationCredits';
 import { createEvaluationPaymentOrder, fetchActivePlans, formatPlanPrice, processCardPayment } from '../lib/payments';
 import { loadMercadoPagoSdk } from '../lib/mercadoPagoSdk';
 
@@ -68,6 +68,8 @@ export const Profile = () => {
     if (!user) return;
     try {
       setHistoryLoading(true);
+      await ensureSignupEvaluationCredit();
+
       const { data } = await supabase
         .from('evaluations')
         .select('*')
@@ -590,7 +592,7 @@ export const Profile = () => {
                       <p className="text-3xl font-black text-slate-800">{creditSummary.consumed}</p>
                     </div>
                     <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Total comprado</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Total de créditos</p>
                       <p className="text-3xl font-black text-slate-800">{creditSummary.total}</p>
                     </div>
                   </div>

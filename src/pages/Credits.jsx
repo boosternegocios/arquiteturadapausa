@@ -5,7 +5,7 @@ import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { getAssessmentPath } from '../lib/journey';
-import { clearLocalJourneyBackups, startPaidEvaluation } from '../lib/evaluationCredits';
+import { clearLocalJourneyBackups, ensureSignupEvaluationCredit, startPaidEvaluation } from '../lib/evaluationCredits';
 import { formatEvaluationDate } from '../lib/evaluationHistory';
 import { createEvaluationPaymentOrder, fetchActivePlans, formatPlanPrice, processCardPayment, processPixPayment } from '../lib/payments';
 import { loadMercadoPagoSdk } from '../lib/mercadoPagoSdk';
@@ -75,6 +75,7 @@ export const Credits = () => {
 
     try {
       setLoading(true);
+      await ensureSignupEvaluationCredit();
 
       const { data: creditData, error: creditError } = await supabase
         .from('evaluation_credits')
@@ -531,7 +532,7 @@ export const Credits = () => {
                 <p className="text-sm font-bold text-slate-500 mt-2">Avaliações extras já consumidas.</p>
               </div>
               <div className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-100">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Total comprado</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Total de créditos</p>
                 <p className="text-4xl font-black text-slate-800">{loading ? '--' : creditSummary.total}</p>
                 <p className="text-sm font-bold text-slate-500 mt-2">Soma dos créditos liberados para sua conta.</p>
               </div>

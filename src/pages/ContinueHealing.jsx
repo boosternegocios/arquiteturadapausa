@@ -7,7 +7,7 @@ import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { CheckCircle, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Users, Heart, Lock, WalletCards } from 'lucide-react'
 import { PATHS, getAssessmentPath, getSpecificSolutionPath } from '../lib/journey'
 import { isExerciseComplete } from '../lib/exerciseCompletion'
-import { clearLocalJourneyBackups, startPaidEvaluation } from '../lib/evaluationCredits'
+import { clearLocalJourneyBackups, ensureSignupEvaluationCredit, startPaidEvaluation } from '../lib/evaluationCredits'
 
 // Informações estendidas para os cards do Oásis
 const CATEGORY_OASIS = {
@@ -35,6 +35,8 @@ export const ContinueHealing = () => {
     if (!user) return
     setLoading(true)
     try {
+      await ensureSignupEvaluationCredit()
+
       const { data, error } = await supabase
         .from('evaluations')
         .select('top_fatigue_solution, status')
