@@ -8,6 +8,7 @@ import { CheckCircle, ArrowRight, HeartPulse, Sparkles, Brain, EyeOff, Smile, Us
 import { PATHS, getAssessmentPath, getSpecificSolutionPath } from '../lib/journey'
 import { isExerciseComplete } from '../lib/exerciseCompletion'
 import { clearLocalJourneyBackups, ensureSignupEvaluationCredit, startPaidEvaluation } from '../lib/evaluationCredits'
+import { buildEvaluationScopedPath } from '../lib/evaluationHistory'
 
 // Informações estendidas para os cards do Oásis
 const CATEGORY_OASIS = {
@@ -89,9 +90,9 @@ export const ContinueHealing = () => {
 
     setStartLoading(true)
     try {
-      await startPaidEvaluation()
+      const result = await startPaidEvaluation()
       clearLocalJourneyBackups(user?.id)
-      navigate(getAssessmentPath('fisico'))
+      navigate(buildEvaluationScopedPath(getAssessmentPath('fisico'), result?.evaluation_id))
     } catch (error) {
       console.error('Erro ao iniciar nova avaliação:', error)
       alert(error.message || 'Não foi possível iniciar uma nova avaliação. Verifique se há crédito disponível.')

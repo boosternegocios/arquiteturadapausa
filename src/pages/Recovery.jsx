@@ -7,6 +7,7 @@ import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
 import { BELIEF_KEYS, PATHS, getRecoveryPath, normalizeRecoveryStep } from '../lib/journey'
 import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
+import { clearLocalJourneyBackups, ensureSignupEvaluationCredit, startPaidEvaluation } from '../lib/evaluationCredits'
 
 const STEPS = [
   { id: 'satisfaction', number: 1, title: '1 Quão satisfeito você está com seu nível de...', subtitle: 'Usando uma escala de 1 (mais baixo) a 10 (mais alto)' },
@@ -111,6 +112,16 @@ export const Recovery = () => {
     }
   }, [backupKey])
 
+  const startEvaluationWithCredit = useCallback(async () => {
+    await ensureSignupEvaluationCredit()
+    const result = await startPaidEvaluation()
+    if (!result?.evaluation_id) {
+      throw new Error('Não foi possível identificar a avaliação iniciada.')
+    }
+    clearLocalJourneyBackups(user?.id)
+    return result.evaluation_id
+  }, [user?.id])
+
   // Persiste o formulário localmente sempre que ele muda (após o carregamento)
   useEffect(() => {
     if (!backupKey || loading) return
@@ -136,6 +147,8 @@ export const Recovery = () => {
 
       try {
         setLoading(true)
+        await ensureSignupEvaluationCredit()
+
         const { data, error } = await supabase
           .from('evaluations')
           .select('*')
@@ -165,22 +178,15 @@ export const Recovery = () => {
                   : prev.rhythm_impacts)
           }))
         } else {
-          // Create new evaluation if none exists
-          const { data: newEval, error: insertError } = await supabase
-            .from('evaluations')
-            .insert([{ user_id: user.id, status: 'draft' }])
-            .select()
-
-          if (insertError) throw insertError
-          if (newEval && newEval.length > 0) {
-            setEvaluationId(newEval[0].id)
-          }
-          // Restaura respostas do backup local, se houver
-          const local = readLocalBackup()
-          if (local) setFormData(prev => ({ ...prev, ...local }))
+          const newEvaluationId = await startEvaluationWithCredit()
+          setEvaluationId(newEvaluationId)
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
+        if (error?.message !== 'SUPABASE_TIMEOUT') {
+          alert(error?.message || 'Não foi possível iniciar sua autoavaliação. Verifique seus créditos disponíveis.')
+          navigate(PATHS.credits)
+        }
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -190,7 +196,7 @@ export const Recovery = () => {
     return () => {
       isMounted = false;
     }
-  }, [user, readLocalBackup])
+  }, [user, navigate, readLocalBackup, startEvaluationWithCredit])
 
   // Silent re-validation when returning to tab (keeps form data, just re-validates connection)
   useVisibilityRefresh(async () => {
@@ -217,16 +223,8 @@ export const Recovery = () => {
 
     if (!currentEvalId) {
       try {
-        const { data: newEval, error: insertError } = await withTimeout(supabase
-          .from('evaluations')
-          .insert([{ user_id: user.id, status: 'draft' }])
-          .select())
-
-        if (insertError) throw insertError
-        if (newEval && newEval.length > 0) {
-          currentEvalId = newEval[0].id
-          setEvaluationId(currentEvalId)
-        }
+        currentEvalId = await startEvaluationWithCredit()
+        setEvaluationId(currentEvalId)
       } catch (e) {
         console.error('Insert error:', e)
         setSaving(false)

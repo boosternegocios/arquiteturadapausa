@@ -4,8 +4,17 @@ export const clearLocalJourneyBackups = (userId) => {
   if (!userId) return
 
   try {
-    localStorage.removeItem(`arqpausa-answers-${userId}`)
-    localStorage.removeItem(`arqpausa-recovery-${userId}`)
+    const prefixes = [
+      `arqpausa-answers-${userId}`,
+      `arqpausa-recovery-${userId}`,
+    ]
+
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index)
+      if (key && prefixes.some(prefix => key === prefix || key.startsWith(`${prefix}-`))) {
+        localStorage.removeItem(key)
+      }
+    }
   } catch (error) {
     console.warn('Não foi possível limpar os backups locais da jornada:', error)
   }

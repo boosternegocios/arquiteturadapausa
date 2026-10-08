@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { getAssessmentPath } from '../lib/journey';
 import { clearLocalJourneyBackups, ensureSignupEvaluationCredit, startPaidEvaluation } from '../lib/evaluationCredits';
+import { buildEvaluationScopedPath } from '../lib/evaluationHistory';
 import { formatEvaluationDate } from '../lib/evaluationHistory';
 import { createEvaluationPaymentOrder, fetchActivePlans, formatPlanPrice, processCardPayment, processPixPayment } from '../lib/payments';
 import { loadMercadoPagoSdk } from '../lib/mercadoPagoSdk';
@@ -291,9 +292,9 @@ export const Credits = () => {
   const handleStartPaidEvaluation = async () => {
     setStartLoading(true);
     try {
-      await startPaidEvaluation();
+      const result = await startPaidEvaluation();
       clearLocalJourneyBackups(user?.id);
-      navigate(getAssessmentPath('fisico'));
+      navigate(buildEvaluationScopedPath(getAssessmentPath('fisico'), result?.evaluation_id));
     } catch (error) {
       console.error('Erro ao iniciar avaliação paga:', error);
       alert(error.message || 'Não foi possível iniciar uma nova avaliação. Verifique se há crédito disponível.');

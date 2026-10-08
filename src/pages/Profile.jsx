@@ -401,9 +401,9 @@ export const Profile = () => {
   const handleStartPaidEvaluation = async () => {
     setStartLoading(true);
     try {
-      await startPaidEvaluation();
+      const result = await startPaidEvaluation();
       clearLocalJourneyBackups(user?.id);
-      navigate(getAssessmentPath('fisico'));
+      navigate(buildEvaluationScopedPath(getAssessmentPath('fisico'), result?.evaluation_id));
     } catch (error) {
       console.error('Erro ao iniciar avaliação paga:', error);
       alert(error.message || 'Não foi possível iniciar uma nova avaliação. Verifique se há crédito disponível.');
