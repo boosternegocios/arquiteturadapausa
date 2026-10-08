@@ -737,6 +737,8 @@ export const Profile = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      <EvaluationComparisonTable evaluations={evaluations} />
+
                       {evaluations.map((evaluation) => {
                         const fatigueReady = hasCompleteFatigueScores(evaluation.scores || {});
                         const speedReady = hasCompleteSpeedRadar(evaluation);
@@ -817,8 +819,6 @@ export const Profile = () => {
                           </div>
                         );
                       })}
-
-                      <EvaluationComparisonTable evaluations={evaluations} />
                     </div>
                   )}
                 </div>
@@ -850,16 +850,18 @@ export const Profile = () => {
                   </div>
                 </div>
                 
-                <div className="bg-white rounded-[2rem] p-8 shadow-sm text-center">
-                  <div className="w-24 h-24 mx-auto bg-slate-100 rounded-full border-4 border-white shadow-md overflow-hidden mb-6 flex items-center justify-center">
+                <div className="bg-white rounded-[2rem] p-6 shadow-sm flex items-center gap-5 text-left">
+                  <div className="w-20 h-20 shrink-0 bg-slate-100 rounded-full border-4 border-white shadow-md overflow-hidden flex items-center justify-center">
                     {formData.avatar_url ? (
                       <img src={formData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-3xl font-black text-primary">{user?.email ? user.email.charAt(0).toUpperCase() : 'U'}</span>
+                      <span className="text-2xl font-black text-primary">{user?.email ? user.email.charAt(0).toUpperCase() : 'U'}</span>
                     )}
                   </div>
-                  <h3 className="text-2xl font-black text-slate-800 mb-2">{formData.full_name || 'Usuário'}</h3>
-                  <p className="text-slate-400 font-medium text-sm mt-2">{formData.phone}</p>
+                  <div className="min-w-0">
+                    <h3 className="text-2xl font-black text-slate-800 leading-tight truncate">{formData.full_name || 'Usuário'}</h3>
+                    <p className="text-slate-400 font-medium text-sm mt-2 truncate">{formData.phone || user?.email}</p>
+                  </div>
                 </div>
               </div>
 
