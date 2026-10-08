@@ -5,8 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { EvaluationResponseSummary } from '../components/EvaluationResponseSummary';
 import { EvaluationComparisonTable } from '../components/EvaluationComparisonTable';
-import { User, Save, Mail, Phone, CalendarClock, Gauge, HeartPulse, FileText, CreditCard, WalletCards, ShoppingBag, CheckCircle2, Clock3, XCircle, X } from 'lucide-react';
-import { PATHS, getAssessmentPath } from '../lib/journey';
+import { User, Save, Mail, Phone, CalendarClock, Gauge, HeartPulse, FileText, CreditCard, WalletCards, ShoppingBag, CheckCircle2, Clock3, XCircle, X, PlayCircle } from 'lucide-react';
+import { ASSESSMENT_CATEGORY_ORDER, PATHS, getAssessmentPath } from '../lib/journey';
 import {
   buildEvaluationScopedPath,
   calculateTimeScore,
@@ -30,6 +30,11 @@ const getPaymentStatus = (status) => {
   if (status === 'rejected' || status === 'cancelled' || status === 'failed') return { label: 'Não concluído', Icon: XCircle, className: 'bg-rose-100 text-rose-700' };
   if (status === 'refunded' || status === 'charged_back') return { label: 'Estornado', Icon: XCircle, className: 'bg-slate-200 text-slate-700' };
   return { label: 'Pendente', Icon: Clock3, className: 'bg-amber-100 text-amber-700' };
+};
+
+const getEvaluationContinueCategory = (evaluation) => {
+  const scores = evaluation?.scores || {};
+  return ASSESSMENT_CATEGORY_ORDER.find((category) => scores[category] === undefined || scores[category] === null) || ASSESSMENT_CATEGORY_ORDER[0];
 };
 
 export const Profile = () => {
@@ -795,39 +800,59 @@ export const Profile = () => {
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                                <button
-                                  type="button"
-                                  disabled={!fatigueReady}
-                                  onClick={() => navigate(buildEvaluationScopedPath(PATHS.result, evaluation.id))}
-                                  className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
-                                >
-                                  Resultado
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={!speedReady}
-                                  onClick={() => navigate(buildEvaluationScopedPath(PATHS.dashboard, evaluation.id))}
-                                  className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
-                                >
-                                  Velocidade
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={!fatigueReady}
-                                  onClick={() => navigate(buildEvaluationScopedPath(PATHS.vitality, evaluation.id))}
-                                  className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-mint hover:text-[#004b4c] disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
-                                >
-                                  Vitalidade
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setOpenEvaluationId(prev => prev === evaluation.id ? null : evaluation.id)}
-                                  className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink transition-colors"
-                                >
-                                  {openEvaluationId === evaluation.id ? 'Ocultar respostas' : 'Ver respostas'}
-                                </button>
-                              </div>
+                              {evaluation.status === 'draft' ? (
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(buildEvaluationScopedPath(getAssessmentPath(getEvaluationContinueCategory(evaluation)), evaluation.id))}
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest border border-brand-pink bg-brand-pink text-white shadow-sm shadow-brand-pink/20 hover:bg-[#d83d84] transition-colors"
+                                  >
+                                    <PlayCircle size={15} />
+                                    Continuar avaliação
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenEvaluationId(prev => prev === evaluation.id ? null : evaluation.id)}
+                                    className="px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink transition-colors"
+                                  >
+                                    {openEvaluationId === evaluation.id ? 'Ocultar respostas' : 'Ver respostas'}
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                                  <button
+                                    type="button"
+                                    disabled={!fatigueReady}
+                                    onClick={() => navigate(buildEvaluationScopedPath(PATHS.result, evaluation.id))}
+                                    className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                  >
+                                    Resultado
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={!speedReady}
+                                    onClick={() => navigate(buildEvaluationScopedPath(PATHS.dashboard, evaluation.id))}
+                                    className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                  >
+                                    Velocidade
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={!fatigueReady}
+                                    onClick={() => navigate(buildEvaluationScopedPath(PATHS.vitality, evaluation.id))}
+                                    className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-mint hover:text-[#004b4c] disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 transition-colors"
+                                  >
+                                    Vitalidade
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenEvaluationId(prev => prev === evaluation.id ? null : evaluation.id)}
+                                    className="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-slate-200 bg-white text-slate-700 hover:border-brand-pink hover:text-brand-pink transition-colors"
+                                  >
+                                    {openEvaluationId === evaluation.id ? 'Ocultar respostas' : 'Ver respostas'}
+                                  </button>
+                                </div>
+                              )}
                             </div>
 
                             {openEvaluationId === evaluation.id && (

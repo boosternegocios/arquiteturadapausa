@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, withTimeout } from '../lib/supabase'
 import { useVisibilityRefresh } from '../hooks/useVisibilityRefresh'
 import { ASSESSMENT_CATEGORY_ORDER, PATHS, getAssessmentPath } from '../lib/journey'
+import { buildEvaluationScopedPath, getEvaluationIdFromSearchParams } from '../lib/evaluationHistory'
 import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
 import { clearLocalJourneyBackups, ensureSignupEvaluationCredit, startPaidEvaluation } from '../lib/evaluationCredits'
 
 export const Assessment = () => {
   const { category } = useParams() // e.g. 'fisico', 'sensorial'
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const selectedEvaluationId = getEvaluationIdFromSearchParams(searchParams)
   const { user } = useAuth()
   const mainRef = useRef(null)
 
@@ -30,7 +33,7 @@ export const Assessment = () => {
 
   // Backup local das respostas: garante que nada se perde se a página
   // precisar ser recarregada (queda de conexão, recuperação automática, etc.)
-  const backupKey = user ? `arqpausa-answers-${user.id}` : null
+  const backupKey = user ? `arqpausa-answers-${user.id}${selectedEvaluationId ? `-${selectedEvaluationId}` : ''}` : null
 
   const readLocalBackup = useCallback(() => {
     if (!backupKey) return {}
@@ -41,6 +44,26 @@ export const Assessment = () => {
       return {}
     }
   }, [backupKey])
+
+  const fetchCurrentDraft = useCallback(async () => {
+    if (!user) return null
+
+    let query = supabase
+      .from('evaluations')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'draft')
+
+    if (selectedEvaluationId) {
+      query = query.eq('id', selectedEvaluationId).limit(1)
+    } else {
+      query = query.order('created_at', { ascending: false }).limit(1)
+    }
+
+    const { data, error } = await withTimeout(query)
+    if (error) throw error
+    return data && data.length > 0 ? data[0] : null
+  }, [selectedEvaluationId, user])
 
   useEffect(() => {
     if (!backupKey || Object.keys(answers).length === 0) return
@@ -103,17 +126,7 @@ export const Assessment = () => {
         setQuestions(fetchedQData)
         await ensureSignupEvaluationCredit()
         
-        const { data: draftRows, error: draftErr } = await supabase
-          .from('evaluations')
-          .select('answers')
-          .eq('user_id', user.id)
-          .eq('status', 'draft')
-          .order('created_at', { ascending: false })
-          .limit(1)
-
-        if (draftErr) throw draftErr
-          
-        const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
+        const draftData = await fetchCurrentDraft()
 
         const needsCredit = !draftData
         setRequiresCredit(needsCredit)
@@ -144,7 +157,7 @@ export const Assessment = () => {
     }
     
     fetchQuestionsAndDraft()
-  }, [category, user, readLocalBackup])
+  }, [category, user, readLocalBackup, fetchCurrentDraft])
 
   // Silent re-validation when returning to tab (keeps form data, just re-validates connection)
   useVisibilityRefresh(async () => {
@@ -182,12 +195,12 @@ export const Assessment = () => {
   const handleStartPaidEvaluation = async () => {
     setIsStartingPaidEvaluation(true)
     try {
-      await startPaidEvaluation()
+      const result = await startPaidEvaluation()
       clearLocalJourneyBackups(user?.id)
       setRequiresCredit(false)
       setAvailableCredits(Math.max(availableCredits - 1, 0))
       setAnswers({})
-      navigate(getAssessmentPath('fisico'))
+      navigate(buildEvaluationScopedPath(getAssessmentPath('fisico'), result?.evaluation_id))
     } catch (error) {
       console.error('Erro ao usar crédito para iniciar avaliação:', error)
       alert(error.message || 'Não foi possível iniciar uma nova avaliação. Verifique se há crédito disponível.')
@@ -199,16 +212,7 @@ export const Assessment = () => {
   const handleSaveDraft = async () => {
     setIsSaving(true)
     try {
-      const { data: draftRows, error: fetchErr } = await withTimeout(supabase
-        .from('evaluations')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'draft')
-        .order('created_at', { ascending: false })
-        .limit(1))
-        
-      if (fetchErr) console.error('[Assessment] Erro ao buscar rascunho:', fetchErr)
-      const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
+      const draftData = await fetchCurrentDraft()
 
       const canCreateDraft = await ensureCanCreateDraft(draftData)
       if (!canCreateDraft) return
@@ -272,17 +276,7 @@ export const Assessment = () => {
     setIsSaving(true)
     try {
       // 1. Fetch current draft if any
-      const { data: draftRows, error: fetchErr } = await withTimeout(supabase
-        .from('evaluations')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'draft')
-        .order('created_at', { ascending: false })
-        .limit(1))
-        
-      if (fetchErr) console.error('[Assessment] Erro ao buscar rascunho:', fetchErr)
-        
-      const draftData = draftRows && draftRows.length > 0 ? draftRows[0] : null
+      const draftData = await fetchCurrentDraft()
 
       const canCreateDraft = await ensureCanCreateDraft(draftData)
       if (!canCreateDraft) return
@@ -356,7 +350,7 @@ export const Assessment = () => {
       if (currentIndex >= 0 && currentIndex < ASSESSMENT_CATEGORY_ORDER.length - 1) {
         // Próximo
         const nextCategory = ASSESSMENT_CATEGORY_ORDER[currentIndex + 1]
-        navigate(getAssessmentPath(nextCategory))
+        navigate(buildEvaluationScopedPath(getAssessmentPath(nextCategory), currentEvaluationId))
       } else {
         // Final
         if (!currentEvaluationId) {
@@ -383,7 +377,7 @@ export const Assessment = () => {
           try { localStorage.removeItem(backupKey) } catch { /* ignora */ }
         }
 
-        navigate(PATHS.result)
+        navigate(buildEvaluationScopedPath(PATHS.result, currentEvaluationId))
       }
 
     } catch (err) {
