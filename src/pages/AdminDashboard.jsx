@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar'
 import { EvaluationResponseSummary } from '../components/EvaluationResponseSummary'
 import { EvaluationComparisonTable } from '../components/EvaluationComparisonTable'
+import { AdminWebhookManager } from '../components/AdminWebhookManager'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { PATHS } from '../lib/journey'
@@ -27,7 +28,8 @@ import {
   PlayCircle,
   TrendingUp,
   Filter,
-  FileText
+  FileText,
+  Webhook
 } from 'lucide-react'
 
 const formatDateTime = (value) => {
@@ -1277,10 +1279,21 @@ export const AdminDashboard = () => {
             >
               <CreditCard size={16} /> Financeiro
             </button>
+            <button
+              type="button"
+              onClick={() => setAdminView('webhooks')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${
+                adminView === 'webhooks'
+                  ? 'bg-white text-brand-pink shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Webhook size={16} /> Webhooks
+            </button>
           </div>
         </div>
 
-        {adminView === 'dashboard' ? renderDashboardHome() : adminView === 'plans' ? renderPlansManager() : adminView === 'finance' ? renderFinanceManager() : (
+        {adminView === 'dashboard' ? renderDashboardHome() : adminView === 'plans' ? renderPlansManager() : adminView === 'finance' ? renderFinanceManager() : adminView === 'webhooks' ? <AdminWebhookManager /> : (
         <div className="flex flex-col md:flex-row bg-slate-50/50">
           {/* Left Panel: User List */}
           <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 md:min-w-[300px] md:max-w-[400px] border-r border-slate-200 bg-white flex-col shrink-0`}>

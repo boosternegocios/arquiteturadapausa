@@ -1,14 +1,16 @@
 // Edge Function: dispatch-journey-event
-// Registra eventos da jornada e, se configurado, envia para o n8n.
+// Registra eventos da jornada e agenda webhooks configurados no painel admin.
 //
-// Secrets:
-//   N8N_JOURNEY_WEBHOOK_URL -> (opcional) webhook n8n para eventos gerais da jornada
-//   N8N_WEBHOOK_URL         -> (opcional) fallback genérico
-//   N8N_WEBHOOK_SECRET      -> (opcional) segredo enviado no header X-Webhook-Secret
 // Variáveis locais de teste, não configurar em produção:
 //   LOCAL_DEV_ALLOW_UNAUTHENTICATED=true
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
+import {
+  enqueueConfiguredWebhooks,
+  findExistingEvent,
+  logAutomationEvent,
+  processDueWebhookDeliveries,
+} from "../_shared/automation-webhooks.ts"
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
@@ -23,6 +25,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
 ]
 
 const ALLOWED_EVENTS = new Set([
+  "user_registered",
   "fatigue_assessment_started",
   "fatigue_category_completed",
   "fatigue_assessment_completed",
@@ -32,6 +35,8 @@ const ALLOWED_EVENTS = new Set([
   "exercise_completed",
   "all_exercises_completed",
 ])
+
+const PUBLIC_EVENTS = new Set(["user_registered"])
 
 const allowedOrigins = () =>
   (Deno.env.get("ALLOWED_ORIGINS") ?? DEFAULT_ALLOWED_ORIGINS.join(","))
@@ -67,7 +72,8 @@ const json = (req: Request, body: unknown, status = 200) =>
 const textValue = (value: unknown, maxLength: number) =>
   String(value ?? "").trim().slice(0, maxLength)
 
-const getUserMetadata = (user: Record<string, unknown>) => {
+const getUserMetadata = (user: Record<string, unknown> | null) => {
+  if (!user) return {}
   const userMetadata = user.user_metadata
   if (userMetadata && typeof userMetadata === "object") return userMetadata as Record<string, unknown>
 
@@ -119,98 +125,29 @@ const getAuthenticatedUser = async (req: Request) => {
   return response.json()
 }
 
-const serviceFetch = async (path: string, init: RequestInit = {}) => {
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
-  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
-  if (!SUPABASE_URL || !SERVICE_KEY) return null
-
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      ...(init.headers || {}),
-    },
+const enqueueJourneyWebhooks = async (eventType: string, eventKey: string | null, eventId: string | null, eventPayload: Record<string, unknown>) => {
+  let queued = await enqueueConfiguredWebhooks({
+    eventType,
+    eventKey,
+    eventId,
+    payload: eventPayload,
   })
-}
 
-const findExistingEvent = async (eventKey: string) => {
-  const response = await serviceFetch(
-    `automation_events?event_key=eq.${encodeURIComponent(eventKey)}&select=id,event_key&limit=1`,
-    { method: "GET" },
-  )
-  if (!response?.ok) return null
-  const rows = await response.json().catch(() => [])
-  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
-}
-
-const logAutomationEvent = async (params: {
-  eventType: string
-  eventKey?: string | null
-  userId?: string | null
-  userEmail?: string | null
-  payload: Record<string, unknown>
-  deliveryStatus: "sent" | "failed" | "skipped"
-  deliveryTarget?: string | null
-  deliveredAt?: string | null
-  errorMessage?: string | null
-}) => {
-  try {
-    await serviceFetch("automation_events", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
+  if (eventType === "fatigue_assessment_started") {
+    const staleEventKey = eventKey ? `assessment_draft_stale:${eventKey}` : null
+    queued += await enqueueConfiguredWebhooks({
+      eventType: "assessment_draft_stale",
+      eventKey: staleEventKey,
+      eventId,
+      payload: {
+        ...eventPayload,
+        event: "assessment_draft_stale",
+        triggered_by: eventType,
       },
-      body: JSON.stringify({
-        event_type: params.eventType,
-        event_key: params.eventKey ?? null,
-        source: "dispatch-journey-event",
-        user_id: params.userId ?? null,
-        user_email: params.userEmail ?? null,
-        payload: params.payload,
-        delivery_status: params.deliveryStatus,
-        delivery_target: params.deliveryTarget ?? null,
-        delivered_at: params.deliveredAt ?? null,
-        error_message: params.errorMessage ?? null,
-      }),
     })
-  } catch (e) {
-    console.warn("Falha ao registrar evento de automação (ignorado):", e)
-  }
-}
-
-const postWithTimeout = async (url: string, init: RequestInit, timeoutMs = 10000) => {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(url, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
-const dispatchWebhook = async (eventType: string, payload: Record<string, unknown>) => {
-  const webhookUrl = Deno.env.get("N8N_JOURNEY_WEBHOOK_URL") || Deno.env.get("N8N_WEBHOOK_URL")
-  if (!webhookUrl) return { status: "skipped" as const, error: "N8N_JOURNEY_WEBHOOK_URL não configurado." }
-
-  const secret = Deno.env.get("N8N_WEBHOOK_SECRET")
-  const response = await postWithTimeout(webhookUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Arqpausa-Event": eventType,
-      ...(secret ? { "X-Webhook-Secret": secret } : {}),
-    },
-    body: JSON.stringify(payload),
-  })
-
-  if (!response.ok) {
-    const details = await response.text().catch(() => "")
-    throw new Error(`n8n respondeu ${response.status}: ${details.slice(0, 300)}`)
   }
 
-  return { status: "sent" as const }
+  return queued
 }
 
 serve(async (req) => {
@@ -221,16 +158,18 @@ serve(async (req) => {
   if (req.method !== "POST") return json(req, { error: "Método não permitido." }, 405)
 
   try {
-    const user = await getAuthenticatedUser(req)
-    if (!user) return json(req, { error: "Usuário não autenticado." }, 401)
-
     const body = await req.json()
     const eventType = textValue(body.event, 80)
     const eventKey = textValue(body.event_key, 180) || null
-    const payload = body.payload && typeof body.payload === "object" ? body.payload : {}
+    const payload = body.payload && typeof body.payload === "object" ? body.payload as Record<string, unknown> : {}
 
     if (!ALLOWED_EVENTS.has(eventType)) {
       return json(req, { error: "Evento não permitido." }, 400)
+    }
+
+    const user = await getAuthenticatedUser(req)
+    if (!user && !PUBLIC_EVENTS.has(eventType)) {
+      return json(req, { error: "Usuário não autenticado." }, 401)
     }
 
     if (eventKey) {
@@ -241,8 +180,9 @@ serve(async (req) => {
     }
 
     const userMetadata = getUserMetadata(user)
-    const userId = typeof user.id === "string" ? user.id : null
-    const userEmail = typeof user.email === "string" ? user.email : null
+    const payloadUser = payload.user && typeof payload.user === "object" ? payload.user as Record<string, unknown> : {}
+    const userId = typeof user?.id === "string" ? user.id : (typeof payloadUser.id === "string" ? payloadUser.id : null)
+    const userEmail = typeof user?.email === "string" ? user.email : (typeof payloadUser.email === "string" ? payloadUser.email : null)
 
     const eventPayload = {
       event: eventType,
@@ -253,42 +193,29 @@ serve(async (req) => {
       user: {
         id: userId,
         email: userEmail,
-        name: userMetadata.full_name ?? userMetadata.name ?? null,
-        phone: userMetadata.phone ?? null,
+        name: userMetadata.full_name ?? userMetadata.name ?? payloadUser.name ?? null,
+        phone: userMetadata.phone ?? payloadUser.phone ?? null,
       },
       payload,
     }
 
-    try {
-      const result = await dispatchWebhook(eventType, eventPayload)
-      await logAutomationEvent({
-        eventType,
-        eventKey,
-        userId,
-        userEmail,
-        payload: eventPayload,
-        deliveryStatus: result.status,
-        deliveryTarget: "n8n",
-        deliveredAt: result.status === "sent" ? new Date().toISOString() : null,
-        errorMessage: result.status === "skipped" ? result.error : null,
-      })
+    const loggedEvent = await logAutomationEvent({
+      eventType,
+      eventKey,
+      source: "dispatch-journey-event",
+      userId,
+      userEmail,
+      payload: eventPayload,
+      deliveryStatus: "pending",
+    })
 
-      return json(req, { success: true, delivery_status: result.status })
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
-      await logAutomationEvent({
-        eventType,
-        eventKey,
-        userId,
-        userEmail,
-        payload: eventPayload,
-        deliveryStatus: "failed",
-        deliveryTarget: "n8n",
-        errorMessage: message,
-      })
+    const queued = await enqueueJourneyWebhooks(eventType, eventKey, loggedEvent?.id ?? null, eventPayload)
+    const processed = await processDueWebhookDeliveries(20).catch((error) => {
+      console.warn("Falha ao processar webhooks imediatos:", error)
+      return { processed: 0, sent: 0, failed: 0, skipped: 0 }
+    })
 
-      return json(req, { success: true, delivery_status: "failed" })
-    }
+    return json(req, { success: true, delivery_status: queued > 0 ? "queued" : "skipped", queued, processed })
   } catch (err) {
     console.error("Erro interno:", err)
     return json(req, { error: "Erro interno ao processar evento." }, 500)

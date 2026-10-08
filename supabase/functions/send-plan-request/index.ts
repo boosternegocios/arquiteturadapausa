@@ -8,8 +8,6 @@
 //   SMTP_USER      -> a caixa de email criada na Hostinger (também é o remetente), ex: plano@dominio.com
 //   SMTP_PASSWORD  -> a senha dessa caixa de email
 //   MAIL_TO        -> (opcional) email que recebe; default abaixo
-//   N8N_PLAN_REQUEST_WEBHOOK_URL -> (opcional) webhook do n8n para avisar solicitação de plano/mentoria
-//   N8N_WEBHOOK_SECRET           -> (opcional) segredo enviado no header X-Webhook-Secret
 // Variáveis locais de teste, não configurar em produção:
 //   LOCAL_DEV_ALLOW_UNAUTHENTICATED=true
 //   LOCAL_DEV_SKIP_EMAIL_DELIVERY=true
@@ -17,6 +15,11 @@
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts"
+import {
+  enqueueConfiguredWebhooks,
+  logAutomationEvent,
+  processDueWebhookDeliveries,
+} from "../_shared/automation-webhooks.ts"
 
 const DEFAULT_TO = "roselli.carolina@gmail.com"
 const SUBJECT = "Nova solicitação de plano personalizado - Arquitetura da Pausa"
@@ -82,115 +85,34 @@ const getUserMetadata = (user: Record<string, unknown>) => {
   return {}
 }
 
-const postWithTimeout = async (url: string, init: RequestInit, timeoutMs = 10000) => {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(url, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
-const logAutomationEvent = async (params: {
-  eventType: string
-  userId?: string | null
-  userEmail?: string | null
-  payload: Record<string, unknown>
-  deliveryStatus: "sent" | "failed" | "skipped"
-  deliveryTarget?: string | null
-  deliveredAt?: string | null
-  errorMessage?: string | null
-}) => {
-  try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
-    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
-    if (!SUPABASE_URL || !SERVICE_KEY) return
-
-    await fetch(`${SUPABASE_URL}/rest/v1/automation_events`, {
-      method: "POST",
-      headers: {
-        apikey: SERVICE_KEY,
-        Authorization: `Bearer ${SERVICE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({
-        event_type: params.eventType,
-        source: "send-plan-request",
-        user_id: params.userId ?? null,
-        user_email: params.userEmail ?? null,
-        payload: params.payload,
-        delivery_status: params.deliveryStatus,
-        delivery_target: params.deliveryTarget ?? null,
-        delivered_at: params.deliveredAt ?? null,
-        error_message: params.errorMessage ?? null,
-      }),
-    })
-  } catch (e) {
-    console.warn("Falha ao registrar evento de automação (ignorado):", e)
-  }
-}
-
 const dispatchPlanRequestWebhook = async (
   eventPayload: Record<string, unknown>,
   userId?: string | null,
   userEmail?: string | null,
 ) => {
-  const webhookUrl = Deno.env.get("N8N_PLAN_REQUEST_WEBHOOK_URL") || Deno.env.get("N8N_WEBHOOK_URL")
   const eventType = "plan_requested"
 
-  if (!webhookUrl) {
-    await logAutomationEvent({
-      eventType,
-      userId,
-      userEmail,
-      payload: eventPayload,
-      deliveryStatus: "skipped",
-      deliveryTarget: "n8n",
-      errorMessage: "N8N_PLAN_REQUEST_WEBHOOK_URL não configurado.",
-    })
-    return
-  }
-
   try {
-    const secret = Deno.env.get("N8N_WEBHOOK_SECRET")
-    const response = await postWithTimeout(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Arqpausa-Event": eventType,
-        ...(secret ? { "X-Webhook-Secret": secret } : {}),
-      },
-      body: JSON.stringify(eventPayload),
-    })
-
-    if (!response.ok) {
-      const details = await response.text().catch(() => "")
-      throw new Error(`n8n respondeu ${response.status}: ${details.slice(0, 300)}`)
-    }
-
-    await logAutomationEvent({
+    const loggedEvent = await logAutomationEvent({
       eventType,
+      source: "send-plan-request",
       userId,
       userEmail,
       payload: eventPayload,
-      deliveryStatus: "sent",
-      deliveryTarget: "n8n",
-      deliveredAt: new Date().toISOString(),
+      deliveryStatus: "pending",
     })
+
+    await enqueueConfiguredWebhooks({
+      eventType,
+      eventKey: null,
+      eventId: loggedEvent?.id ?? null,
+      payload: eventPayload,
+    })
+
+    await processDueWebhookDeliveries(20)
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
-    console.warn("Falha ao enviar webhook n8n (ignorado):", message)
-    await logAutomationEvent({
-      eventType,
-      userId,
-      userEmail,
-      payload: eventPayload,
-      deliveryStatus: "failed",
-      deliveryTarget: "n8n",
-      errorMessage: message,
-    })
+    console.warn("Falha ao agendar webhook de plano (ignorado):", message)
   }
 }
 

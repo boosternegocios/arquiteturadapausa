@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
 import { PATHS } from '../lib/journey'
+import { buildEventKey, dispatchJourneyEvent } from '../lib/automationEvents'
 
 export const Register = () => {
   const [name, setName] = useState('')
@@ -46,6 +47,17 @@ export const Register = () => {
     try {
       const { data, error } = await signUp(email, password, { full_name: name, phone: phone })
       if (error) throw error
+
+      void dispatchJourneyEvent('user_registered', {
+        user: {
+          id: data?.user?.id,
+          email,
+          name,
+          phone,
+        },
+      }, {
+        eventKey: buildEventKey('user_registered', data?.user?.id || email),
+      })
       
       // If there is no session, it means email confirmation is required
       if (!data?.session) {

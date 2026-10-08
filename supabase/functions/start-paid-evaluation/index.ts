@@ -8,6 +8,12 @@
 // SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY são injetadas pelo runtime.
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
+import {
+  enqueueConfiguredWebhooks,
+  findExistingEvent,
+  logAutomationEvent,
+  processDueWebhookDeliveries,
+} from "../_shared/automation-webhooks.ts"
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
@@ -85,6 +91,76 @@ const getAuthenticatedUser = async (req: Request) => {
   return response.json()
 }
 
+const getUserMetadata = (user: Record<string, unknown>) => {
+  const userMetadata = user.user_metadata
+  if (userMetadata && typeof userMetadata === "object") return userMetadata as Record<string, unknown>
+
+  const rawMetadata = user.raw_user_meta_data
+  if (rawMetadata && typeof rawMetadata === "object") return rawMetadata as Record<string, unknown>
+
+  return {}
+}
+
+const dispatchEvaluationStartedEvent = async (user: Record<string, unknown>, evaluationId: string) => {
+  const eventType = "fatigue_assessment_started"
+  const eventKey = `fatigue_assessment_started:${evaluationId}`
+
+  if (await findExistingEvent(eventKey)) return
+
+  const userMetadata = getUserMetadata(user)
+  const userId = typeof user.id === "string" ? user.id : null
+  const userEmail = typeof user.email === "string" ? user.email : null
+  const eventPayload = {
+    event: eventType,
+    event_key: eventKey,
+    source: "arq_pausa_app",
+    occurred_at: new Date().toISOString(),
+    request_id: crypto.randomUUID(),
+    user: {
+      id: userId,
+      email: userEmail,
+      name: userMetadata.full_name ?? userMetadata.name ?? null,
+      phone: userMetadata.phone ?? null,
+    },
+    payload: {
+      evaluation_id: evaluationId,
+      first_step: "assessment",
+    },
+  }
+
+  const loggedEvent = await logAutomationEvent({
+    eventType,
+    eventKey,
+    source: "start-paid-evaluation",
+    userId,
+    userEmail,
+    payload: eventPayload,
+    deliveryStatus: "pending",
+  })
+
+  await enqueueConfiguredWebhooks({
+    eventType,
+    eventKey,
+    eventId: loggedEvent?.id ?? null,
+    payload: eventPayload,
+  })
+
+  await enqueueConfiguredWebhooks({
+    eventType: "assessment_draft_stale",
+    eventKey: `assessment_draft_stale:${eventKey}`,
+    eventId: loggedEvent?.id ?? null,
+    payload: {
+      ...eventPayload,
+      event: "assessment_draft_stale",
+      triggered_by: eventType,
+    },
+  })
+
+  await processDueWebhookDeliveries(20).catch((error) => {
+    console.warn("Falha ao processar webhooks imediatos:", error)
+  })
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: isAllowedOrigin(req) ? 200 : 403, headers: corsHeaders(req) })
@@ -129,9 +205,15 @@ serve(async (req) => {
       return json(req, { error: message }, rpcResponse.status === 400 ? 409 : rpcResponse.status)
     }
 
+    const evaluationId = typeof result === "string" ? result : String(result ?? "")
+
+    if (evaluationId) {
+      await dispatchEvaluationStartedEvent(user, evaluationId)
+    }
+
     return json(req, {
       success: true,
-      evaluation_id: result,
+      evaluation_id: evaluationId || result,
     })
   } catch (e) {
     console.error(e)
