@@ -190,35 +190,55 @@ export const Profile = () => {
       reader.onload = (e) => {
         const img = new Image();
         img.src = e.target.result;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_SIZE = 150; // Limite para manter a string base64 pequena
-          let width = img.width;
-          let height = img.height;
+        img.onload = async () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_SIZE = 150; // Limite para manter a string base64 pequena
+            let width = img.width;
+            let height = img.height;
 
-          // Calcula as proporções para redimensionar mantendo o aspecto
-          if (width > height) {
-            if (width > MAX_SIZE) {
-              height *= MAX_SIZE / width;
-              width = MAX_SIZE;
+            // Calcula as proporções para redimensionar mantendo o aspecto
+            if (width > height) {
+              if (width > MAX_SIZE) {
+                height *= MAX_SIZE / width;
+                width = MAX_SIZE;
+              }
+            } else {
+              if (height > MAX_SIZE) {
+                width *= MAX_SIZE / height;
+                height = MAX_SIZE;
+              }
             }
-          } else {
-            if (height > MAX_SIZE) {
-              width *= MAX_SIZE / height;
-              height = MAX_SIZE;
-            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Converte para JPEG com qualidade 70% para reduzir o tamanho
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            const nextData = { ...formData, avatar_url: dataUrl };
+            
+            setFormData(nextData);
+
+            const { error } = await supabase.auth.updateUser({
+              data: {
+                full_name: nextData.full_name,
+                phone: nextData.phone,
+                avatar_url: dataUrl,
+              },
+            });
+
+            if (error) throw error;
+
+            setSuccessMsg('Foto atualizada com sucesso!');
+            setTimeout(() => setSuccessMsg(''), 3000);
+          } catch (error) {
+            console.error(error);
+            alert('Erro ao salvar a foto do perfil.');
+          } finally {
+            setUploading(false);
           }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Converte para JPEG com qualidade 70% para reduzir o tamanho
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          
-          setFormData(prev => ({ ...prev, avatar_url: dataUrl }));
-          setUploading(false);
         };
         img.onerror = () => {
           alert('Erro ao carregar a imagem.');
@@ -709,6 +729,11 @@ export const Profile = () => {
                 )}
 
                 {profileTab === 'history' && (
+                <div className="space-y-4">
+                {!historyLoading && evaluations.length > 0 && (
+                  <EvaluationComparisonTable evaluations={evaluations} />
+                )}
+
                 <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm">
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
                     <div>
@@ -737,8 +762,6 @@ export const Profile = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <EvaluationComparisonTable evaluations={evaluations} />
-
                       {evaluations.map((evaluation) => {
                         const fatigueReady = hasCompleteFatigueScores(evaluation.scores || {});
                         const speedReady = hasCompleteSpeedRadar(evaluation);
@@ -821,6 +844,7 @@ export const Profile = () => {
                       })}
                     </div>
                   )}
+                </div>
                 </div>
                 )}
               </div>
