@@ -1,0 +1,4 @@
+project_id = "noybugsrzlxbzjgstjff"
+
+[functions.process-automation-webhooks]
+verify_jwt = false
